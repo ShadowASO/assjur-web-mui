@@ -1,0 +1,24 @@
+# USO:
+# sudo docker compose -f docker-compose-web.yml  up --build -d
+# sudo docker compose -f docker-compose-web.yml  down
+
+networks:
+    local-network-ia:
+        name: local-network-ia
+        external: true
+        driver: bridge
+
+services:
+    assjur-web:
+        build: .
+        container_name: assjur-web
+        restart: always
+
+        networks:
+            - local-network-ia
+
+        ports:
+            - '9001:3002'
+
+        environment:
+            - NODE_ENV=production

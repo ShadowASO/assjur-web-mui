@@ -357,7 +357,7 @@ export const insertModelos = async (
 export const searchModelos = async (
   consulta: string,
   natureza: string
-): Promise<ModelosRow[] | null> => {
+): Promise<ModelosRow[] | Error> => {
   try {
     const bodyObj = {
       Index_name: "ml-modelos-msmarco",
@@ -366,19 +366,29 @@ export const searchModelos = async (
     };
 
     const rspApi = await api.post("/tabelas/modelos/search", bodyObj);
-    if (rspApi.ok && rspApi.data) {
+
+    if (rspApi.ok) {
       const data = rspApi.data as IResponseDataDocs<ModelosRow>;
-      return data.docs || null;
+
+      if (data.docs && data.docs.length > 0) {
+        return data.docs;
+      } else {
+        new Error("Nenhum valor retornado");
+      }
     }
+    return new Error(rspApi.error?.message);
   } catch (error) {
-    // Lida com erros da chamada à API
-    console.error("Error accessing the API:", error);
-    throw new Error("Failed to fetch prompts from the API");
+    console.error("Erro ao buscar modelos:", error);
+    // Lança o erro para ser tratado por quem chamou
+    throw error instanceof Error
+      ? error
+      : new Error("Erro inesperado ao buscar modelos");
   }
-  return null;
 };
 
-export const deleteModelos = async (IdDoc: string): Promise<boolean> => {
+export const deleteModelos = async (
+  IdDoc: string
+): Promise<boolean | Error> => {
   try {
     const rspApi = await api.delete(`/tabelas/modelos/${IdDoc}`, {});
 
@@ -386,9 +396,13 @@ export const deleteModelos = async (IdDoc: string): Promise<boolean> => {
       return rspApi.ok;
     } else {
       console.error(`Modelo Id: ${IdDoc} não foi deletado!`);
+      return new Error("Erro ao deletar registro.");
     }
   } catch (error) {
-    console.error("Erro ao deletar o modelo: " + error);
+    //console.error("Erro ao deletar o modelo: " + error);
+    return new Error(
+      (error as { message: string }).message || "Erro ao deletar registros."
+    );
   }
   return false;
 };

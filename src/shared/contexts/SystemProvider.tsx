@@ -10,10 +10,17 @@ import { createContext, useContext, useState, type ReactNode } from "react";
 type SystemContextType = {
   contexto: number;
   setContexto: (id: number) => void;
+  isAuth: boolean;
+  setAuth: (log: boolean) => void;
 };
 
 // Criação do contexto com tipo genérico e inicialização com undefined
-const SystemContext = createContext<SystemContextType | undefined>(undefined);
+const SystemContext = createContext<SystemContextType>({
+  contexto: 0,
+  setContexto: () => {},
+  isAuth: false,
+  setAuth: () => {},
+});
 
 // Props esperadas para o provider
 interface SystemProviderProps {
@@ -22,8 +29,9 @@ interface SystemProviderProps {
 
 export default function SystemProvider({ children }: SystemProviderProps) {
   const [contexto, setContexto] = useState(0);
+  const [isAuth, setAuth] = useState(false);
   return (
-    <SystemContext.Provider value={{ contexto, setContexto }}>
+    <SystemContext.Provider value={{ isAuth, setAuth, contexto, setContexto }}>
       {children}
     </SystemContext.Provider>
   );

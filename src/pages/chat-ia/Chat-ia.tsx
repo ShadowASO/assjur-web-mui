@@ -22,7 +22,7 @@ export const ChatIA = () => {
   const [query, setQuery] = useState("");
   const [isLoading, setIsLoading] = useState(false);
 
-  const { addMessage, messages, getMessages } = useQueryGPT();
+  const { addMessage, messagesRef, getMessages } = useQueryGPT();
   const Api = useApi();
 
   const handleSubmitQuery = async (e: React.FormEvent) => {
@@ -65,7 +65,7 @@ export const ChatIA = () => {
 
   useEffect(() => {
     scrollRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, [messages]);
+  }, [messagesRef]);
 
   return (
     <Box
@@ -84,7 +84,7 @@ export const ChatIA = () => {
         gap={2}
         sx={{ borderBottom: `1px solid ${theme.palette.divider}` }}
       >
-        {messages.map((msg, idx) => (
+        {messagesRef.current.map((msg, idx) => (
           <Paper
             key={idx}
             sx={{

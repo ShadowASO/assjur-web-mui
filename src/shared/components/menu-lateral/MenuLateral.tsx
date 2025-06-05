@@ -60,6 +60,8 @@ export const MenuLateral = ({ children }: IMenuLateralProps) => {
   const { isDrawerOpen, toggleDrawerOpen, drawerOptions } = useDrawerContext();
   const { toggleTheme } = useAppThemeContext();
   const { logout } = useAuth();
+
+  //console.log("redesenho do menu lateral");
   return (
     <>
       <Drawer

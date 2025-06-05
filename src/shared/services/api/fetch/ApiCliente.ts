@@ -30,11 +30,11 @@ interface RefreshResponseInterface {
   access_token: string;
 }
 
-interface BodyResponseVerify {
-  user_id: number;
-  username: string;
-  userrole: string;
-}
+// interface BodyResponseVerify {
+//   user_id: number;
+//   username: string;
+//   userrole: string;
+// }
 
 type ErrorHandler = (response: StandardBodyResponse) => void;
 
@@ -69,7 +69,7 @@ export class ApiCliente {
       if (refreshResponse.ok) {
         const data = refreshResponse.data as RefreshResponseInterface;
         console.log("Token revalidado!");
-        console.log(data);
+
         TokenStorage.accessToken = data.access_token;
         internalResponse = await this.requestInternal(options);
       } else {
@@ -77,6 +77,13 @@ export class ApiCliente {
         this.logout();
         return refreshResponse;
       }
+    }
+    if (
+      internalResponse.status === 401 &&
+      options.url !== "/auth/token/verify"
+    ) {
+      console.log("Token falhou na verificação!");
+      this.logout();
     }
 
     let body: StandardBodyResponse = {};
@@ -172,35 +179,29 @@ export class ApiCliente {
       if (data.access_token && data.refresh_token) {
         TokenStorage.accessToken = data.access_token;
         TokenStorage.refreshToken = data.refresh_token;
-        //this.notify();
         return true;
       }
     }
     return false;
   }
 
-  async verify(): Promise<BodyResponseVerify | null> {
+  async verify(): Promise<boolean> {
     const token = { token: TokenStorage.accessToken };
+    //console.log(token);
 
     try {
       const response = await this.post("/auth/token/verify", token);
 
-      if (response.ok && response.data) {
-        return response.data as BodyResponseVerify;
-      }
-    } catch (e) {
-      const errResp: StandardBodyResponse = {
-        ok: false,
-        error: {
-          code: 500,
-          message: "An unexpected error occurred",
-          description: e instanceof Error ? e.message : String(e),
-        },
-      };
-      this.onError?.(errResp);
+      return response?.ok === true;
+    } catch (error) {
+      console.error(
+        "Erro inesperado ao verificar a validade da conexão: ",
+        error
+      );
+      throw error instanceof Error
+        ? error
+        : new Error("Erro inesperado ao verificar a validade da conexão");
     }
-
-    return null;
   }
 
   logout(): void {

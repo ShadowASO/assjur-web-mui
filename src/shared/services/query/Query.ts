@@ -38,7 +38,7 @@
 //   "system_fingerprint": "fp_483d39d857"
 // }
 
-import { useRef, useState } from "react";
+import { useRef } from "react";
 
 // interface Prompt {
 // 	type: string;
@@ -116,15 +116,15 @@ export interface IRespostaOpenai {
 }
 
 export function useQueryGPT() {
-  const [messages, setMessages] = useState<IMessageOpenai[]>([]);
+  //const [messages, setMessages] = useState<IMessageOpenai[]>([]);
   const messagesRef = useRef<IMessageOpenai[]>([]); // sempre atualizado
 
   function addMessage(role: TRoleType, text: string) {
     const newMessage = { role, content: text };
-    setMessages((prev) => {
-      const updated = [...prev, newMessage];
-      return updated;
-    });
+    // setMessages((prev) => {
+    //   const updated = [...prev, newMessage];
+    //   return updated;
+    // });
     messagesRef.current = [...messagesRef.current, newMessage];
   }
 
@@ -133,7 +133,7 @@ export function useQueryGPT() {
   }
 
   function clearMessages() {
-    setMessages([]);
+    // setMessages([]);
     messagesRef.current = [];
   }
 
@@ -149,7 +149,7 @@ export function useQueryGPT() {
   }
 
   return {
-    messages,
+    //messages,
     messagesRef,
     addMessage,
     getMessages,
