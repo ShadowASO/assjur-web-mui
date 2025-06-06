@@ -287,20 +287,15 @@ export const updatePrompt = async (
   return new Error("Erro não identificado.");
 };
 
-// export const deletePrompt = async (
-//   idPrompt: number
-// ): Promise<PromptsRow | null> => {
-//   const prompt = {
-//     idPrompt: idPrompt,
-//   };
-//   try {
-//     const rspApi = await api.delete("/tabelas/prompts", prompt);
-//     return parseApiResponseDataRow<PromptsRow>(rspApi);
-//   } catch (error) {
-//     console.error("Erro ao deletar o prompt: " + error);
-//   }
-//   return null;
-// };
+export const deletePrompt = async (idPrompt: number): Promise<boolean> => {
+  try {
+    const rspApi = await api.delete(`/tabelas/prompts/${String(idPrompt)}`);
+    return rspApi.ok ? rspApi.ok : false;
+  } catch (error) {
+    console.error("Erro ao deletar o prompt: " + error);
+    throw new Error("Erro ao deletar o registro: ");
+  }
+};
 
 export const refreshPrompts = async (): Promise<PromptsRow[] | Error> => {
   try {
@@ -330,13 +325,11 @@ export const selectPrompt = async (
 // // ** Modelos rows
 
 export const insertModelos = async (
-  Id: string,
   Natureza: string,
   Ementa: string,
   Inteiro_teor: string
 ): Promise<ModelosRow | null> => {
   const modelos = {
-    id: Id,
     natureza: Natureza,
     ementa: Ementa,
     inteiro_teor: Inteiro_teor,
@@ -350,6 +343,31 @@ export const insertModelos = async (
     }
   } catch (error) {
     console.error("Erro ao inserir o modelo: " + error);
+  }
+  return null;
+};
+
+export const updateModelos = async (
+  Id: string,
+  Natureza: string,
+  Ementa: string,
+  Inteiro_teor: string
+): Promise<ModelosRow | null> => {
+  const modelos = {
+    natureza: Natureza,
+    ementa: Ementa,
+    inteiro_teor: Inteiro_teor,
+  };
+  try {
+    //console.log(modelos);
+    const rspApi = await api.put(`/tabelas/modelos/${Id}`, modelos);
+
+    if (rspApi.ok) {
+      const data = rspApi.data as IResponseDataDocs<ModelosRow>;
+      return data.doc || null;
+    }
+  } catch (error) {
+    console.error("Erro ao alterar o modelo: " + error);
   }
   return null;
 };

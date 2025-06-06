@@ -3,17 +3,12 @@ import { PageBaseLayout } from "../../shared/layouts/PageBaseLayout";
 import { BarraListagem } from "../../shared/components/BarraListagem";
 import { Box, Card, Grid, Typography } from "@mui/material";
 import CardContent from "@mui/material/CardContent";
-// import { CidadesService } from "../../shared/services/CidadesService";
-// import { PessoasService } from "../../shared/services/PessoasService";
 
-// interface DashboardProps {
-//   children?: ReactNode;
-// }
 export const Dashboard = () => {
-  const [isLoadingCidades, setIsLoadingCidades] = useState(true);
-  const [isLoadingPessoas, setIsLoadingPessoas] = useState(true);
-  const [totalCountCidades, setTotalCountCidades] = useState(0);
-  const [totalCountPessoas, setTotalCountPessoas] = useState(0);
+  const [isLoadingCidades] = useState(true);
+  const [isLoadingPessoas] = useState(true);
+  const [totalCountCidades] = useState(0);
+  const [totalCountPessoas] = useState(0);
 
   useEffect(() => {
     // setIsLoadingCidades(true);

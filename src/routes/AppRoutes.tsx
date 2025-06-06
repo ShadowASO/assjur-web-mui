@@ -10,6 +10,8 @@ import { ChatIA } from "../pages/chat-ia/Chat-ia";
 import { ListaModelos } from "../pages/Modelos/ListaModelos";
 import { Login } from "../shared/components/login/Login";
 import { RequireAuth } from "../shared/components/login/RequireAuth";
+import { DetalheModelos } from "../pages/Modelos/DetalheModelos";
+import { ListaPrompts } from "../pages/prompts/ListaPrompts";
 //import { getApiObjeto } from "../shared/services/api/fetch/ApiCliente";
 
 export const AppRoutes = () => {
@@ -35,6 +37,11 @@ export const AppRoutes = () => {
         icon: LocationCity,
         path: "/modelos",
         label: "Modelos",
+      },
+      {
+        icon: LocationCity,
+        path: "/prompts",
+        label: "Prompts",
       },
       {
         icon: LocationCity,
@@ -70,6 +77,7 @@ export const AppRoutes = () => {
           </RequireAuth>
         }
       />
+      //Modelos
       <Route
         path="/modelos"
         element={
@@ -78,8 +86,32 @@ export const AppRoutes = () => {
           </RequireAuth>
         }
       />
+      <Route
+        path="/modelos/detalhe/:id"
+        element={
+          <RequireAuth>
+            <DetalheModelos></DetalheModelos>
+          </RequireAuth>
+        }
+      />
+      //Prompts
+      <Route
+        path="/prompts"
+        element={
+          <RequireAuth>
+            <ListaPrompts></ListaPrompts>
+          </RequireAuth>
+        }
+      />
+      <Route
+        path="/prompts/detalhe/:id"
+        element={
+          <RequireAuth>
+            <DetalheModelos></DetalheModelos>
+          </RequireAuth>
+        }
+      />
       <Route path="/login" element={<Login></Login>} />
-
       <Route
         path="*"
         element={<Navigate to="/pagina-inicial"></Navigate>}
