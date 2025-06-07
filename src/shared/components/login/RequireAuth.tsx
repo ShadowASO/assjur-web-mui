@@ -1,19 +1,14 @@
 import { Navigate } from "react-router-dom";
-import { getApiObjeto } from "../../services/api/fetch/ApiCliente";
+import { useAuth } from "../../contexts/AuthProvider";
 
 interface IRequireAuthProps {
   children?: React.ReactNode;
 }
-//export const Login: React.FC<ILoginProps> = ({ children }) => {
 
 export const RequireAuth = ({ children }: IRequireAuthProps) => {
-  const Api = getApiObjeto();
-  const isAuthenticated = Api.isAuthenticated();
+  const { isAuth } = useAuth();
 
-  if (!isAuthenticated) {
-    console.log("Não autenticado!");
-    return <Navigate to="/login" replace />;
-  }
+  if (!isAuth) return <Navigate to="/login" replace />;
 
-  return children;
+  return <>{children}</>;
 };

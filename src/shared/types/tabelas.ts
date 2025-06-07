@@ -9,7 +9,7 @@ type AutosRow = {
   status: string;
 };
 
-type TempAutosRow = {
+type DocsOcrRow = {
   id_doc: number;
   id_ctxt: number;
   nm_file_new: string;
@@ -70,7 +70,7 @@ type PromptsRow = {
 
 export type {
   AutosRow,
-  TempAutosRow,
+  DocsOcrRow,
   UploadFilesRow,
   SessionRow,
   ContextoRow,

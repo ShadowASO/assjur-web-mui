@@ -11,7 +11,8 @@ import { getApiObjeto } from "../services/api/fetch/ApiCliente";
 interface IAuthContextData {
   login: (username: string, password: string) => Promise<boolean>;
   logout: () => void;
-  isAuthenticated: boolean;
+  isAuth: boolean;
+  setAuth: React.Dispatch<React.SetStateAction<boolean>>;
 }
 
 const AuthContext = createContext<IAuthContextData | undefined>(undefined);
@@ -21,7 +22,7 @@ interface IAuthProviderProps {
 }
 
 export const AuthProvider = ({ children }: IAuthProviderProps) => {
-  const [, setConected] = useState(false);
+  const [isAuth, setAuth] = useState<boolean>(false);
   const Api = getApiObjeto(); //Obtém a instância global da API
 
   useEffect(() => {
@@ -34,12 +35,15 @@ export const AuthProvider = ({ children }: IAuthProviderProps) => {
     (async () => {
       const isValid = await Api.verify();
       //Na inicialização, o estado é falso
-      setConected(isValid ? true : false);
+      setAuth(isValid ? true : false);
+      if (!isValid) {
+        Api.logout();
+      }
     })();
 
     const syncToken = async () => {
       const isValid = await Api.verify();
-      setConected(isValid ? true : false);
+      setAuth(isValid ? true : false);
     };
 
     window.addEventListener("storage", syncToken);
@@ -54,7 +58,7 @@ export const AuthProvider = ({ children }: IAuthProviderProps) => {
    */
   useEffect(() => {
     const handleAuthChange = () => {
-      setConected(Api.isAuthenticated() ? true : false);
+      setAuth(Api.isAuthenticated() ? true : false);
     };
 
     Api.addListener(handleAuthChange);
@@ -68,7 +72,7 @@ export const AuthProvider = ({ children }: IAuthProviderProps) => {
     try {
       const ok = await Api.login(username, password);
       if (ok) {
-        setConected(true);
+        setAuth(true);
       }
       return ok;
     } catch (e) {
@@ -79,14 +83,17 @@ export const AuthProvider = ({ children }: IAuthProviderProps) => {
 
   const handleLogout = () => {
     Api.logout();
-    setConected(false);
+    setAuth(false);
   };
-
-  const isAuthenticated = Api.isAuthenticated();
 
   return (
     <AuthContext.Provider
-      value={{ isAuthenticated, login: handleLogin, logout: handleLogout }}
+      value={{
+        setAuth,
+        isAuth,
+        login: handleLogin,
+        logout: handleLogout,
+      }}
     >
       {children}
     </AuthContext.Provider>
@@ -96,7 +103,7 @@ export const AuthProvider = ({ children }: IAuthProviderProps) => {
 export const useAuth = () => {
   const context = useContext(AuthContext);
   if (!context) {
-    throw new Error("useAuthContext must be used within an AuthProvider");
+    throw new Error("useAuth deve ser usado dentro de um AuthProvider");
   }
   return context;
 };

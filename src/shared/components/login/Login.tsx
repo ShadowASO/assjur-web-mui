@@ -21,7 +21,7 @@ interface ILoginProps {
   children?: React.ReactNode;
 }
 export const Login: React.FC<ILoginProps> = ({ children }) => {
-  const { isAuthenticated, login } = useAuth();
+  const { isAuth, login } = useAuth();
 
   const [isLoading, setIsLoading] = useState(false);
   const [passwordError, setPasswordError] = useState("");
@@ -55,7 +55,7 @@ export const Login: React.FC<ILoginProps> = ({ children }) => {
   };
 
   //Retirar conmentário
-  if (isAuthenticated) return <>{children}</>;
+  if (isAuth) return <>{children}</>;
 
   return (
     <Box

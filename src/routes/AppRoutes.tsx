@@ -12,6 +12,7 @@ import { Login } from "../shared/components/login/Login";
 import { RequireAuth } from "../shared/components/login/RequireAuth";
 import { DetalheModelos } from "../pages/Modelos/DetalheModelos";
 import { ListaPrompts } from "../pages/prompts/ListaPrompts";
+import { UploadProcesso } from "../pages/processos/UploadProcesso";
 //import { getApiObjeto } from "../shared/services/api/fetch/ApiCliente";
 
 export const AppRoutes = () => {
@@ -70,6 +71,22 @@ export const AppRoutes = () => {
         }
       />
       <Route
+        path="/processos/detalhes/:id"
+        element={
+          <RequireAuth>
+            <UploadProcesso></UploadProcesso>
+          </RequireAuth>
+        }
+      />
+      <Route
+        path="/processos/upload/:id"
+        element={
+          <RequireAuth>
+            <UploadProcesso></UploadProcesso>
+          </RequireAuth>
+        }
+      />
+      <Route
         path="/chat-ia"
         element={
           <RequireAuth>
@@ -87,7 +104,7 @@ export const AppRoutes = () => {
         }
       />
       <Route
-        path="/modelos/detalhe/:id"
+        path="/modelos/detalhes/:id"
         element={
           <RequireAuth>
             <DetalheModelos></DetalheModelos>
@@ -104,7 +121,7 @@ export const AppRoutes = () => {
         }
       />
       <Route
-        path="/prompts/detalhe/:id"
+        path="/prompts/detalhes/:id"
         element={
           <RequireAuth>
             <DetalheModelos></DetalheModelos>

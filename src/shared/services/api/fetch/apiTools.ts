@@ -11,11 +11,12 @@ import type { StandardBodyResponse } from "./ApiCliente";
 import type {
   AutosRow,
   ContextoRow,
+  DocsOcrRow,
   ModelosRow,
   PromptsRow,
-  TempAutosRow,
   UploadFilesRow,
 } from "./../../../types/tabelas";
+import { TokenStorage } from "./TokenStorage";
 
 /**
  * Obtém a instância global da Api
@@ -66,15 +67,13 @@ export const uploadFileToServer = async (idContexto: number, file: File) => {
     formData.append("filename_ori", file.name);
 
     try {
-      // You can write the URL of your server or any other endpoint used for file upload
-      //const result = await fetch('http://localhost:4001/upload', {
       /** O formato de arquivo é muito importante, pois só funciona com o
        * formato 'multipart/form-data'
        */
       await fetch(BASE_API_URL + "/contexto/documentos/upload", {
         method: "POST",
         headers: {
-          Authorization: "Bearer " + localStorage.getItem("accessToken"),
+          Authorization: "Bearer " + TokenStorage.accessToken,
         },
         body: formData,
       });
@@ -85,10 +84,10 @@ export const uploadFileToServer = async (idContexto: number, file: File) => {
 };
 
 export const refreshUploadFiles = async (
-  newContexto: number
+  newContexto: string
 ): Promise<UploadFilesRow[] | Error> => {
   // Validação inicial do contexto --
-  if (newContexto === 0) {
+  if (newContexto === "") {
     return new Error("ID do contexto ausente.");
   }
 
@@ -103,10 +102,32 @@ export const refreshUploadFiles = async (
   }
   //return null;
 };
+export const extracDocumentWithOCR = async (
+  idCtxt: number,
+  idDoc: number
+): Promise<boolean> => {
+  const objBody: {
+    IdContexto: number;
+    IdFile: number;
+  }[] = [];
 
-export const refreshAutosTemp = async (
+  const obj = {
+    IdContexto: idCtxt,
+    IdFile: idDoc,
+  };
+
+  objBody.push(obj);
+  try {
+    await api.post("/contexto/documentos", objBody);
+    return true;
+  } catch (error) {
+    console.error("Erro ao extrair documento com OCR: " + error);
+    throw new Error("Erro ao extrair documento com OCR: ");
+  }
+};
+export const refreshOcrByContexto = async (
   idContexto: number
-): Promise<TempAutosRow[] | Error> => {
+): Promise<DocsOcrRow[] | Error> => {
   if (idContexto === 0) {
     return new Error("ID do registro ausente.");
   }
@@ -114,7 +135,7 @@ export const refreshAutosTemp = async (
     const rspApi = await api.get(
       `/contexto/documentos/all/${String(idContexto)}`
     );
-    return parseApiResponseDataRows<TempAutosRow>(rspApi);
+    return parseApiResponseDataRows<DocsOcrRow>(rspApi);
   } catch (error) {
     // Lida com erros da chamada à API
     console.error("Erro ao acessar a API:", error);
@@ -128,13 +149,13 @@ export const refreshAutosTemp = async (
 
 export const selectAutosTemp = async (
   idDoc: number
-): Promise<TempAutosRow | Error> => {
+): Promise<DocsOcrRow | Error> => {
   if (idDoc === 0) {
     return new Error("ID do registro ausente.");
   }
   try {
     const rspApi = await api.get(`/contexto/documentos/${String(idDoc)}`);
-    return parseApiResponseDataRow<TempAutosRow>(rspApi);
+    return parseApiResponseDataRow<DocsOcrRow>(rspApi);
   } catch (error) {
     // Lida com erros da chamada à API
     console.error("Erro ao acessar a API:", error);

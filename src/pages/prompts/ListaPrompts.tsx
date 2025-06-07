@@ -79,7 +79,7 @@ export const ListaPrompts = () => {
         <BarraListagem
           buttonLabel="Novo"
           fieldValue={busca}
-          onButtonClick={() => navigate(`/prompts/detalhe/novo`)}
+          onButtonClick={() => navigate(`/prompts/detalhes/novo`)}
           onFieldChange={(txt) =>
             setSearchParams({ busca: txt, pagina: "1" }, { replace: true })
           }
@@ -123,7 +123,7 @@ export const ListaPrompts = () => {
                       size="small"
                       onClick={(e) => {
                         e.stopPropagation();
-                        navigate(`/prompts/detalhe/${row.id_prompt}`);
+                        navigate(`/prompts/detalhes/${row.id_prompt}`);
                       }}
                     >
                       <Icon>

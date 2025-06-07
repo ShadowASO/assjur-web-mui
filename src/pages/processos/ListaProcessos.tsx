@@ -8,7 +8,6 @@ import {
 } from "../../shared/services/api/fetch/apiTools";
 import { useDebounce } from "../../shared/hooks/UseDebounce";
 import {
-  Icon,
   IconButton,
   LinearProgress,
   Pagination,
@@ -20,38 +19,37 @@ import {
   TableFooter,
   TableHead,
   TableRow,
+  Menu,
+  MenuItem,
 } from "@mui/material";
 import { Environment } from "../../shared/enviroments";
-import { Delete, Edit } from "@mui/icons-material";
+import { MoreVert } from "@mui/icons-material";
 import { TIME_FLASH_ALERTA_SEC } from "../../shared/components/FlashAlerta";
 import { useFlash } from "../../shared/contexts/FlashProvider";
 import type { ContextoRow } from "../../shared/types/tabelas";
 
 export const ListaProcessos = () => {
   const [searchParams, setSearchParams] = useSearchParams();
-  const { debounce } = useDebounce(500); // 500ms de atraso
+  const { debounce } = useDebounce(500);
   const navigate = useNavigate();
 
   const [rows, setRows] = useState<ContextoRow[]>([]);
   const [totalPage, setTotalPage] = useState(0);
   const [isLoading, setIsLoading] = useState(true);
+  const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
+  const [selectedId, setSelectedId] = useState<number | null>(null);
 
   const busca = searchParams.get("busca") || "";
-
   const pagina = Number(searchParams.get("pagina") || "1");
-
   const { showFlashMessage } = useFlash();
 
   const handleDelete = async (id: number) => {
-    if (confirm("Realmetne deseja apagar?")) {
+    if (confirm("Realmente deseja apagar?")) {
       const rsp = await deleteContexto(String(id));
       if (rsp instanceof Error) {
         showFlashMessage(rsp.message, "error", TIME_FLASH_ALERTA_SEC);
       } else {
-        setRows((old) => {
-          return [...old.filter((old) => old.id_ctxt !== id)];
-        });
-
+        setRows((old) => old.filter((row) => row.id_ctxt !== id));
         showFlashMessage(
           "Registro apagado com sucesso",
           "success",
@@ -61,17 +59,33 @@ export const ListaProcessos = () => {
     }
   };
 
+  const handleMenuOpen = (event: React.MouseEvent<HTMLElement>, id: number) => {
+    setAnchorEl(event.currentTarget);
+    setSelectedId(id);
+  };
+
+  const handleMenuClose = () => {
+    setAnchorEl(null);
+    setSelectedId(null);
+  };
+
+  const handleUploadClick = () => {
+    if (selectedId) navigate(`/processos/upload/${selectedId}`);
+    handleMenuClose();
+  };
+
+  const handleDetalhesClick = () => {
+    if (selectedId) navigate(`/processos/detalhes/${selectedId}`);
+    handleMenuClose();
+  };
+
   useEffect(() => {
     setIsLoading(true);
-
     debounce(async () => {
       const rsp = await refreshContextos();
       setIsLoading(false);
-      if (rsp instanceof Error) {
-        return;
-      } else {
+      if (!(rsp instanceof Error)) {
         setTotalPage(rsp.length);
-        //console.log(totalPage);
         setRows(rsp);
       }
     });
@@ -84,7 +98,7 @@ export const ListaProcessos = () => {
         <BarraListagem
           buttonLabel="Nova"
           fieldValue={busca}
-          onButtonClick={() => navigate(`/Processos/detalhes/nova`)}
+          onButtonClick={() => navigate(`/processos/detalhes/nova`)}
           onFieldChange={(txt) =>
             setSearchParams({ busca: txt, pagina: "1" }, { replace: true })
           }
@@ -112,24 +126,12 @@ export const ListaProcessos = () => {
                   <TableCell>
                     <IconButton
                       size="small"
-                      onClick={() => handleDelete(row.id_ctxt)}
+                      onClick={(e) => handleMenuOpen(e, row.id_ctxt)}
                     >
-                      <Icon>
-                        <Delete></Delete>
-                      </Icon>
-                    </IconButton>
-                    <IconButton
-                      size="small"
-                      onClick={() =>
-                        navigate(`/Processos/detalhes/${row.id_ctxt}`)
-                      }
-                    >
-                      <Icon>
-                        <Edit></Edit>
-                      </Icon>
+                      <MoreVert />
                     </IconButton>
                   </TableCell>
-                  <TableCell>{row.nr_proc} </TableCell>
+                  <TableCell>{row.nr_proc}</TableCell>
                   <TableCell>{row.assunto}</TableCell>
                 </TableRow>
               ))}
@@ -139,7 +141,6 @@ export const ListaProcessos = () => {
             <caption>{Environment.LISTAGEM_VAZIA}</caption>
           )}
 
-          {/* Rodapé da tabelas */}
           <TableFooter>
             {isLoading && (
               <TableRow>
@@ -148,7 +149,6 @@ export const ListaProcessos = () => {
                 </TableCell>
               </TableRow>
             )}
-            {/* Paginação */}
             {totalPage > 0 && totalPage > Environment.LIMITE_DE_LINHAS && (
               <TableRow>
                 <TableCell colSpan={3}>
@@ -167,6 +167,23 @@ export const ListaProcessos = () => {
             )}
           </TableFooter>
         </Table>
+
+        <Menu
+          anchorEl={anchorEl}
+          open={Boolean(anchorEl)}
+          onClose={handleMenuClose}
+        >
+          <MenuItem onClick={handleUploadClick}>Upload de Peças</MenuItem>
+          <MenuItem onClick={handleDetalhesClick}>Ver Detalhes</MenuItem>
+          <MenuItem
+            onClick={() => {
+              if (selectedId) handleDelete(selectedId);
+              handleMenuClose();
+            }}
+          >
+            Excluir
+          </MenuItem>
+        </Menu>
       </TableContainer>
     </PageBaseLayout>
   );

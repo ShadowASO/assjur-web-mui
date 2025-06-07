@@ -89,7 +89,7 @@ export const ListaModelos = () => {
         <BarraListagem
           buttonLabel="Nova"
           fieldValue={busca}
-          onButtonClick={() => navigate(`/modelos/detalhe/nova`)}
+          onButtonClick={() => navigate(`/modelos/detalhes/nova`)}
           onFieldChange={(txt) =>
             setSearchParams({ busca: txt, pagina: "1" }, { replace: true })
           }
@@ -139,7 +139,7 @@ export const ListaModelos = () => {
                       size="small"
                       onClick={(e) => {
                         e.stopPropagation();
-                        navigate(`/modelos/detalhe/${row.id}`);
+                        navigate(`/modelos/detalhes/${row.id}`);
                       }}
                     >
                       <Icon>
