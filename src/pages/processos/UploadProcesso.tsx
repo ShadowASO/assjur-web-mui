@@ -17,8 +17,10 @@ import { ListaPecas } from "./ListaPecas";
 import { useState } from "react";
 
 import {
+  deleteOcrdocByIdDoc,
+  deleteUploadFileById,
   extracDocumentWithOCR,
-  refreshOcrByContexto,
+  uploadFileToServer,
 } from "../../shared/services/api/fetch/apiTools";
 import { ListaOCR } from "./ListaOCR";
 import { Close, ContentCopy } from "@mui/icons-material";
@@ -29,10 +31,51 @@ export const UploadProcesso = () => {
   const [textoOCR, setTextoOCR] = useState("");
   const [snackbarOpen, setSnackbarOpen] = useState(false);
   const [snackbarError, setSnackbarError] = useState(false);
+  //Refresh das interfaces filhas
+  const [refreshKeyPecas, setRefreshKeyPecas] = useState(0);
+  const [refreshKeyOCR, setRefreshKeyOCR] = useState(0);
+
+  const handleUpload = async (file: File) => {
+    await uploadFileToServer(Number(id), file);
+    setRefreshKeyPecas((prev) => prev + 1); // Força refresh da lista de peças
+  };
 
   const handleExtrairTexto = async (fileId: number) => {
-    await extracDocumentWithOCR(Number(id), fileId);
-    await refreshOcrByContexto(Number(id)); // Atualização pode ser otimizada
+    const ok = await extracDocumentWithOCR(Number(id), fileId);
+
+    if (ok) {
+      setRefreshKeyOCR((prev) => prev + 1); // Força refresh da lista OCR
+      setRefreshKeyPecas((prev) => prev + 1); // Força refresh da lista de peças
+      //console.log("transferido");
+    } else {
+      console.log("houve um erro na transferência do arquivo!");
+    }
+  };
+  //Deleta o registro extraído com OCR
+  const handleDeleteOCR = async (fileId: number) => {
+    try {
+      const sucesso = await deleteOcrdocByIdDoc(fileId);
+      if (sucesso) {
+        setRefreshKeyOCR((prev) => prev + 1); // Força refresh da lista OCR
+        //console.log("Deletado com sucesso!");
+      }
+    } catch (err) {
+      console.error("Erro ao deletar:", err);
+    }
+  };
+
+  //Deleta o registro extraído com OCR
+  const handleDeletePDF = async (fileId: number) => {
+    try {
+      const sucesso = await deleteUploadFileById(fileId);
+      if (sucesso) {
+        //setRefreshKeyOCR((prev) => prev + 1); // Força refresh da lista OCR
+        setRefreshKeyPecas((prev) => prev + 1); // Força refresh da lista de peças
+        //console.log("Deletado com sucesso!");
+      }
+    } catch (err) {
+      console.error("Erro ao deletar:", err);
+    }
   };
 
   const handleAbrirDialog = (texto: string) => {
@@ -61,21 +104,21 @@ export const UploadProcesso = () => {
   return (
     <Box p={2}>
       <Typography variant="h5" gutterBottom>
-        Upload de Peças Processuais #{id}
+        Formação do Contexto Processual - Upload de Peças - Contexto nº {id}
       </Typography>
 
       <Grid container spacing={2}>
         {/* COL-01 - Seleção dos arquivos a transferir */}
-        <Grid size={{ xs: 12, sm: 12, md: 6, lg: 4, xl: 4 }}>
+        <Grid size={{ xs: 12, sm: 12, md: 12, lg: 4, xl: 4 }}>
           <Paper sx={{ p: 2, mb: 2 }}>
-            <SelectPecas processoId={id!} />
+            <SelectPecas onUpload={handleUpload} />
           </Paper>
         </Grid>
 
         {/*COL-2 Arquivos transferidos por upload */}
-        <Grid size={{ xs: 12, sm: 12, md: 6, lg: 4, xl: 4 }}>
+        <Grid size={{ xs: 12, sm: 12, md: 12, lg: 4, xl: 4 }}>
           <Paper sx={{ p: 2, mb: 2 }}>
-            <Typography variant="subtitle1">Peças trasnferidas</Typography>
+            <Typography variant="subtitle1">Documentos transferidos</Typography>
           </Paper>
 
           <Paper sx={{ p: 2 }}>
@@ -84,18 +127,28 @@ export const UploadProcesso = () => {
               processoId={id!}
               onView={() => {}}
               onExtract={handleExtrairTexto}
+              refreshKey={refreshKeyPecas}
+              onDelete={handleDeletePDF}
             />
           </Paper>
         </Grid>
 
         {/*COL-3 Arquivos transferidos por upload */}
-        <Grid size={{ xs: 12, sm: 12, md: 6, lg: 4, xl: 4 }}>
+        <Grid size={{ xs: 12, sm: 12, md: 12, lg: 4, xl: 4 }}>
           <Paper sx={{ p: 2, mb: 2 }}>
-            <Typography variant="subtitle1">Peças Extraídas por OCR</Typography>
+            <Typography variant="subtitle1">
+              Documentos extraídos por OCR
+            </Typography>
+          </Paper>
+
+          <Paper sx={{ p: 2, mb: 2 }}>
+            {/* <Typography variant="subtitle1">Peças Extraídas por OCR</Typography> */}
             <ListaOCR
               processoId={id!}
-              onViewText={handleAbrirDialog}
+              onView={handleAbrirDialog}
               onExtract={handleExtrairTexto}
+              onDelete={handleDeleteOCR}
+              refreshKey={refreshKeyOCR}
             />
           </Paper>
         </Grid>

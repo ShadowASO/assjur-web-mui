@@ -114,8 +114,8 @@ export const ListaProcessos = () => {
           <TableHead>
             <TableRow>
               <TableCell width={100}>Ações</TableCell>
-              <TableCell>Nome completo</TableCell>
-              <TableCell>Email</TableCell>
+              <TableCell>Processo</TableCell>
+              <TableCell>Assunto</TableCell>
             </TableRow>
           </TableHead>
 
@@ -173,8 +173,8 @@ export const ListaProcessos = () => {
           open={Boolean(anchorEl)}
           onClose={handleMenuClose}
         >
-          <MenuItem onClick={handleUploadClick}>Upload de Peças</MenuItem>
-          <MenuItem onClick={handleDetalhesClick}>Ver Detalhes</MenuItem>
+          <MenuItem onClick={handleUploadClick}>Formar contexto</MenuItem>
+          <MenuItem onClick={handleDetalhesClick}>Análise Jurídica</MenuItem>
           <MenuItem
             onClick={() => {
               if (selectedId) handleDelete(selectedId);

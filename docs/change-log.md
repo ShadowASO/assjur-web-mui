@@ -23,5 +23,14 @@ ApiCliente.Verify() e nos useEffect do AuthProvider;
 b) correções na API para ajustar o formato de retorno de erros na busca de mode-
 los, usando modelos/search;
 
+# -----------------------------------------------------------------------------
+#             Em 07/08-06-2025: Versão 1.0.0                                    
+# -----------------------------------------------------------------------------
+a) criada a interface de cadastramento e listagem de prompts;
+b) criada a interface de cadastramento e listagem de modelos;
+c) criada a interface de listagem de processos/contextos, formação do contexto
+processual, com a seleção dos arquivos, transferência dos arquivos e extração
+dos conteúdo utilizando OCR; Agora cada registro possui um ícone que permite
+a transferência, deleção, extração, vizualização e juntada do documento;
 
 

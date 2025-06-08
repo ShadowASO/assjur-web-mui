@@ -100,8 +100,26 @@ export const refreshUploadFiles = async (
     console.error("Erro ao acessar a API:", error);
     throw error;
   }
-  //return null;
 };
+
+export const deleteUploadFileById = async (IdReg: number): Promise<boolean> => {
+  try {
+    const rspApi = await api.delete(
+      `/contexto/documentos/upload/${String(IdReg)}`
+    );
+
+    if (rspApi.ok) {
+      return true;
+    } else {
+      throw new Error(`Erro ao deletar registro: ID ${IdReg}`);
+    }
+  } catch (error) {
+    throw new Error(
+      (error as { message?: string }).message || "Erro ao deletar registros."
+    );
+  }
+};
+
 export const extracDocumentWithOCR = async (
   idCtxt: number,
   idDoc: number
@@ -145,6 +163,22 @@ export const refreshOcrByContexto = async (
     );
   }
   return new Error("Erro não identificado.");
+};
+
+export const deleteOcrdocByIdDoc = async (IdDoc: number): Promise<boolean> => {
+  try {
+    const rspApi = await api.delete(`/contexto/documentos/${String(IdDoc)}`);
+
+    if (rspApi.ok) {
+      return true;
+    } else {
+      throw new Error(`Erro ao deletar registro: ID ${IdDoc}`);
+    }
+  } catch (error) {
+    throw new Error(
+      (error as { message?: string }).message || "Erro ao deletar registros."
+    );
+  }
 };
 
 export const selectAutosTemp = async (
@@ -265,7 +299,10 @@ export const refreshContextos = async (): Promise<ContextoRow[] | Error> => {
     );
   }
 };
-
+/**
+ * Aparentemente a API não foi implementada ainda
+ 
+ */
 export const deleteContexto = async (
   IdDoc: string
 ): Promise<boolean | Error> => {

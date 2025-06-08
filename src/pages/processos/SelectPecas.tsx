@@ -1,3 +1,9 @@
+/**
+ * File: SelectPecas.tsx
+ * Data: 08-06-2025
+ * Componente para selecionar arquivos e listá-los na forma de uma tabela.
+ * Recebe um handler do componente pai para permitir a manipulação do arquivo.
+ */
 import { useState } from "react";
 import {
   Box,
@@ -9,23 +15,25 @@ import {
   IconButton,
 } from "@mui/material";
 import UploadIcon from "@mui/icons-material/CloudUpload";
-import { uploadFileToServer } from "../../shared/services/api/fetch/apiTools";
 import { UploadStyled } from "./UploadStyled";
 
-export const SelectPecas = ({ processoId }: { processoId: string }) => {
-  //const [tipo, setTipo] = useState("peticao_inicial");
+interface SelectPecasProps {
+  onUpload: (file: File) => void;
+}
+
+export const SelectPecas = ({ onUpload }: SelectPecasProps) => {
   const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
 
+  //Insere os arquivos selecionados no estado selectedFiles
   const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     if (event.target.files && event.target.files.length > 0) {
       setSelectedFiles(Array.from(event.target.files));
     }
   };
-
+  //Executa a ação de upload do arquivo apontado
   const handleUpload = async (file: File) => {
     if (!file) return;
-
-    await uploadFileToServer(Number(processoId), file);
+    onUpload(file);
     // Após upload, pode-se atualizar estado ou remover da lista
     setSelectedFiles((prev) => prev.filter((f) => f !== file));
   };

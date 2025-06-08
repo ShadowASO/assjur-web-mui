@@ -90,7 +90,7 @@ export class ApiCliente {
     if (internalResponse.status !== 204) {
       body = await internalResponse.json();
     } else {
-      body.data = null;
+      body = { data: null, ok: internalResponse.ok };
     }
     return body;
   }
@@ -111,6 +111,8 @@ export class ApiCliente {
         },
         body: options.body ? JSON.stringify(options.body) : null,
       });
+      //console.log(response);
+
       return response;
     } catch (error: unknown) {
       const errorBody: StandardBodyResponse = {
