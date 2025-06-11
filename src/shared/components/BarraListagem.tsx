@@ -1,5 +1,6 @@
 import { Add } from "@mui/icons-material";
-import { Box, Button, Paper, TextField, useTheme } from "@mui/material";
+import { Box, Button, Grid, MenuItem, Paper, TextField } from "@mui/material";
+import type { Item } from "../constants/items";
 
 interface IBarraListagemProps {
   fieldValue?: string;
@@ -9,6 +10,10 @@ interface IBarraListagemProps {
   buttonLabel?: string;
   showButton?: boolean;
   onButtonClick?: () => void;
+  //Criar um dropdown para criar um filtro a partir de itens
+  itemsTable?: Item[];
+  selectItem?: (item: string) => void;
+  selected?: string;
 }
 
 export const BarraListagem = ({
@@ -20,43 +25,74 @@ export const BarraListagem = ({
   buttonLabel = "Buscar",
   showButton = true,
   onButtonClick,
+  itemsTable,
+  selectItem,
+  selected,
 }: IBarraListagemProps) => {
-  const theme = useTheme();
-  return (
-    <Box
-      height={theme.spacing(5)}
-      marginX={1}
-      padding={1}
-      paddingX={2}
-      display={"flex"}
-      gap={1}
-      alignItems={"center"}
-      component={Paper}
-    >
-      {/* Campo de busca */}
-      {showField && (
-        <TextField
-          value={fieldValue}
-          onChange={(e) => onFieldChange?.(e.target.value)}
-          size="small"
-          placeholder="Pesquisar..."
-        ></TextField>
-      )}
+  //const theme = useTheme();
 
-      {/* Botão */}
-      {showButton && (
-        <Box flex={1} display={"flex"} justifyContent={"end"}>
-          <Button
-            color="primary"
-            disableElevation
-            variant="contained"
-            endIcon={<Add />}
-            onClick={onButtonClick}
-          >
-            {buttonLabel}
-          </Button>
-        </Box>
-      )}
-    </Box>
+  return (
+    <Paper elevation={3} sx={{ px: 2, py: 1, mx: 2, my: 2 }}>
+      <Grid container spacing={2} alignItems="center">
+        {/* Campo de busca */}
+        {showField && (
+          <Grid size={{ xs: 12, sm: 6, md: 5, lg: 4, xl: 4 }}>
+            <Box display="flex" height="100%">
+              <TextField
+                value={fieldValue}
+                onChange={(e) => onFieldChange?.(e.target.value)}
+                size="small"
+                placeholder="Pesquisar..."
+                fullWidth
+                sx={{ height: "100%" }}
+              ></TextField>
+            </Box>
+          </Grid>
+        )}
+
+        {/* DROPDOWN */}
+        {itemsTable && (
+          <Grid size={{ xs: 12, sm: 4, md: 4, lg: 3, xl: 3 }}>
+            <Box display="flex" height="100%">
+              <TextField
+                select
+                label="Natureza"
+                fullWidth
+                value={selected}
+                onChange={(e) => selectItem?.(e.target.value)}
+                size="small"
+                sx={{ height: "100%" }}
+              >
+                {itemsTable.map((item) => (
+                  <MenuItem key={item.key} value={item.description}>
+                    {item.description}
+                  </MenuItem>
+                ))}
+              </TextField>
+            </Box>
+          </Grid>
+        )}
+        <Grid size={{ xs: 0, sm: 0, md: 1, lg: 2, xl: 3 }}></Grid>
+
+        {/* Botão */}
+        {showButton && (
+          <Grid size={{ xs: 3, sm: 2, md: 2, lg: 2, xl: 2 }}>
+            <Box display="flex" justifyContent="flex-end" height="100%">
+              <Button
+                color="primary"
+                disableElevation
+                variant="contained"
+                endIcon={<Add />}
+                onClick={onButtonClick}
+                size="small"
+                sx={{ height: "100%", whiteSpace: "nowrap" }}
+              >
+                {buttonLabel}
+              </Button>
+            </Box>
+          </Grid>
+        )}
+      </Grid>
+    </Paper>
   );
 };

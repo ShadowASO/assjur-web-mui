@@ -169,7 +169,8 @@ export const ListaPrompts = () => {
           variant="outlined"
           sx={{
             width: "35%",
-            height: "73vh",
+            // height: "73vh",
+            height: "calc(100vh - 290px)",
             overflowY: "auto",
             p: 2,
             whiteSpace: "pre-wrap",

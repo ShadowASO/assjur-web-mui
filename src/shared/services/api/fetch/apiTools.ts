@@ -335,7 +335,7 @@ export const updatePrompt = async (
     TxtPrompt: txtPrompt,
   };
   try {
-    console.log("prompt=", idPrompt);
+    //console.log("prompt=", idPrompt);
 
     const rspApi = await api.put("/tabelas/prompts", prompt);
     return parseApiResponseDataRow<PromptsRow>(rspApi);
@@ -379,6 +379,36 @@ export const selectPrompt = async (
     throw new Error("Failed to fetch prompts from the API");
   }
   return new Error("Erro não identificado.");
+};
+//PromptRow
+export const insertPrompt = async (
+  idNat: number,
+  idDoc: number,
+  idClasse: number,
+  idAssunto: number,
+  nmDesc: string,
+  txtPrompt: string
+): Promise<PromptsRow | null> => {
+  const prompt = {
+    idNat: idNat,
+    idDoc: idDoc,
+    idClasse: idClasse,
+    idAssunto: idAssunto,
+    nmDesc: nmDesc,
+    txtPrompt: txtPrompt,
+  };
+  try {
+    const rspApi = await api.post("/tabelas/prompts", prompt);
+
+    if (rspApi.ok) {
+      const data = rspApi.data as IResponseDataRows<PromptsRow>;
+      return data.row || null;
+    }
+  } catch (error) {
+    console.error("Erro ao inserir o prompt: " + error);
+    throw new Error("Erro ao inserir o registro: ");
+  }
+  return null;
 };
 // // ** Modelos rows
 

@@ -28,6 +28,7 @@ import { Delete, Edit } from "@mui/icons-material";
 import { TIME_FLASH_ALERTA_SEC } from "../../shared/components/FlashAlerta";
 import { useFlash } from "../../shared/contexts/FlashProvider";
 import type { ModelosRow } from "../../shared/types/tabelas";
+import { itemsNatureza } from "../../shared/constants/itemsModelos";
 
 export const ListaModelos = () => {
   const [searchParams, setSearchParams] = useSearchParams();
@@ -38,6 +39,8 @@ export const ListaModelos = () => {
   const [totalPage] = useState(0);
   const [isLoading, setIsLoading] = useState(false);
   const [selectedContent, setSelectedContent] = useState<string>("");
+
+  const [natureza, setNatureza] = useState<string>("Despacho");
 
   const busca = searchParams.get("busca") || "";
   const pagina = Number(searchParams.get("pagina") || "1");
@@ -64,7 +67,7 @@ export const ListaModelos = () => {
       if (busca.length > 0) {
         setIsLoading(true);
 
-        const rsp = await searchModelos(busca, "Despacho");
+        const rsp = await searchModelos(busca, natureza);
 
         setIsLoading(false);
         if (rsp instanceof Error) {
@@ -93,6 +96,9 @@ export const ListaModelos = () => {
           onFieldChange={(txt) =>
             setSearchParams({ busca: txt, pagina: "1" }, { replace: true })
           }
+          itemsTable={itemsNatureza}
+          selectItem={setNatureza}
+          selected={natureza}
         />
       }
     >
@@ -187,7 +193,7 @@ export const ListaModelos = () => {
           variant="outlined"
           sx={{
             width: "35%",
-            height: "73vh",
+            height: "calc(100vh - 290px)",
             overflowY: "auto",
             p: 2,
             whiteSpace: "pre-wrap",

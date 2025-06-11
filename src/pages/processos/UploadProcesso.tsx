@@ -109,14 +109,14 @@ export const UploadProcesso = () => {
 
       <Grid container spacing={2}>
         {/* COL-01 - Seleção dos arquivos a transferir */}
-        <Grid size={{ xs: 12, sm: 12, md: 12, lg: 4, xl: 4 }}>
+        <Grid size={{ xs: 11, sm: 10, md: 7, lg: 4, xl: 4 }}>
           <Paper sx={{ p: 2, mb: 2 }}>
             <SelectPecas onUpload={handleUpload} />
           </Paper>
         </Grid>
 
         {/*COL-2 Arquivos transferidos por upload */}
-        <Grid size={{ xs: 12, sm: 12, md: 12, lg: 4, xl: 4 }}>
+        <Grid size={{ xs: 11, sm: 10, md: 7, lg: 4, xl: 4 }}>
           <Paper sx={{ p: 2, mb: 2 }}>
             <Typography variant="subtitle1">Documentos transferidos</Typography>
           </Paper>
@@ -134,7 +134,7 @@ export const UploadProcesso = () => {
         </Grid>
 
         {/*COL-3 Arquivos transferidos por upload */}
-        <Grid size={{ xs: 12, sm: 12, md: 12, lg: 4, xl: 4 }}>
+        <Grid size={{ xs: 11, sm: 10, md: 7, lg: 4, xl: 4 }}>
           <Paper sx={{ p: 2, mb: 2 }}>
             <Typography variant="subtitle1">
               Documentos extraídos por OCR
@@ -162,6 +162,15 @@ export const UploadProcesso = () => {
       >
         <DialogTitle>
           Texto Extraído
+          {/* Botão de cópia no topo, à direita */}
+          <IconButton
+            onClick={handleCopyText}
+            title="Copiar para área de transferência"
+            sx={{ position: "absolute", right: 48, top: 8 }}
+          >
+            <ContentCopy />
+          </IconButton>
+          {/* Botão de fechar no topo, à direita */}
           <IconButton
             onClick={handleFecharDialog}
             sx={{ position: "absolute", right: 8, top: 8 }}
@@ -182,14 +191,6 @@ export const UploadProcesso = () => {
               },
             }}
           />
-          <Box mt={2} display="flex" justifyContent="flex-end">
-            <IconButton
-              onClick={handleCopyText}
-              title="Copiar para área de transferência"
-            >
-              <ContentCopy />
-            </IconButton>
-          </Box>
         </DialogContent>
       </Dialog>
 

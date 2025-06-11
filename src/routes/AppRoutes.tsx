@@ -13,6 +13,7 @@ import { RequireAuth } from "../shared/components/login/RequireAuth";
 import { DetalheModelos } from "../pages/Modelos/DetalheModelos";
 import { ListaPrompts } from "../pages/prompts/ListaPrompts";
 import { UploadProcesso } from "../pages/processos/UploadProcesso";
+import { DetalhePrompt } from "../pages/prompts/DetalhePrompt";
 //import { getApiObjeto } from "../shared/services/api/fetch/ApiCliente";
 
 export const AppRoutes = () => {
@@ -124,7 +125,7 @@ export const AppRoutes = () => {
         path="/prompts/detalhes/:id"
         element={
           <RequireAuth>
-            <DetalheModelos></DetalheModelos>
+            <DetalhePrompt></DetalhePrompt>
           </RequireAuth>
         }
       />

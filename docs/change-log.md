@@ -33,4 +33,8 @@ processual, com a seleção dos arquivos, transferência dos arquivos e extraç�
 dos conteúdo utilizando OCR; Agora cada registro possui um ícone que permite
 a transferência, deleção, extração, vizualização e juntada do documento;
 
+# -----------------------------------------------------------------------------
+#             Em 09-06-2025: Versão 1.0.0                                    
+# -----------------------------------------------------------------------------
+a) criada a interface de detalhamento dos prompts;
 

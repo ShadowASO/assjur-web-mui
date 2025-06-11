@@ -5,6 +5,21 @@ import { useEffect, useState } from "react";
 import { useFlash } from "../../shared/contexts/FlashProvider";
 import { TIME_FLASH_ALERTA_SEC } from "../../shared/components/FlashAlerta";
 import { useForm } from "react-hook-form";
+import * as yup from "yup";
+import { setFormErrors } from "../../shared/forms/rhf/utilitarios";
+import {
+  insertPrompt,
+  updatePrompt,
+  deletePrompt,
+  selectPrompt,
+} from "../../shared/services/api/fetch/apiTools";
+import {
+  itemsNatureza,
+  itemsDocumento,
+  itemsClasse,
+  itemsAssunto,
+} from "../../shared/constants/itemsPrompt";
+
 import {
   Box,
   Grid,
@@ -15,67 +30,56 @@ import {
   TextField,
   Tooltip,
 } from "@mui/material";
-
-import * as yup from "yup";
-import { setFormErrors } from "../../shared/forms/rhf/utilitarios";
-import {
-  deleteModelos,
-  insertModelos,
-  selectModelo,
-  updateModelos,
-} from "../../shared/services/api/fetch/apiTools";
 import { ContentCopy } from "@mui/icons-material";
-import { itemsNatureza } from "../../shared/constants/itemsModelos";
+//import style from "../../shared/styles/teste.module.css";
 
-interface IFormData {
-  natureza: string;
-  ementa: string;
-  inteiro_teor: string;
+interface IFormPrompt {
+  nm_desc: string;
+  txt_prompt: string;
+  id_nat: number;
+  id_doc: number;
+  id_classe: number;
+  id_assunto: number;
 }
 
-const formValidationSchema: yup.ObjectSchema<IFormData> = yup.object({
-  natureza: yup.string().required("Informe a natureza"),
-  ementa: yup.string().required("Informe a ementa"),
-  inteiro_teor: yup.string().required("Informe o conteúdo do modelo"),
+const formValidationSchema: yup.ObjectSchema<IFormPrompt> = yup.object({
+  nm_desc: yup.string().required("Informe a descrição"),
+  txt_prompt: yup.string().required("Informe o conteúdo do prompt"),
+  id_nat: yup.number().defined().min(1, "Selecione a natureza"),
+  id_doc: yup.number().defined().min(1, "Selecione o documento"),
+  id_classe: yup.number().defined().min(1, "Selecione a classe"),
+  id_assunto: yup.number().defined().min(1, "Selecione o assunto"),
 });
 
-export const DetalheModelos = () => {
+export const DetalhePrompt = () => {
   const { id: idReg = "nova" } = useParams<"id">();
   const navigate = useNavigate();
   const { showFlashMessage } = useFlash();
-
   const [isLoading, setIsLoading] = useState(false);
-  const RForm = useForm<IFormData>();
-  const { watch, setValue } = RForm;
-  const natureza = watch("natureza");
+
+  const RForm = useForm<IFormPrompt>();
 
   useEffect(() => {
     (async () => {
       if (idReg !== "nova") {
         setIsLoading(true);
-        const rsp = await selectModelo(idReg);
+        const rsp = await selectPrompt(Number(idReg));
         setIsLoading(false);
+
         if (rsp instanceof Error) {
           showFlashMessage(rsp.message, "error", TIME_FLASH_ALERTA_SEC);
-          navigate("/modelos");
+          navigate("/prompts");
         } else {
-          if (rsp) {
-            console.log(rsp);
-            RForm.reset(rsp);
-          } else {
-            RForm.reset({
-              natureza: "Selecione a natureza",
-              ementa: "",
-              inteiro_teor: "",
-            });
-          }
+          RForm.reset(rsp);
         }
       } else {
-        //RForm.reset({ natureza: "", ementa: "", inteiro_teor: "" });
         RForm.reset({
-          natureza: "Selecione a natureza",
-          ementa: "",
-          inteiro_teor: "",
+          nm_desc: "",
+          txt_prompt: "",
+          id_nat: 0,
+          id_doc: 0,
+          id_classe: 0,
+          id_assunto: 0,
         });
       }
     })();
@@ -90,25 +94,22 @@ export const DetalheModelos = () => {
     );
   };
 
-  const handleSaveFechar = async (data: IFormData) => {
-    await handleSave(data);
-    navigate("/modelos");
-  };
-
-  const handleSave = async (data: IFormData) => {
+  const handleSave = async (data: IFormPrompt) => {
     try {
       const valida = await formValidationSchema.validate(data, {
         abortEarly: false,
       });
 
-      console.log(valida);
-
       setIsLoading(true);
+
       if (idReg === "nova") {
-        const rsp = await insertModelos(
-          valida.natureza,
-          valida.ementa,
-          valida.inteiro_teor
+        const rsp = await insertPrompt(
+          valida.id_nat,
+          valida.id_doc,
+          valida.id_classe,
+          valida.id_assunto,
+          valida.nm_desc,
+          valida.txt_prompt
         );
         if (rsp instanceof Error) {
           showFlashMessage(rsp.message, "error", TIME_FLASH_ALERTA_SEC);
@@ -118,21 +119,19 @@ export const DetalheModelos = () => {
             "success",
             TIME_FLASH_ALERTA_SEC
           );
-          navigate(`/modelos/detalhe/${rsp}`);
+          navigate(`/prompts/detalhes/${rsp}`);
         }
       } else {
-        //const rsp = await updateModelo(id, valida);
-        const rsp = await updateModelos(
-          idReg,
-          valida.natureza,
-          valida.ementa,
-          valida.inteiro_teor
+        const rsp = await updatePrompt(
+          Number(idReg),
+          valida.nm_desc,
+          valida.txt_prompt
         );
         if (rsp instanceof Error) {
           showFlashMessage(rsp.message, "error", TIME_FLASH_ALERTA_SEC);
         } else {
           showFlashMessage(
-            "Registro alterado com sucesso",
+            "Registro atualizado com sucesso",
             "success",
             TIME_FLASH_ALERTA_SEC
           );
@@ -151,26 +150,35 @@ export const DetalheModelos = () => {
       setIsLoading(false);
     }
   };
-  //DELETE
+
+  const handleSaveFechar = async (data: IFormPrompt) => {
+    await handleSave(data);
+    navigate("/prompts");
+  };
+
   const handleDelete = async (id: string) => {
-    if (confirm("Realmente deseja excluir o documento?")) {
-      const rsp = await deleteModelos(id);
-      if (rsp instanceof Error) {
-        showFlashMessage(rsp.message, "error", TIME_FLASH_ALERTA_SEC);
+    if (confirm("Deseja realmente excluir o prompt?")) {
+      const rsp = await deletePrompt(Number(id));
+      if (!rsp) {
+        showFlashMessage(
+          "Erro ao deletar prompt",
+          "error",
+          TIME_FLASH_ALERTA_SEC
+        );
       } else {
         showFlashMessage(
-          "Registro excluído com sucesso",
+          "Prompt excluído com sucesso",
           "success",
           TIME_FLASH_ALERTA_SEC
         );
-        navigate("/modelos");
+        navigate("/prompts");
       }
     }
   };
 
   return (
     <PageBaseLayout
-      title={idReg === "nova" ? "Novo Modelo" : "Detalhe do Modelo"}
+      title={idReg === "nova" ? "Novo Prompt" : "Detalhe do Prompt"}
       toolBar={
         <BarraDetalhes
           labelButtonNovo="Novo"
@@ -180,8 +188,8 @@ export const DetalheModelos = () => {
           onClickButtonSalvar={RForm.handleSubmit(handleSave)}
           onClickButtonSalvarFechar={RForm.handleSubmit(handleSaveFechar)}
           onClickButtonApagar={() => handleDelete(idReg)}
-          onClickButtonNovo={() => navigate("/modelos/detalhes/nova")}
-          onClickButtonVoltar={() => navigate("/modelos")}
+          onClickButtonNovo={() => navigate("/prompts/detalhes/nova")}
+          onClickButtonVoltar={() => navigate("/prompts")}
         />
       }
     >
@@ -195,87 +203,93 @@ export const DetalheModelos = () => {
             )}
 
             {/* Coluna esquerda: descrição + comboboxes */}
-            <Grid size={{ xs: 7, sm: 6, md: 5, lg: 4, xl: 5 }}>
+            <Grid size={{ xs: 7, sm: 6, md: 5, lg: 4, xl: 3 }}>
               <Grid container spacing={2} direction="column">
+                <Grid>
+                  <TextField
+                    label="Descrição"
+                    fullWidth
+                    {...RForm.register("nm_desc")}
+                    disabled={isLoading}
+                    sx={{ mt: 8 }} // Ajuste fino aqui
+                    slotProps={{
+                      inputLabel: { shrink: true },
+                    }}
+                  />
+                </Grid>
+
                 <Grid>
                   <TextField
                     select
                     label="Natureza"
                     fullWidth
-                    value={natureza ?? "Selecione a natureza"}
-                    onChange={(e) => setValue("natureza", e.target.value)}
+                    {...RForm.register("id_nat")}
+                    defaultValue={0}
                     disabled={isLoading}
-                    sx={{ mt: 8 }} // Ajuste fino aqui
                   >
                     {itemsNatureza.map((item) => (
-                      <MenuItem key={item.key} value={item.description}>
+                      <MenuItem key={item.key} value={item.key}>
                         {item.description}
                       </MenuItem>
                     ))}
                   </TextField>
                 </Grid>
+
                 <Grid>
-                  <Box
-                    display="flex"
-                    justifyContent="flex-end"
-                    height="56px"
-                    alignItems="center"
+                  <TextField
+                    select
+                    label="Documento"
+                    fullWidth
+                    {...RForm.register("id_doc")}
+                    defaultValue={0}
+                    disabled={isLoading}
                   >
-                    <Tooltip title="Copiar ementa">
-                      <span>
-                        <IconButton
-                          onClick={() =>
-                            copiarParaClipboard(RForm.getValues("ementa"))
-                          }
-                          disabled={isLoading}
-                        >
-                          <ContentCopy fontSize="small" />
-                        </IconButton>
-                      </span>
-                    </Tooltip>
-                  </Box>
-                  <Box
-                    sx={{
-                      height: "calc(100vh - 600px)",
-                      overflow: "auto",
-                      padding: 1,
-                    }}
+                    {itemsDocumento.map((item) => (
+                      <MenuItem key={item.key} value={item.key}>
+                        {item.description}
+                      </MenuItem>
+                    ))}
+                  </TextField>
+                </Grid>
+
+                <Grid>
+                  <TextField
+                    select
+                    label="Classe"
+                    fullWidth
+                    {...RForm.register("id_classe")}
+                    defaultValue={0}
+                    disabled={isLoading}
                   >
-                    <TextField
-                      label="Ementa"
-                      multiline
-                      fullWidth
-                      minRows={10}
-                      {...RForm.register("ementa")}
-                      disabled={isLoading}
-                      sx={{
-                        height: "100%",
-                        "& textarea": {
-                          height: "100% !important",
-                          textAlign: "justify",
-                          hyphens: "auto",
-                        },
-                        "& .MuiInputBase-root": {
-                          height: "100%",
-                          alignItems: "start",
-                        },
-                      }}
-                      slotProps={{
-                        input: {
-                          style: {
-                            padding: "24px", // ajuste conforme desejado
-                          },
-                        },
-                        inputLabel: { shrink: true },
-                      }}
-                    />
-                  </Box>
+                    {itemsClasse.map((item) => (
+                      <MenuItem key={item.key} value={item.key}>
+                        {item.description}
+                      </MenuItem>
+                    ))}
+                  </TextField>
+                </Grid>
+
+                <Grid>
+                  <TextField
+                    select
+                    label="Assunto"
+                    fullWidth
+                    {...RForm.register("id_assunto")}
+                    defaultValue={0}
+                    disabled={isLoading}
+                  >
+                    {itemsAssunto.map((item) => (
+                      <MenuItem key={item.key} value={item.key}>
+                        {item.description}
+                      </MenuItem>
+                    ))}
+                  </TextField>
                 </Grid>
               </Grid>
             </Grid>
 
             {/* Coluna esparçadora */}
-            {/* <Grid size={{ xs: 0, sm: 0, md: 1, lg: 1, xl: 2 }} /> */}
+            <Grid size={{ xs: 0, sm: 0, md: 1, lg: 1, xl: 2 }} />
 
             {/* Coluna direita: conteúdo do prompt */}
             <Grid size={{ xs: 12, sm: 12, md: 6, lg: 7, xl: 7 }}>
@@ -289,7 +303,7 @@ export const DetalheModelos = () => {
                   <span>
                     <IconButton
                       onClick={() =>
-                        copiarParaClipboard(RForm.getValues("inteiro_teor"))
+                        copiarParaClipboard(RForm.getValues("txt_prompt"))
                       }
                       disabled={isLoading}
                     >
@@ -310,7 +324,7 @@ export const DetalheModelos = () => {
                   multiline
                   fullWidth
                   minRows={10}
-                  {...RForm.register("inteiro_teor")}
+                  {...RForm.register("txt_prompt")}
                   disabled={isLoading}
                   sx={{
                     height: "100%",
