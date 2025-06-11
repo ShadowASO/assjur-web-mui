@@ -153,7 +153,7 @@ export const DetalheModelos = () => {
   };
   //DELETE
   const handleDelete = async (id: string) => {
-    if (confirm("Realmente deseja excluir o documento?")) {
+    if (confirm("Deseja realmente excluir o modelo?")) {
       const rsp = await deleteModelos(id);
       if (rsp instanceof Error) {
         showFlashMessage(rsp.message, "error", TIME_FLASH_ALERTA_SEC);
@@ -238,7 +238,8 @@ export const DetalheModelos = () => {
                     sx={{
                       height: "calc(100vh - 600px)",
                       overflow: "auto",
-                      padding: 1,
+                      padding: 0,
+                      pt: 1,
                     }}
                   >
                     <TextField
@@ -302,7 +303,8 @@ export const DetalheModelos = () => {
                 sx={{
                   height: "calc(100vh - 310px)",
                   overflow: "auto",
-                  padding: 1,
+                  padding: 0,
+                  pt: 1,
                 }}
               >
                 <TextField

@@ -30,12 +30,6 @@ interface RefreshResponseInterface {
   access_token: string;
 }
 
-// interface BodyResponseVerify {
-//   user_id: number;
-//   username: string;
-//   userrole: string;
-// }
-
 type ErrorHandler = (response: StandardBodyResponse) => void;
 
 export class ApiCliente {

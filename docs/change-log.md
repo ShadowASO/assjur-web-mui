@@ -38,3 +38,8 @@ a transferência, deleção, extração, vizualização e juntada do documento;
 # -----------------------------------------------------------------------------
 a) criada a interface de detalhamento dos prompts;
 
+# -----------------------------------------------------------------------------
+#             Em 10/11-06-2025: Versão 1.0.0                                    
+# -----------------------------------------------------------------------------
+a) ajustes nas interface para utilizar o Grid com responsividade para distribuir
+e organizar os elementos da interface;

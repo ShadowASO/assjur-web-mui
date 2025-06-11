@@ -40,58 +40,54 @@ export const Dashboard = () => {
         <BarraListagem showButton={false} showField={false}></BarraListagem>
       }
     >
-      <Box width={"100%"} display={"flex"}>
-        <Grid container margin={2}>
-          <Grid container spacing={2}>
-            <Grid size={{ xs: 12, sm: 12, md: 6, lg: 4, xl: 4 }}>
-              <Card>
-                <CardContent>
-                  <Typography variant="h5" align="center">
-                    Total de Pessoas
-                  </Typography>
+      <Grid container spacing={1} padding={1} margin={1}>
+        <Grid size={{ xs: 5, sm: 4, md: 3, lg: 2, xl: 2 }}>
+          <Card>
+            <CardContent>
+              <Typography variant="h5" align="center">
+                Total de Pessoas
+              </Typography>
 
-                  <Box
-                    display={"flex"}
-                    padding={6}
-                    justifyContent={"center"}
-                    alignItems={"center"}
-                  >
-                    {!isLoadingPessoas && (
-                      <Typography variant="h1">{totalCountPessoas}</Typography>
-                    )}
-                    {isLoadingPessoas && (
-                      <Typography variant="h6">Carregando...</Typography>
-                    )}
-                  </Box>
-                </CardContent>
-              </Card>
-            </Grid>
-            <Grid size={{ xs: 12, sm: 12, md: 6, lg: 4, xl: 4 }}>
-              <Card>
-                <CardContent>
-                  <Typography variant="h5" align="center">
-                    Total de Cidades
-                  </Typography>
-
-                  <Box
-                    display={"flex"}
-                    padding={6}
-                    justifyContent={"center"}
-                    alignItems={"center"}
-                  >
-                    {!isLoadingCidades && (
-                      <Typography variant="h1">{totalCountCidades}</Typography>
-                    )}
-                    {isLoadingCidades && (
-                      <Typography variant="h6">Carregando...</Typography>
-                    )}
-                  </Box>
-                </CardContent>
-              </Card>
-            </Grid>
-          </Grid>
+              <Box
+                display={"flex"}
+                padding={6}
+                justifyContent={"center"}
+                alignItems={"center"}
+              >
+                {!isLoadingPessoas && (
+                  <Typography variant="h1">{totalCountPessoas}</Typography>
+                )}
+                {isLoadingPessoas && (
+                  <Typography variant="h6">Carregando...</Typography>
+                )}
+              </Box>
+            </CardContent>
+          </Card>
         </Grid>
-      </Box>
+        <Grid size={{ xs: 5, sm: 4, md: 3, lg: 2, xl: 2 }}>
+          <Card>
+            <CardContent>
+              <Typography variant="h5" align="center">
+                Total de Cidades
+              </Typography>
+
+              <Box
+                display={"flex"}
+                padding={6}
+                justifyContent={"center"}
+                alignItems={"center"}
+              >
+                {!isLoadingCidades && (
+                  <Typography variant="h1">{totalCountCidades}</Typography>
+                )}
+                {isLoadingCidades && (
+                  <Typography variant="h6">Carregando...</Typography>
+                )}
+              </Box>
+            </CardContent>
+          </Card>
+        </Grid>
+      </Grid>
     </PageBaseLayout>
   );
 };

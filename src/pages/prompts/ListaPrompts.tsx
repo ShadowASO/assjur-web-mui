@@ -8,7 +8,7 @@ import {
 } from "../../shared/services/api/fetch/apiTools";
 import { useDebounce } from "../../shared/hooks/UseDebounce";
 import {
-  Box,
+  Grid,
   Icon,
   IconButton,
   LinearProgress,
@@ -86,107 +86,101 @@ export const ListaPrompts = () => {
         />
       }
     >
-      <Box display="flex" alignItems="flex-start" gap={2} padding={1}>
-        <TableContainer
-          component={Paper}
-          variant="outlined"
-          sx={{ width: "65%", overflow: "auto", maxHeight: "75vh" }}
-        >
-          <Table stickyHeader>
-            <TableHead>
-              <TableRow>
-                <TableCell width={100}>Ações</TableCell>
-                <TableCell>Descrição</TableCell>
-              </TableRow>
-            </TableHead>
-            <TableBody>
-              {rows.map((row) => (
-                <TableRow
-                  key={row.id_prompt}
-                  hover
-                  onClick={() => setSelectedContent(row.txt_prompt)}
-                  sx={{ cursor: "pointer" }}
-                >
-                  <TableCell>
-                    <IconButton
-                      size="small"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        handleDelete(row.id_prompt);
-                      }}
-                    >
-                      <Icon>
-                        <Delete />
-                      </Icon>
-                    </IconButton>
-                    <IconButton
-                      size="small"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        navigate(`/prompts/detalhes/${row.id_prompt}`);
-                      }}
-                    >
-                      <Icon>
-                        <Edit />
-                      </Icon>
-                    </IconButton>
-                  </TableCell>
-                  <TableCell>{row.nm_desc}</TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-            <TableFooter>
-              {isLoading && (
+      <Grid container spacing={1} padding={1} margin={1}>
+        {/* Tabela fixa à esquerda */}
+        <Grid size={{ xs: 12, sm: 12, md: 7, lg: 7, xl: 7 }}>
+          <TableContainer component={Paper} variant="outlined">
+            <Table stickyHeader>
+              <TableHead>
                 <TableRow>
-                  <TableCell colSpan={3}>
-                    <LinearProgress />
-                  </TableCell>
+                  <TableCell width={100}>Ações</TableCell>
+                  <TableCell>Descrição</TableCell>
                 </TableRow>
-              )}
-              {totalPage > 0 && totalPage > Environment.LIMITE_DE_LINHAS && (
-                <TableRow>
-                  <TableCell colSpan={3}>
-                    <Pagination
-                      page={pagina}
-                      count={Math.ceil(
-                        totalPage / Environment.LIMITE_DE_LINHAS
-                      )}
-                      onChange={(_, newPage) =>
-                        setSearchParams(
-                          { busca, pagina: newPage.toString() },
-                          { replace: true }
-                        )
-                      }
-                    />
-                  </TableCell>
-                </TableRow>
-              )}
-            </TableFooter>
-          </Table>
-        </TableContainer>
-
-        <Paper
-          variant="outlined"
-          sx={{
-            width: "35%",
-            // height: "73vh",
-            height: "calc(100vh - 290px)",
-            overflowY: "auto",
-            p: 2,
-            whiteSpace: "pre-wrap",
-            display: "flex",
-            flexDirection: "column",
-          }}
-        >
-          <Typography variant="h6" gutterBottom>
-            Conteúdo do Prompt
-          </Typography>
-          <Typography variant="body2">
-            {selectedContent ||
-              "Selecione um prompt para visualizar o conteúdo."}
-          </Typography>
-        </Paper>
-      </Box>
+              </TableHead>
+              <TableBody>
+                {rows.map((row) => (
+                  <TableRow
+                    key={row.id_prompt}
+                    hover
+                    onClick={() => setSelectedContent(row.txt_prompt)}
+                    sx={{ cursor: "pointer" }}
+                  >
+                    <TableCell>
+                      <IconButton
+                        size="small"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleDelete(row.id_prompt);
+                        }}
+                      >
+                        <Icon>
+                          <Delete />
+                        </Icon>
+                      </IconButton>
+                      <IconButton
+                        size="small"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          navigate(`/prompts/detalhes/${row.id_prompt}`);
+                        }}
+                      >
+                        <Icon>
+                          <Edit />
+                        </Icon>
+                      </IconButton>
+                    </TableCell>
+                    <TableCell>{row.nm_desc}</TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+              <TableFooter>
+                {isLoading && (
+                  <TableRow>
+                    <TableCell colSpan={3}>
+                      <LinearProgress />
+                    </TableCell>
+                  </TableRow>
+                )}
+                {totalPage > 0 && totalPage > Environment.LIMITE_DE_LINHAS && (
+                  <TableRow>
+                    <TableCell colSpan={3}>
+                      <Pagination
+                        page={pagina}
+                        count={Math.ceil(
+                          totalPage / Environment.LIMITE_DE_LINHAS
+                        )}
+                        onChange={(_, newPage) =>
+                          setSearchParams(
+                            { busca, pagina: newPage.toString() },
+                            { replace: true }
+                          )
+                        }
+                      />
+                    </TableCell>
+                  </TableRow>
+                )}
+              </TableFooter>
+            </Table>
+          </TableContainer>
+        </Grid>
+        {/* Esquerda: Componente de texto  */}
+        <Grid size={{ xs: 12, sm: 12, md: 5, lg: 5, xl: 5 }}>
+          <Paper
+            variant="outlined"
+            sx={{
+              height: "calc(100vh - 300px)",
+              overflowY: "auto",
+              p: 2,
+              whiteSpace: "pre-wrap",
+              display: "flex",
+              flexDirection: "column",
+            }}
+          >
+            <Typography variant="body2">{selectedContent || ""}</Typography>
+          </Paper>
+        </Grid>
+      </Grid>
+      {/* </Box> */}
     </PageBaseLayout>
   );
 };

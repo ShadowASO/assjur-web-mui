@@ -8,7 +8,7 @@ import {
 } from "../../shared/services/api/fetch/apiTools";
 import { useDebounce } from "../../shared/hooks/UseDebounce";
 import {
-  Box,
+  Grid,
   Icon,
   IconButton,
   LinearProgress,
@@ -47,7 +47,7 @@ export const ListaModelos = () => {
   const { showFlashMessage } = useFlash();
 
   const handleDelete = async (id: string) => {
-    if (confirm("Realmente deseja apagar?")) {
+    if (confirm("Deseja realmente apagar o modelo?")) {
       const rsp = await deleteModelos(String(id));
       if (rsp instanceof Error) {
         showFlashMessage(rsp.message, "error", TIME_FLASH_ALERTA_SEC);
@@ -102,114 +102,109 @@ export const ListaModelos = () => {
         />
       }
     >
-      <Box display="flex" alignItems="flex-start" gap={2} padding={1}>
+      <Grid container spacing={1} padding={1} margin={1}>
         {/* Tabela fixa à esquerda */}
-        <TableContainer
-          component={Paper}
-          variant="outlined"
-          sx={{
-            width: "65%",
-            overflow: "auto",
-            maxHeight: "75vh", // altura máxima opcional
-          }}
-        >
-          <Table stickyHeader>
-            <TableHead>
-              <TableRow>
-                <TableCell width={100}>Ações</TableCell>
-                <TableCell>Natureza</TableCell>
-                <TableCell>Ementa</TableCell>
-              </TableRow>
-            </TableHead>
-            <TableBody>
-              {rows.map((row) => (
-                <TableRow
-                  key={row.id}
-                  hover
-                  onClick={() => setSelectedContent(row.inteiro_teor ?? "")}
-                  sx={{ cursor: "pointer" }}
-                >
-                  <TableCell>
-                    <IconButton
-                      size="small"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        handleDelete(row.id);
-                      }}
-                    >
-                      <Icon>
-                        <Delete />
-                      </Icon>
-                    </IconButton>
-                    <IconButton
-                      size="small"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        navigate(`/modelos/detalhes/${row.id}`);
-                      }}
-                    >
-                      <Icon>
-                        <Edit />
-                      </Icon>
-                    </IconButton>
-                  </TableCell>
-                  <TableCell>{row.natureza}</TableCell>
-                  <TableCell>{row.ementa}</TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-            <TableFooter>
-              {isLoading && (
+        <Grid size={{ xs: 12, sm: 12, md: 7, lg: 7, xl: 7 }}>
+          <TableContainer
+            component={Paper}
+            variant="outlined"
+            sx={{
+              maxHeight: "75vh", // altura máxima opcional
+            }}
+          >
+            <Table stickyHeader>
+              <TableHead>
                 <TableRow>
-                  <TableCell colSpan={3}>
-                    <LinearProgress />
-                  </TableCell>
+                  <TableCell width={100}>Ações</TableCell>
+                  <TableCell>Natureza</TableCell>
+                  <TableCell>Ementa</TableCell>
                 </TableRow>
-              )}
-              {totalPage > 0 && totalPage > Environment.LIMITE_DE_LINHAS && (
-                <TableRow>
-                  <TableCell colSpan={3}>
-                    <Pagination
-                      page={pagina}
-                      count={Math.ceil(
-                        totalPage / Environment.LIMITE_DE_LINHAS
-                      )}
-                      onChange={(_, newPage) =>
-                        setSearchParams(
-                          { busca, pagina: newPage.toString() },
-                          { replace: true }
-                        )
-                      }
-                    />
-                  </TableCell>
-                </TableRow>
-              )}
-            </TableFooter>
-          </Table>
-        </TableContainer>
+              </TableHead>
+              <TableBody>
+                {rows.map((row) => (
+                  <TableRow
+                    key={row.id}
+                    hover
+                    onClick={() => setSelectedContent(row.inteiro_teor ?? "")}
+                    sx={{ cursor: "pointer" }}
+                  >
+                    <TableCell>
+                      <IconButton
+                        size="small"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleDelete(row.id);
+                        }}
+                      >
+                        <Icon>
+                          <Delete />
+                        </Icon>
+                      </IconButton>
+                      <IconButton
+                        size="small"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          navigate(`/modelos/detalhes/${row.id}`);
+                        }}
+                      >
+                        <Icon>
+                          <Edit />
+                        </Icon>
+                      </IconButton>
+                    </TableCell>
+                    <TableCell>{row.natureza}</TableCell>
+                    <TableCell>{row.ementa}</TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+              <TableFooter>
+                {isLoading && (
+                  <TableRow>
+                    <TableCell colSpan={3}>
+                      <LinearProgress />
+                    </TableCell>
+                  </TableRow>
+                )}
+                {totalPage > 0 && totalPage > Environment.LIMITE_DE_LINHAS && (
+                  <TableRow>
+                    <TableCell colSpan={3}>
+                      <Pagination
+                        page={pagina}
+                        count={Math.ceil(
+                          totalPage / Environment.LIMITE_DE_LINHAS
+                        )}
+                        onChange={(_, newPage) =>
+                          setSearchParams(
+                            { busca, pagina: newPage.toString() },
+                            { replace: true }
+                          )
+                        }
+                      />
+                    </TableCell>
+                  </TableRow>
+                )}
+              </TableFooter>
+            </Table>
+          </TableContainer>
+        </Grid>
 
         {/* Área de texto com altura fixa à direita */}
-        <Paper
-          variant="outlined"
-          sx={{
-            width: "35%",
-            height: "calc(100vh - 290px)",
-            overflowY: "auto",
-            p: 2,
-            whiteSpace: "pre-wrap",
-            display: "flex",
-            flexDirection: "column",
-          }}
-        >
-          <Typography variant="h6" gutterBottom>
-            Conteúdo do Documento
-          </Typography>
-          <Typography variant="body2">
-            {selectedContent ||
-              "Selecione um modelo para visualizar o conteúdo."}
-          </Typography>
-        </Paper>
-      </Box>
+        <Grid size={{ xs: 12, sm: 12, md: 5, lg: 5, xl: 5 }}>
+          <Paper
+            variant="outlined"
+            sx={{
+              height: "calc(100vh - 300px)",
+              overflowY: "auto",
+              p: 2,
+              whiteSpace: "pre-wrap",
+              display: "flex",
+              flexDirection: "column",
+            }}
+          >
+            <Typography variant="body2">{selectedContent || ""}</Typography>
+          </Paper>
+        </Grid>
+      </Grid>
     </PageBaseLayout>
   );
 };
