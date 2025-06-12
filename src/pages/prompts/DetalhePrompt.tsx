@@ -4,7 +4,7 @@ import { BarraDetalhes } from "../../shared/components/BarraDetalhes";
 import { useEffect, useState } from "react";
 import { useFlash } from "../../shared/contexts/FlashProvider";
 import { TIME_FLASH_ALERTA_SEC } from "../../shared/components/FlashAlerta";
-import { useForm } from "react-hook-form";
+import { Controller, useForm } from "react-hook-form";
 import * as yup from "yup";
 import { setFormErrors } from "../../shared/forms/rhf/utilitarios";
 import {
@@ -194,163 +194,202 @@ export const DetalhePrompt = () => {
       }
     >
       <form onSubmit={RForm.handleSubmit(handleSave)}>
-        <Box margin={1} component={Paper} variant="outlined">
-          <Grid container spacing={2} padding={2}>
-            {isLoading && (
-              <Grid size={{ xs: 12, sm: 12, md: 12, lg: 12, xl: 12 }}>
-                <LinearProgress />
-              </Grid>
-            )}
-
-            {/* Coluna esquerda: descrição + comboboxes */}
-            <Grid size={{ xs: 7, sm: 6, md: 5, lg: 4, xl: 3 }}>
-              <Grid container spacing={2} direction="column">
-                <Grid>
-                  <TextField
-                    label="Descrição"
-                    fullWidth
-                    {...RForm.register("nm_desc")}
-                    disabled={isLoading}
-                    sx={{ mt: 8 }} // Ajuste fino aqui
-                    slotProps={{
-                      inputLabel: { shrink: true },
-                    }}
-                  />
-                </Grid>
-
-                <Grid>
-                  <TextField
-                    select
-                    label="Natureza"
-                    fullWidth
-                    {...RForm.register("id_nat")}
-                    defaultValue={0}
-                    disabled={isLoading}
-                  >
-                    {itemsNatureza.map((item) => (
-                      <MenuItem key={item.key} value={item.key}>
-                        {item.description}
-                      </MenuItem>
-                    ))}
-                  </TextField>
-                </Grid>
-
-                <Grid>
-                  <TextField
-                    select
-                    label="Documento"
-                    fullWidth
-                    {...RForm.register("id_doc")}
-                    defaultValue={0}
-                    disabled={isLoading}
-                  >
-                    {itemsDocumento.map((item) => (
-                      <MenuItem key={item.key} value={item.key}>
-                        {item.description}
-                      </MenuItem>
-                    ))}
-                  </TextField>
-                </Grid>
-
-                <Grid>
-                  <TextField
-                    select
-                    label="Classe"
-                    fullWidth
-                    {...RForm.register("id_classe")}
-                    defaultValue={0}
-                    disabled={isLoading}
-                  >
-                    {itemsClasse.map((item) => (
-                      <MenuItem key={item.key} value={item.key}>
-                        {item.description}
-                      </MenuItem>
-                    ))}
-                  </TextField>
-                </Grid>
-
-                <Grid>
-                  <TextField
-                    select
-                    label="Assunto"
-                    fullWidth
-                    {...RForm.register("id_assunto")}
-                    defaultValue={0}
-                    disabled={isLoading}
-                  >
-                    {itemsAssunto.map((item) => (
-                      <MenuItem key={item.key} value={item.key}>
-                        {item.description}
-                      </MenuItem>
-                    ))}
-                  </TextField>
-                </Grid>
-              </Grid>
+        {/* <Box margin={1} component={Paper} variant="outlined"> */}
+        <Grid container spacing={2} margin={1}>
+          {isLoading && (
+            <Grid size={{ xs: 12, sm: 12, md: 12, lg: 12, xl: 12 }}>
+              <LinearProgress />
             </Grid>
+          )}
 
-            {/* Coluna esparçadora */}
-            <Grid size={{ xs: 0, sm: 0, md: 1, lg: 1, xl: 2 }} />
-
-            {/* Coluna direita: conteúdo do prompt */}
-            <Grid size={{ xs: 12, sm: 12, md: 6, lg: 7, xl: 7 }}>
-              <Box
-                display="flex"
-                justifyContent="flex-end"
-                height="56px"
-                alignItems="center"
-              >
-                <Tooltip title="Copiar conteúdo">
-                  <span>
-                    <IconButton
-                      onClick={() =>
-                        copiarParaClipboard(RForm.getValues("txt_prompt"))
-                      }
-                      disabled={isLoading}
-                    >
-                      <ContentCopy fontSize="small" />
-                    </IconButton>
-                  </span>
-                </Tooltip>
-              </Box>
-              <Box
-                sx={{
-                  height: "calc(100vh - 310px)",
-                  overflow: "auto",
-                  padding: 1,
-                }}
-              >
+          {/* Coluna esquerda: descrição + comboboxes */}
+          <Grid size={{ xs: 7, sm: 6, md: 5, lg: 4, xl: 3 }}>
+            <Box
+              display="flex"
+              justifyContent="flex-end"
+              height="56px"
+              alignItems="center"
+            ></Box>
+            <Grid
+              container
+              spacing={2}
+              direction="column"
+              component={Paper}
+              variant="outlined"
+              padding={3}
+            >
+              <Grid>
                 <TextField
-                  label="Conteúdo do Prompt"
-                  multiline
+                  label="Descrição"
                   fullWidth
-                  minRows={10}
-                  {...RForm.register("txt_prompt")}
+                  {...RForm.register("nm_desc")}
                   disabled={isLoading}
-                  sx={{
-                    height: "100%",
-                    "& textarea": {
-                      height: "100% !important",
-                      textAlign: "justify",
-                      hyphens: "auto",
-                    },
-                    "& .MuiInputBase-root": {
-                      height: "100%",
-                      alignItems: "start",
-                    },
-                  }}
+                  sx={{ mt: 1 }} // Ajuste fino aqui
                   slotProps={{
-                    input: {
-                      style: {
-                        padding: "24px", // ajuste conforme desejado
-                      },
-                    },
                     inputLabel: { shrink: true },
                   }}
                 />
-              </Box>
+              </Grid>
+
+              <Grid>
+                <Controller
+                  name="id_nat"
+                  control={RForm.control}
+                  render={({ field }) => (
+                    <TextField
+                      select
+                      label="Natureza"
+                      fullWidth
+                      disabled={isLoading}
+                      {...field}
+                      value={field.value ?? 0}
+                    >
+                      {itemsNatureza.map((item) => (
+                        <MenuItem key={item.key} value={item.key}>
+                          {item.description}
+                        </MenuItem>
+                      ))}
+                    </TextField>
+                  )}
+                />
+              </Grid>
+
+              <Grid>
+                <Controller
+                  name="id_doc"
+                  control={RForm.control}
+                  render={({ field }) => (
+                    <TextField
+                      select
+                      label="Documento"
+                      fullWidth
+                      disabled={isLoading}
+                      {...field}
+                      value={field.value ?? 0}
+                    >
+                      {itemsDocumento.map((item) => (
+                        <MenuItem key={item.key} value={item.key}>
+                          {item.description}
+                        </MenuItem>
+                      ))}
+                    </TextField>
+                  )}
+                />
+              </Grid>
+
+              <Grid>
+                <Controller
+                  name="id_classe"
+                  control={RForm.control}
+                  render={({ field }) => (
+                    <TextField
+                      select
+                      label="Classe"
+                      fullWidth
+                      disabled={isLoading}
+                      {...field}
+                      value={field.value ?? 0}
+                    >
+                      {itemsClasse.map((item) => (
+                        <MenuItem key={item.key} value={item.key}>
+                          {item.description}
+                        </MenuItem>
+                      ))}
+                    </TextField>
+                  )}
+                />
+              </Grid>
+
+              <Grid>
+                <Controller
+                  name="id_assunto"
+                  control={RForm.control}
+                  render={({ field }) => (
+                    <TextField
+                      select
+                      label="Assunto"
+                      fullWidth
+                      disabled={isLoading}
+                      {...field}
+                      value={field.value ?? 0}
+                    >
+                      {itemsAssunto.map((item) => (
+                        <MenuItem key={item.key} value={item.key}>
+                          {item.description}
+                        </MenuItem>
+                      ))}
+                    </TextField>
+                  )}
+                />
+              </Grid>
             </Grid>
           </Grid>
-        </Box>
+
+          {/* Coluna esparçadora */}
+          <Grid size={{ xs: 0, sm: 0, md: 1, lg: 1, xl: 2 }} />
+
+          {/* Coluna direita: conteúdo do prompt */}
+          <Grid size={{ xs: 12, sm: 12, md: 6, lg: 7, xl: 7 }}>
+            <Box
+              display="flex"
+              justifyContent="flex-end"
+              height="56px"
+              alignItems="center"
+            >
+              <Tooltip title="Copiar conteúdo">
+                <span>
+                  <IconButton
+                    onClick={() =>
+                      copiarParaClipboard(RForm.getValues("txt_prompt"))
+                    }
+                    disabled={isLoading}
+                  >
+                    <ContentCopy fontSize="small" />
+                  </IconButton>
+                </span>
+              </Tooltip>
+            </Box>
+            <Box
+              sx={{
+                height: "calc(100vh - 310px)",
+                overflow: "auto",
+                padding: 1,
+              }}
+            >
+              <TextField
+                component={Paper}
+                variant="outlined"
+                label="Prompt"
+                multiline
+                fullWidth
+                minRows={10}
+                {...RForm.register("txt_prompt")}
+                disabled={isLoading}
+                sx={{
+                  height: "100%",
+                  "& textarea": {
+                    height: "100% !important",
+                    textAlign: "justify",
+                    hyphens: "auto",
+                  },
+                  "& .MuiInputBase-root": {
+                    height: "100%",
+                    alignItems: "start",
+                  },
+                }}
+                slotProps={{
+                  input: {
+                    style: {
+                      padding: "24px", // ajuste conforme desejado
+                    },
+                  },
+                  inputLabel: { shrink: true },
+                }}
+              />
+            </Box>
+          </Grid>
+        </Grid>
+        {/* </Box> */}
       </form>
     </PageBaseLayout>
   );

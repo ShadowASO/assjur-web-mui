@@ -1,23 +1,27 @@
 import { createTheme } from "@mui/material";
-import { cyan, yellow } from "@mui/material/colors";
+import { cyan, grey } from "@mui/material/colors";
 
 export const LightTheme = createTheme({
   palette: {
     primary: {
-      main: yellow[700],
-      dark: yellow[800],
-      light: yellow[500],
-      contrastText: "#ffffff",
+      main: grey[300], // balões do usuário
+      dark: grey[400],
+      light: grey[200],
+      contrastText: "#000000", // melhor contraste com balões claros
     },
     secondary: {
-      main: cyan[500],
-      dark: cyan[400],
-      light: cyan[300],
+      main: cyan[400], // destaque para links/botões
+      dark: cyan[600],
+      light: cyan[200],
       contrastText: "#ffffff",
     },
     background: {
-      default: "#f7f6f3",
-      paper: "#ffffff",
+      default: "#f7f7f8", // fundo geral (sem ser branco puro)
+      paper: "#ffffff", // balões/respostas do assistant
+    },
+    text: {
+      primary: "#202123", // cor padrão de texto
+      secondary: grey[700],
     },
   },
 });

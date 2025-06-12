@@ -56,14 +56,14 @@ export const ListaPecas = ({
       const rsp = await refreshUploadFiles(processoId);
 
       setIsLoading(false);
-      if (rsp instanceof Error) {
+      if (rsp) {
+        setRows(rsp);
+      } else {
         showFlashMessage(
           "Nenhum registro encontrado",
           "info",
           TIME_FLASH_ALERTA_SEC
         );
-      } else {
-        setRows(rsp);
       }
     };
     refresh();

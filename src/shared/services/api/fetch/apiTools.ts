@@ -42,22 +42,41 @@ interface IResponseDataDocs<T = unknown> {
  * @param rspApi
  * @returns
  */
-function parseApiResponseDataRows<T>(
-  rspApi: StandardBodyResponse
-): T[] | Error {
+function parseApiResponseDataRows<T>(rspApi: StandardBodyResponse): T[] {
   if (rspApi.ok && rspApi.data) {
     const data = rspApi.data as IResponseDataRows<T>;
-    return data.rows || new Error("Erro ao fazer parse do Response.");
+    if (data.rows) {
+      return data.rows;
+    }
   }
-  return new Error("Erro ao fazer parse do Response.");
+  throw new Error("Erro ao fazer parse do Response.");
 }
-function parseApiResponseDataRow<T>(rspApi: StandardBodyResponse): T | Error {
+function parseApiResponseDataRow<T>(rspApi: StandardBodyResponse): T {
   if (rspApi.ok && rspApi.data) {
     const data = rspApi.data as IResponseDataRows<T>;
-    return data.row || new Error("Erro ao fazer parse do Response.");
+    if (data.row) {
+      return data.row;
+    }
   }
-  return new Error("Erro ao fazer parse do Response.");
+  throw new Error("Erro ao fazer parse do Response.");
 }
+
+export interface DataTokenUsage {
+  prompt_tokens: number;
+  completion_tokens: number;
+  total_tokens: number;
+}
+
+export const getConsumoTokens = async (): Promise<DataTokenUsage> => {
+  try {
+    const rspApi = await api.get("/sessions/uso");
+    const data = rspApi.data as DataTokenUsage;
+    return data;
+  } catch (error) {
+    console.error("Erro ao acessar consumo de tokens:", error);
+    throw new Error("Erro ao acessar consumo de tokens.");
+  }
+};
 
 export const uploadFileToServer = async (idContexto: number, file: File) => {
   if (file) {
@@ -85,20 +104,17 @@ export const uploadFileToServer = async (idContexto: number, file: File) => {
 
 export const refreshUploadFiles = async (
   newContexto: string
-): Promise<UploadFilesRow[] | Error> => {
-  // Validação inicial do contexto --
+): Promise<UploadFilesRow[]> => {
   if (newContexto === "") {
-    return new Error("ID do contexto ausente.");
+    throw new Error("ID do contexto ausente.");
   }
 
   try {
-    // Faz a chamada à API
     const rspApi = await api.get(`/contexto/documentos/upload/${newContexto}`);
     return parseApiResponseDataRows<UploadFilesRow>(rspApi);
   } catch (error) {
-    // Lida com erros da chamada à API
     console.error("Erro ao acessar a API:", error);
-    throw error;
+    throw new Error("Erro ao acessar a API.");
   }
 };
 
@@ -145,9 +161,9 @@ export const extracDocumentWithOCR = async (
 };
 export const refreshOcrByContexto = async (
   idContexto: number
-): Promise<DocsOcrRow[] | Error> => {
+): Promise<DocsOcrRow[]> => {
   if (idContexto === 0) {
-    return new Error("ID do registro ausente.");
+    throw new Error("ID do registro ausente.");
   }
   try {
     const rspApi = await api.get(
@@ -155,14 +171,9 @@ export const refreshOcrByContexto = async (
     );
     return parseApiResponseDataRows<DocsOcrRow>(rspApi);
   } catch (error) {
-    // Lida com erros da chamada à API
     console.error("Erro ao acessar a API:", error);
-    return new Error(
-      (error as { message: string }).message ||
-        "Erro ao selecionar os registros."
-    );
+    throw new Error("Erro ao acessar a API.");
   }
-  return new Error("Erro não identificado.");
 };
 
 export const deleteOcrdocByIdDoc = async (IdDoc: number): Promise<boolean> => {
@@ -181,24 +192,17 @@ export const deleteOcrdocByIdDoc = async (IdDoc: number): Promise<boolean> => {
   }
 };
 
-export const selectAutosTemp = async (
-  idDoc: number
-): Promise<DocsOcrRow | Error> => {
+export const selectAutosTemp = async (idDoc: number): Promise<DocsOcrRow> => {
   if (idDoc === 0) {
-    return new Error("ID do registro ausente.");
+    throw new Error("ID do registro ausente.");
   }
   try {
     const rspApi = await api.get(`/contexto/documentos/${String(idDoc)}`);
     return parseApiResponseDataRow<DocsOcrRow>(rspApi);
   } catch (error) {
-    // Lida com erros da chamada à API
     console.error("Erro ao acessar a API:", error);
-    return new Error(
-      (error as { message: string }).message ||
-        "Erro ao selecionar os registros."
-    );
+    throw new Error("Erro ao acessar a API.");
   }
-  return new Error("Erro não identificado.");
 };
 
 export const autuarDocumentos = async (
@@ -231,22 +235,17 @@ export const refreshAutos = async (idContexto: number) => {
  * @param idDoc
  * @returns
  */
-export const selectAutos = async (idDoc: number): Promise<AutosRow | Error> => {
+export const selectAutos = async (idDoc: number): Promise<AutosRow> => {
   if (idDoc === 0) {
-    return new Error("ID do registro ausente.");
+    throw new Error("ID do registro ausente.");
   }
   try {
     const rspApi = await api.get(`/contexto/autos/${String(idDoc)}`);
     return parseApiResponseDataRow<AutosRow>(rspApi);
   } catch (error) {
-    // Lida com erros da chamada à API
-    console.error("erro ao acessa a API:", error);
-    return new Error(
-      (error as { message: string }).message ||
-        "Erro ao selecionar os registros."
-    );
+    console.error("Erro ao acessar a API:", error);
+    throw new Error("Erro ao acessar a API.");
   }
-  return new Error("Erro não identificado.");
 };
 
 /**
@@ -275,37 +274,30 @@ export const deleteAutos = async (
 
 export const getContexto = async (
   strProcesso: string
-): Promise<ContextoRow | Error> => {
+): Promise<ContextoRow> => {
   try {
     const rspApi = await api.get(`/contexto/processo/${strProcesso}`);
     return parseApiResponseDataRow<ContextoRow>(rspApi);
   } catch (error) {
-    console.error("Erro", error);
+    console.error("Erro ao acessar a API:", error);
+    throw new Error("Erro ao acessar a API.");
   }
-  return new Error("Erro não identificado.");
 };
 
-export const refreshContextos = async (): Promise<ContextoRow[] | Error> => {
+export const refreshContextos = async (): Promise<ContextoRow[]> => {
   try {
     const rspApi = await api.get("/contexto");
     return parseApiResponseDataRows<ContextoRow>(rspApi);
   } catch (error) {
-    // Lida com erros da chamada à API
-    console.error("Error accessing the API:", error);
-    //throw new Error("Failed to fetch contextos from the API");
-    return new Error(
-      (error as { message: string }).message ||
-        "Erro ao selecionar os registros."
-    );
+    console.error("Erro ao acessar a API:", error);
+    throw new Error("Erro ao acessar a API.");
   }
 };
 /**
  * Aparentemente a API não foi implementada ainda
  
  */
-export const deleteContexto = async (
-  IdDoc: string
-): Promise<boolean | Error> => {
+export const deleteContexto = async (IdDoc: string): Promise<boolean> => {
   try {
     const rspApi = await api.delete(`/contexto/${IdDoc}`, {});
 
@@ -316,9 +308,7 @@ export const deleteContexto = async (
     }
   } catch (error) {
     console.error("Erro ao deletar o registro: " + error);
-    return new Error(
-      (error as { message: string }).message || "Erro ao deletar o registro."
-    );
+    throw new Error("Erro ao deletar o registro:.");
   }
   return false;
 };
@@ -328,21 +318,19 @@ export const updatePrompt = async (
   idPrompt: number,
   nmDesc: string,
   txtPrompt: string
-): Promise<PromptsRow | Error> => {
+): Promise<PromptsRow> => {
   const prompt = {
     IdPrompt: idPrompt,
     NmDesc: nmDesc,
     TxtPrompt: txtPrompt,
   };
   try {
-    //console.log("prompt=", idPrompt);
-
     const rspApi = await api.put("/tabelas/prompts", prompt);
     return parseApiResponseDataRow<PromptsRow>(rspApi);
   } catch (error) {
     console.error("Erro ao alterar o prompt: " + error);
   }
-  return new Error("Erro não identificado.");
+  throw new Error("Erro não identificado.");
 };
 
 export const deletePrompt = async (idPrompt: number): Promise<boolean> => {
@@ -355,7 +343,7 @@ export const deletePrompt = async (idPrompt: number): Promise<boolean> => {
   }
 };
 
-export const refreshPrompts = async (): Promise<PromptsRow[] | Error> => {
+export const refreshPrompts = async (): Promise<PromptsRow[]> => {
   try {
     const rspApi = await api.get("/tabelas/prompts");
     return parseApiResponseDataRows<PromptsRow>(rspApi);
@@ -364,12 +352,10 @@ export const refreshPrompts = async (): Promise<PromptsRow[] | Error> => {
     console.error("Error accessing the API:", error);
     throw new Error("Failed to fetch prompts from the API");
   }
-  return new Error("Erro não identificado.");
+  throw new Error("Erro não identificado.");
 };
 
-export const selectPrompt = async (
-  idPrompt: number
-): Promise<PromptsRow | Error> => {
+export const selectPrompt = async (idPrompt: number): Promise<PromptsRow> => {
   try {
     const rspApi = await api.get(`/tabelas/prompts/${String(idPrompt)}`);
     return parseApiResponseDataRow<PromptsRow>(rspApi);
@@ -378,7 +364,7 @@ export const selectPrompt = async (
     console.error("Error accessing the API:", error);
     throw new Error("Failed to fetch prompts from the API");
   }
-  return new Error("Erro não identificado.");
+  throw new Error("Erro não identificado.");
 };
 //PromptRow
 export const insertPrompt = async (
@@ -463,7 +449,7 @@ export const updateModelos = async (
 export const searchModelos = async (
   consulta: string,
   natureza: string
-): Promise<ModelosRow[] | Error> => {
+): Promise<ModelosRow[]> => {
   try {
     const bodyObj = {
       Index_name: "ml-modelos-msmarco",
@@ -482,7 +468,7 @@ export const searchModelos = async (
         new Error("Nenhum valor retornado");
       }
     }
-    return new Error(rspApi.error?.message);
+    throw new Error(rspApi.error?.message);
   } catch (error) {
     console.error("Erro ao buscar modelos:", error);
     // Lança o erro para ser tratado por quem chamou
@@ -492,9 +478,7 @@ export const searchModelos = async (
   }
 };
 
-export const deleteModelos = async (
-  IdDoc: string
-): Promise<boolean | Error> => {
+export const deleteModelos = async (IdDoc: string): Promise<boolean> => {
   try {
     const rspApi = await api.delete(`/tabelas/modelos/${IdDoc}`, {});
 
@@ -502,11 +486,11 @@ export const deleteModelos = async (
       return rspApi.ok;
     } else {
       console.error(`Modelo Id: ${IdDoc} não foi deletado!`);
-      return new Error("Erro ao deletar registro.");
+      throw new Error("Erro ao deletar registro.");
     }
   } catch (error) {
-    //console.error("Erro ao deletar o modelo: " + error);
-    return new Error(
+    console.error("Erro ao deletar o modelo: " + error);
+    throw new Error(
       (error as { message: string }).message || "Erro ao deletar registros."
     );
   }

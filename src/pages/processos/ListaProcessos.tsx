@@ -47,13 +47,17 @@ export const ListaProcessos = () => {
   const handleDelete = async (id: number) => {
     if (confirm("Realmente deseja apagar?")) {
       const rsp = await deleteContexto(String(id));
-      if (rsp instanceof Error) {
-        showFlashMessage(rsp.message, "error", TIME_FLASH_ALERTA_SEC);
-      } else {
+      if (rsp) {
         setRows((old) => old.filter((row) => row.id_ctxt !== id));
         showFlashMessage(
           "Registro apagado com sucesso",
           "success",
+          TIME_FLASH_ALERTA_SEC
+        );
+      } else {
+        showFlashMessage(
+          "Erro ao deletar o registro",
+          "error",
           TIME_FLASH_ALERTA_SEC
         );
       }

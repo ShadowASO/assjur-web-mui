@@ -3,6 +3,7 @@ import { PageBaseLayout } from "../../shared/layouts/PageBaseLayout";
 import { BarraListagem } from "../../shared/components/BarraListagem";
 import { Box, Card, Grid, Typography } from "@mui/material";
 import CardContent from "@mui/material/CardContent";
+import { CardConsumoTokens } from "./CardConsumoTokens";
 
 //import stilo from "../../shared/styles/teste.module.css";
 
@@ -41,7 +42,10 @@ export const Dashboard = () => {
       }
     >
       <Grid container spacing={1} padding={1} margin={1}>
-        <Grid size={{ xs: 5, sm: 4, md: 3, lg: 2, xl: 2 }}>
+        <Grid size={{ xs: 5, sm: 4, md: 3, lg: 3, xl: 3 }}>
+          <CardConsumoTokens></CardConsumoTokens>
+        </Grid>
+        <Grid size={{ xs: 5, sm: 4, md: 3, lg: 3, xl: 3 }}>
           <Card>
             <CardContent>
               <Typography variant="h5" align="center">

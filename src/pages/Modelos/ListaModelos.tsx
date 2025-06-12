@@ -49,13 +49,17 @@ export const ListaModelos = () => {
   const handleDelete = async (id: string) => {
     if (confirm("Deseja realmente apagar o modelo?")) {
       const rsp = await deleteModelos(String(id));
-      if (rsp instanceof Error) {
-        showFlashMessage(rsp.message, "error", TIME_FLASH_ALERTA_SEC);
-      } else {
+      if (rsp) {
         setRows((old) => old.filter((old) => old.id !== id));
         showFlashMessage(
-          "Registro apagado com sucesso",
+          "Registro excluído com sucesso",
           "success",
+          TIME_FLASH_ALERTA_SEC
+        );
+      } else {
+        showFlashMessage(
+          "Erro ao deletar o registro",
+          "error",
           TIME_FLASH_ALERTA_SEC
         );
       }
@@ -103,7 +107,7 @@ export const ListaModelos = () => {
       }
     >
       <Grid container spacing={1} padding={1} margin={1}>
-        {/* Tabela fixa à esquerda */}
+        {/* COL-01 - Tabela fixa à esquerda */}
         <Grid size={{ xs: 12, sm: 12, md: 7, lg: 7, xl: 7 }}>
           <TableContainer
             component={Paper}
@@ -188,7 +192,7 @@ export const ListaModelos = () => {
           </TableContainer>
         </Grid>
 
-        {/* Área de texto com altura fixa à direita */}
+        {/* COL-02 - Área de texto com altura fixa à direita */}
         <Grid size={{ xs: 12, sm: 12, md: 5, lg: 5, xl: 5 }}>
           <Paper
             variant="outlined"

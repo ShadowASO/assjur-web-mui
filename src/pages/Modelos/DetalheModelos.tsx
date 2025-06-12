@@ -60,7 +60,7 @@ export const DetalheModelos = () => {
           navigate("/modelos");
         } else {
           if (rsp) {
-            console.log(rsp);
+            //console.log(rsp);
             RForm.reset(rsp);
           } else {
             RForm.reset({
@@ -118,7 +118,7 @@ export const DetalheModelos = () => {
             "success",
             TIME_FLASH_ALERTA_SEC
           );
-          navigate(`/modelos/detalhe/${rsp}`);
+          navigate(`/modelos/detalhes/${rsp}`);
         }
       } else {
         //const rsp = await updateModelo(id, valida);
@@ -155,15 +155,19 @@ export const DetalheModelos = () => {
   const handleDelete = async (id: string) => {
     if (confirm("Deseja realmente excluir o modelo?")) {
       const rsp = await deleteModelos(id);
-      if (rsp instanceof Error) {
-        showFlashMessage(rsp.message, "error", TIME_FLASH_ALERTA_SEC);
-      } else {
+      if (rsp) {
         showFlashMessage(
           "Registro excluído com sucesso",
           "success",
           TIME_FLASH_ALERTA_SEC
         );
         navigate("/modelos");
+      } else {
+        showFlashMessage(
+          "Erro na exclusão do registro",
+          "error",
+          TIME_FLASH_ALERTA_SEC
+        );
       }
     }
   };
@@ -186,159 +190,174 @@ export const DetalheModelos = () => {
       }
     >
       <form onSubmit={RForm.handleSubmit(handleSave)}>
-        <Box margin={1} component={Paper} variant="outlined">
-          <Grid container spacing={2} padding={2}>
-            {isLoading && (
-              <Grid size={{ xs: 12, sm: 12, md: 12, lg: 12, xl: 12 }}>
-                <LinearProgress />
-              </Grid>
-            )}
-
-            {/* Coluna esquerda: descrição + comboboxes */}
-            <Grid size={{ xs: 7, sm: 6, md: 5, lg: 4, xl: 5 }}>
-              <Grid container spacing={2} direction="column">
-                <Grid>
-                  <TextField
-                    select
-                    label="Natureza"
-                    fullWidth
-                    value={natureza ?? "Selecione a natureza"}
-                    onChange={(e) => setValue("natureza", e.target.value)}
-                    disabled={isLoading}
-                    sx={{ mt: 8 }} // Ajuste fino aqui
-                  >
-                    {itemsNatureza.map((item) => (
-                      <MenuItem key={item.key} value={item.description}>
-                        {item.description}
-                      </MenuItem>
-                    ))}
-                  </TextField>
-                </Grid>
-                <Grid>
-                  <Box
-                    display="flex"
-                    justifyContent="flex-end"
-                    height="56px"
-                    alignItems="center"
-                  >
-                    <Tooltip title="Copiar ementa">
-                      <span>
-                        <IconButton
-                          onClick={() =>
-                            copiarParaClipboard(RForm.getValues("ementa"))
-                          }
-                          disabled={isLoading}
-                        >
-                          <ContentCopy fontSize="small" />
-                        </IconButton>
-                      </span>
-                    </Tooltip>
-                  </Box>
-                  <Box
-                    sx={{
-                      height: "calc(100vh - 600px)",
-                      overflow: "auto",
-                      padding: 0,
-                      pt: 1,
-                    }}
-                  >
-                    <TextField
-                      label="Ementa"
-                      multiline
-                      fullWidth
-                      minRows={10}
-                      {...RForm.register("ementa")}
-                      disabled={isLoading}
-                      sx={{
-                        height: "100%",
-                        "& textarea": {
-                          height: "100% !important",
-                          textAlign: "justify",
-                          hyphens: "auto",
-                        },
-                        "& .MuiInputBase-root": {
-                          height: "100%",
-                          alignItems: "start",
-                        },
-                      }}
-                      slotProps={{
-                        input: {
-                          style: {
-                            padding: "24px", // ajuste conforme desejado
-                          },
-                        },
-                        inputLabel: { shrink: true },
-                      }}
-                    />
-                  </Box>
-                </Grid>
-              </Grid>
+        {/* <Box margin={1} component={Paper} variant="outlined"> */}
+        <Grid container spacing={2} padding={1}>
+          {isLoading && (
+            <Grid size={{ xs: 12, sm: 12, md: 12, lg: 12, xl: 12 }}>
+              <LinearProgress />
             </Grid>
+          )}
 
-            {/* Coluna esparçadora */}
-            {/* <Grid size={{ xs: 0, sm: 0, md: 1, lg: 1, xl: 2 }} /> */}
-
-            {/* Coluna direita: conteúdo do prompt */}
-            <Grid size={{ xs: 12, sm: 12, md: 6, lg: 7, xl: 7 }}>
-              <Box
-                display="flex"
-                justifyContent="flex-end"
-                height="56px"
-                alignItems="center"
-              >
-                <Tooltip title="Copiar conteúdo">
-                  <span>
-                    <IconButton
-                      onClick={() =>
-                        copiarParaClipboard(RForm.getValues("inteiro_teor"))
-                      }
-                      disabled={isLoading}
-                    >
-                      <ContentCopy fontSize="small" />
-                    </IconButton>
-                  </span>
-                </Tooltip>
-              </Box>
-              <Box
-                sx={{
-                  height: "calc(100vh - 310px)",
-                  overflow: "auto",
-                  padding: 0,
-                  pt: 1,
-                }}
-              >
+          {/* Coluna esquerda: descrição + comboboxes */}
+          <Grid size={{ xs: 7, sm: 6, md: 5, lg: 4, xl: 5 }}>
+            <Box
+              display="flex"
+              justifyContent="flex-end"
+              height="56px"
+              alignItems="center"
+            ></Box>
+            <Grid
+              container
+              spacing={2}
+              direction="column"
+              component={Paper}
+              padding={2}
+              sx={{ mt: 1, height: "calc(100vh - 310px)" }} // Ajuste fino aqui
+              variant="outlined"
+            >
+              <Grid>
                 <TextField
-                  label="Conteúdo do Prompt"
-                  multiline
+                  select
+                  label="Natureza"
                   fullWidth
-                  minRows={10}
-                  {...RForm.register("inteiro_teor")}
+                  value={natureza ?? "Selecione a natureza"}
+                  onChange={(e) => setValue("natureza", e.target.value)}
                   disabled={isLoading}
+                  sx={{ mt: 1 }} // Ajuste fino aqui
+                >
+                  {itemsNatureza.map((item) => (
+                    <MenuItem key={item.key} value={item.description}>
+                      {item.description}
+                    </MenuItem>
+                  ))}
+                </TextField>
+              </Grid>
+              <Grid>
+                <Box
+                  display="flex"
+                  justifyContent="flex-end"
+                  height="56px"
+                  alignItems="center"
+                >
+                  <Tooltip title="Copiar ementa">
+                    <span>
+                      <IconButton
+                        onClick={() =>
+                          copiarParaClipboard(RForm.getValues("ementa"))
+                        }
+                        disabled={isLoading}
+                      >
+                        <ContentCopy fontSize="small" />
+                      </IconButton>
+                    </span>
+                  </Tooltip>
+                </Box>
+                <Box
                   sx={{
-                    height: "100%",
-                    "& textarea": {
-                      height: "100% !important",
-                      textAlign: "justify",
-                      hyphens: "auto",
-                    },
-                    "& .MuiInputBase-root": {
+                    overflow: "auto",
+                    padding: 0,
+                    pt: 1,
+                  }}
+                >
+                  <TextField
+                    label="Ementa"
+                    multiline
+                    fullWidth
+                    minRows={10}
+                    {...RForm.register("ementa")}
+                    disabled={isLoading}
+                    sx={{
                       height: "100%",
-                      alignItems: "start",
-                    },
-                  }}
-                  slotProps={{
-                    input: {
-                      style: {
-                        padding: "24px", // ajuste conforme desejado
+                      "& textarea": {
+                        height: "100% !important",
+                        textAlign: "justify",
+                        hyphens: "auto",
                       },
-                    },
-                    inputLabel: { shrink: true },
-                  }}
-                />
-              </Box>
+                      "& .MuiInputBase-root": {
+                        height: "100%",
+                        alignItems: "start",
+                      },
+                    }}
+                    slotProps={{
+                      input: {
+                        style: {
+                          padding: "24px", // ajuste conforme desejado
+                        },
+                      },
+                      inputLabel: { shrink: true },
+                    }}
+                  />
+                </Box>
+              </Grid>
             </Grid>
           </Grid>
-        </Box>
+
+          {/* Coluna esparçadora */}
+          {/* <Grid size={{ xs: 0, sm: 0, md: 1, lg: 1, xl: 2 }} /> */}
+
+          {/* Coluna direita: conteúdo do prompt */}
+          <Grid size={{ xs: 12, sm: 12, md: 6, lg: 7, xl: 7 }}>
+            <Box
+              display="flex"
+              justifyContent="flex-end"
+              height="56px"
+              alignItems="center"
+            >
+              <Tooltip title="Copiar prompt">
+                <span>
+                  <IconButton
+                    onClick={() =>
+                      copiarParaClipboard(RForm.getValues("inteiro_teor"))
+                    }
+                    disabled={isLoading}
+                  >
+                    <ContentCopy fontSize="small" />
+                  </IconButton>
+                </span>
+              </Tooltip>
+            </Box>
+            <Box
+              sx={{
+                height: "calc(100vh - 310px)",
+                overflow: "auto",
+                padding: 0,
+                pt: 1,
+              }}
+            >
+              <TextField
+                component={Paper}
+                variant="outlined"
+                label="Prompt"
+                multiline
+                fullWidth
+                minRows={10}
+                {...RForm.register("inteiro_teor")}
+                disabled={isLoading}
+                sx={{
+                  height: "100%",
+                  "& textarea": {
+                    height: "100% !important",
+                    textAlign: "justify",
+                    hyphens: "auto",
+                  },
+                  "& .MuiInputBase-root": {
+                    height: "100%",
+                    alignItems: "start",
+                  },
+                }}
+                slotProps={{
+                  input: {
+                    style: {
+                      padding: "24px", // ajuste conforme desejado
+                    },
+                  },
+                  inputLabel: { shrink: true },
+                }}
+              />
+            </Box>
+          </Grid>
+        </Grid>
+        {/* </Box> */}
       </form>
     </PageBaseLayout>
   );

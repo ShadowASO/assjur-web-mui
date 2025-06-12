@@ -50,8 +50,8 @@ export const BarraListagem = ({
           </Grid>
         )}
 
-        {/* DROPDOWN */}
-        {itemsTable && (
+        {/* DROPDOWN - Não havendo dropdown, insere esparçador. */}
+        {itemsTable ? (
           <Grid size={{ xs: 12, sm: 4, md: 4, lg: 3, xl: 3 }}>
             <Box display="flex" height="100%">
               <TextField
@@ -71,7 +71,10 @@ export const BarraListagem = ({
               </TextField>
             </Box>
           </Grid>
+        ) : (
+          <Grid size={{ xs: 0, sm: 0, md: 4, lg: 3, xl: 3 }}></Grid>
         )}
+        {/* Esparçador */}
         <Grid size={{ xs: 0, sm: 0, md: 1, lg: 2, xl: 3 }}></Grid>
 
         {/* Botão */}
