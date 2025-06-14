@@ -39,6 +39,7 @@ export const BarraListagem = ({
           <Grid size={{ xs: 12, sm: 6, md: 5, lg: 4, xl: 4 }}>
             <Box display="flex" height="100%">
               <TextField
+                type="text"
                 value={fieldValue}
                 onChange={(e) => onFieldChange?.(e.target.value)}
                 size="small"

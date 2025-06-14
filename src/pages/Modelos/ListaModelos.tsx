@@ -1,4 +1,4 @@
-import { useNavigate, useSearchParams } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 import { BarraListagem } from "../../shared/components/BarraListagem";
 import { PageBaseLayout } from "../../shared/layouts";
 import { useEffect, useState } from "react";
@@ -12,7 +12,7 @@ import {
   Icon,
   IconButton,
   LinearProgress,
-  Pagination,
+  //Pagination,
   Paper,
   Table,
   TableBody,
@@ -23,7 +23,7 @@ import {
   TableRow,
   Typography,
 } from "@mui/material";
-import { Environment } from "../../shared/enviroments";
+
 import { Delete, Edit } from "@mui/icons-material";
 import { TIME_FLASH_ALERTA_SEC } from "../../shared/components/FlashAlerta";
 import { useFlash } from "../../shared/contexts/FlashProvider";
@@ -31,19 +31,19 @@ import type { ModelosRow } from "../../shared/types/tabelas";
 import { itemsNatureza } from "../../shared/constants/itemsModelos";
 
 export const ListaModelos = () => {
-  const [searchParams, setSearchParams] = useSearchParams();
+  const [searchTexto, setSearchTexto] = useState("");
   const { debounce } = useDebounce(500);
   const navigate = useNavigate();
 
   const [rows, setRows] = useState<ModelosRow[]>([]);
-  const [totalPage] = useState(0);
+
   const [isLoading, setIsLoading] = useState(false);
   const [selectedContent, setSelectedContent] = useState<string>("");
 
   const [natureza, setNatureza] = useState<string>("Despacho");
 
-  const busca = searchParams.get("busca") || "";
-  const pagina = Number(searchParams.get("pagina") || "1");
+  //const busca = searchParams;
+
   const { showFlashMessage } = useFlash();
 
   const handleDelete = async (id: string) => {
@@ -68,10 +68,10 @@ export const ListaModelos = () => {
 
   useEffect(() => {
     debounce(async () => {
-      if (busca.length > 0) {
+      if (searchTexto.length > 0) {
         setIsLoading(true);
 
-        const rsp = await searchModelos(busca, natureza);
+        const rsp = await searchModelos(searchTexto, natureza);
 
         setIsLoading(false);
         if (rsp instanceof Error) {
@@ -87,7 +87,7 @@ export const ListaModelos = () => {
         setRows([]);
       }
     });
-  }, [busca, pagina, debounce]);
+  }, [searchTexto, debounce]);
 
   return (
     <PageBaseLayout
@@ -95,10 +95,11 @@ export const ListaModelos = () => {
       toolBar={
         <BarraListagem
           buttonLabel="Nova"
-          fieldValue={busca}
+          fieldValue={searchTexto}
           onButtonClick={() => navigate(`/modelos/detalhes/nova`)}
           onFieldChange={(txt) =>
-            setSearchParams({ busca: txt, pagina: "1" }, { replace: true })
+            //setSearchParams({ busca: txt, pagina: "1" }, { replace: true })
+            setSearchTexto(txt)
           }
           itemsTable={itemsNatureza}
           selectItem={setNatureza}
@@ -169,7 +170,7 @@ export const ListaModelos = () => {
                     </TableCell>
                   </TableRow>
                 )}
-                {totalPage > 0 && totalPage > Environment.LIMITE_DE_LINHAS && (
+                {/* {totalPage > 0 && totalPage > Environment.LIMITE_DE_LINHAS && (
                   <TableRow>
                     <TableCell colSpan={3}>
                       <Pagination
@@ -186,7 +187,7 @@ export const ListaModelos = () => {
                       />
                     </TableCell>
                   </TableRow>
-                )}
+                )} */}
               </TableFooter>
             </Table>
           </TableContainer>

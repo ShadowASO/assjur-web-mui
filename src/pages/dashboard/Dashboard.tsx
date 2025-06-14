@@ -1,11 +1,9 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { PageBaseLayout } from "../../shared/layouts/PageBaseLayout";
 import { BarraListagem } from "../../shared/components/BarraListagem";
 import { Box, Card, Grid, Typography } from "@mui/material";
 import CardContent from "@mui/material/CardContent";
 import { CardConsumoTokens } from "./CardConsumoTokens";
-
-//import stilo from "../../shared/styles/teste.module.css";
 
 export const Dashboard = () => {
   const [isLoadingCidades] = useState(true);
@@ -13,30 +11,9 @@ export const Dashboard = () => {
   const [totalCountCidades] = useState(0);
   const [totalCountPessoas] = useState(0);
 
-  useEffect(() => {
-    // setIsLoadingCidades(true);
-    // setIsLoadingPessoas(true);
-    // CidadesService.getAll(1).then((result) => {
-    //   setIsLoadingCidades(false);
-    //   if (result instanceof Error) {
-    //     alert(result.message);
-    //   } else {
-    //     setTotalCountCidades(result.items);
-    //   }
-    // });
-    // PessoasService.getAll(1).then((result) => {
-    //   setIsLoadingPessoas(false);
-    //   if (result instanceof Error) {
-    //     alert(result.message);
-    //   } else {
-    //     setTotalCountPessoas(result.items);
-    //   }
-    // });
-  }, []);
-
   return (
     <PageBaseLayout
-      title="PageBaseLayout"
+      title="Dashboard"
       toolBar={
         <BarraListagem showButton={false} showField={false}></BarraListagem>
       }

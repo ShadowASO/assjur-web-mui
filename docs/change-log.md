@@ -43,3 +43,12 @@ a) criada a interface de detalhamento dos prompts;
 # -----------------------------------------------------------------------------
 a) ajustes nas interface para utilizar o Grid com responsividade para distribuir
 e organizar os elementos da interface;
+
+# -----------------------------------------------------------------------------
+#             Em 12-06-2025: Versão 1.0.0                                    
+# -----------------------------------------------------------------------------
+a) ajustes nas interfaces para ajustar as cores e temas, modificações na inter-
+face do Chat-ia, alterações na API relacionadas aos uso de tokens, criação de 
+componente CardConsumoTokens para exibir no Dashboard;
+b) modificações também na interface do componente DetalhePrompts;
+

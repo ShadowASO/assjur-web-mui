@@ -199,7 +199,7 @@ export const DetalheModelos = () => {
           )}
 
           {/* Coluna esquerda: descrição + comboboxes */}
-          <Grid size={{ xs: 7, sm: 6, md: 5, lg: 4, xl: 5 }}>
+          <Grid size={{ xs: 7, sm: 6, md: 5, lg: 4, xl: 4 }}>
             <Box
               display="flex"
               justifyContent="flex-end"
@@ -293,7 +293,7 @@ export const DetalheModelos = () => {
           </Grid>
 
           {/* Coluna esparçadora */}
-          {/* <Grid size={{ xs: 0, sm: 0, md: 1, lg: 1, xl: 2 }} /> */}
+          <Grid size={{ xs: 0, sm: 0, md: 0, lg: 1, xl: 1 }} />
 
           {/* Coluna direita: conteúdo do prompt */}
           <Grid size={{ xs: 12, sm: 12, md: 6, lg: 7, xl: 7 }}>

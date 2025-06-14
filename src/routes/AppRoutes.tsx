@@ -14,12 +14,10 @@ import { DetalheModelos } from "../pages/Modelos/DetalheModelos";
 import { ListaPrompts } from "../pages/prompts/ListaPrompts";
 import { UploadProcesso } from "../pages/processos/UploadProcesso";
 import { DetalhePrompt } from "../pages/prompts/DetalhePrompt";
-//import { getApiObjeto } from "../shared/services/api/fetch/ApiCliente";
+import { AnalisesMain } from "../pages/processos/AnaliseMain";
 
 export const AppRoutes = () => {
   const { setDrawerOptions } = useDrawerContext();
-  //const Api = getApiObjeto();
-  //const navigate = useNavigate();
 
   useEffect(() => {
     //Determina apenas quais itens de menu aparecerão para o usuário
@@ -71,8 +69,16 @@ export const AppRoutes = () => {
           </RequireAuth>
         }
       />
-      <Route
+      {/* <Route
         path="/processos/detalhes/:id"
+        element={
+          <RequireAuth>
+            <UploadProcesso></UploadProcesso>
+          </RequireAuth>
+        }
+      /> */}
+      <Route
+        path="/processos/upload/:id"
         element={
           <RequireAuth>
             <UploadProcesso></UploadProcesso>
@@ -80,10 +86,10 @@ export const AppRoutes = () => {
         }
       />
       <Route
-        path="/processos/upload/:id"
+        path="/processos/analises/:id"
         element={
           <RequireAuth>
-            <UploadProcesso></UploadProcesso>
+            <AnalisesMain></AnalisesMain>
           </RequireAuth>
         }
       />

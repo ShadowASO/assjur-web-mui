@@ -223,6 +223,7 @@ export const refreshAutos = async (idContexto: number) => {
   }
   try {
     const rspApi = await api.get(`/contexto/autos/all/${String(idContexto)}`);
+    //console.log(rspApi);
     return parseApiResponseDataRows<AutosRow>(rspApi);
   } catch (error) {
     // Lida com erros da chamada à API

@@ -79,8 +79,8 @@ export const ListaProcessos = () => {
     handleMenuClose();
   };
 
-  const handleDetalhesClick = () => {
-    if (selectedId) navigate(`/processos/detalhes/${selectedId}`);
+  const handleAnalisesClick = () => {
+    if (selectedId) navigate(`/processos/analises/${selectedId}`);
     handleMenuClose();
   };
 
@@ -183,7 +183,7 @@ export const ListaProcessos = () => {
               onClose={handleMenuClose}
             >
               <MenuItem onClick={handleUploadClick}>Formar contexto</MenuItem>
-              <MenuItem onClick={handleDetalhesClick}>
+              <MenuItem onClick={handleAnalisesClick}>
                 Análise Jurídica
               </MenuItem>
               <MenuItem
