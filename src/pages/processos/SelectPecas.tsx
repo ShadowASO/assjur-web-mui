@@ -4,7 +4,7 @@
  * Componente para selecionar arquivos e listá-los na forma de uma tabela.
  * Recebe um handler do componente pai para permitir a manipulação do arquivo.
  */
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import {
   Box,
   Table,
@@ -19,10 +19,21 @@ import { UploadStyled } from "./UploadStyled";
 
 interface SelectPecasProps {
   onUpload: (file: File) => void;
+  loading?: boolean;
 }
 
-export const SelectPecas = ({ onUpload }: SelectPecasProps) => {
+export const SelectPecas = ({ onUpload, loading }: SelectPecasProps) => {
   const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
+  const [isLoading, setIsLoading] = useState(false);
+
+  useEffect(() => {
+    const refresh = async () => {
+      if (loading != null) {
+        setIsLoading(loading);
+      }
+    };
+    refresh();
+  }, [loading]);
 
   //Insere os arquivos selecionados no estado selectedFiles
   const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -40,7 +51,10 @@ export const SelectPecas = ({ onUpload }: SelectPecasProps) => {
 
   return (
     <Box display="flex" flexDirection="column" gap={2}>
-      <UploadStyled handleFileChange={handleFileChange}></UploadStyled>
+      <UploadStyled
+        handleFileChange={handleFileChange}
+        loading={isLoading}
+      ></UploadStyled>
 
       {selectedFiles.length > 0 && (
         <Table size="small">
@@ -58,6 +72,7 @@ export const SelectPecas = ({ onUpload }: SelectPecasProps) => {
                   <IconButton
                     onClick={() => handleUpload(file)}
                     title="Enviar este arquivo"
+                    disabled={isLoading}
                   >
                     <UploadIcon />
                   </IconButton>

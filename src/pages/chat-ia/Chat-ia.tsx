@@ -5,11 +5,10 @@ import {
   TextField,
   Typography,
   useTheme,
-  Button,
-  CircularProgress,
   Grid,
   Tooltip,
   IconButton,
+  InputAdornment,
 } from "@mui/material";
 import {
   useQueryGPT,
@@ -18,7 +17,7 @@ import {
 
 import ReactMarkdown from "react-markdown";
 import { useApi } from "../../shared/contexts/ApiProvider";
-import { ContentCopy } from "@mui/icons-material";
+import { Clear, ContentCopy, Send } from "@mui/icons-material";
 
 export const ChatIA = () => {
   const theme = useTheme();
@@ -29,8 +28,8 @@ export const ChatIA = () => {
   const { addMessage, messagesRef, getMessages } = useQueryGPT();
   const Api = useApi();
 
-  const handleSubmitQuery = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const handleSendPrompt = async () => {
+    //e.preventDefault();
 
     //Se o campo de prompt estiver vazio, faz nada
     if (!query.trim()) return;
@@ -76,8 +75,8 @@ export const ChatIA = () => {
       height="100vh"
       display="flex"
       flexDirection="column"
-      bgcolor={theme.palette.background.paper}
-      //bgcolor={theme.palette.primary.light}
+      //bgcolor={theme.palette.background.paper}
+      bgcolor={theme.palette.primary.light}
     >
       <Grid container spacing={1} padding={1} margin={1}>
         {/* Área de mensagens */}
@@ -90,11 +89,10 @@ export const ChatIA = () => {
             flexDirection="column"
             gap={2}
             sx={{
-              // borderBottom: `1px solid ${theme.palette.divider}`,
+              borderBottom: `1px solid ${theme.palette.divider}`,
               height: "calc(100vh - 200px)",
               overflowY: "auto",
               p: 1,
-              whiteSpace: "pre-wrap",
               display: "flex",
               flexDirection: "column",
             }}
@@ -116,13 +114,14 @@ export const ChatIA = () => {
                           ? theme.palette.background.default
                           : theme.palette.background.default,
                       borderRadius: "8px",
-                      maxWidth: "100%",
+                      maxWidth: msg.role === "user" ? "60%" : "100%",
                     }}
                     variant="outlined"
                   >
+                    {/* Botão de cópia para a área de transferência */}
                     {msg.role === "assistant" && (
                       <Box display="flex" justifyContent="flex-end" mb={1}>
-                        <Tooltip title="Copiar conteúdo">
+                        <Tooltip title="Copiar">
                           <IconButton
                             size="small"
                             onClick={() =>
@@ -130,6 +129,7 @@ export const ChatIA = () => {
                             }
                           >
                             <ContentCopy fontSize="small" />
+                            <Typography variant="body2">Copiar</Typography>
                           </IconButton>
                         </Tooltip>
                       </Box>
@@ -138,7 +138,24 @@ export const ChatIA = () => {
                     {msg.role === "user" ? (
                       <Typography variant="body1">{msg.content}</Typography>
                     ) : (
-                      <ReactMarkdown>{msg.content}</ReactMarkdown>
+                      <ReactMarkdown
+                        components={{
+                          li: ({ ...props }) => (
+                            <li
+                              style={{
+                                marginBottom: "4px",
+                                paddingLeft: "4px",
+                              }}
+                              {...props}
+                            />
+                          ),
+                          p: ({ ...props }) => (
+                            <p style={{ marginBottom: "8px" }} {...props} />
+                          ),
+                        }}
+                      >
+                        {msg.content}
+                      </ReactMarkdown>
                     )}
                   </Paper>
                 </Box>
@@ -154,37 +171,67 @@ export const ChatIA = () => {
           display={"flex"}
           justifyContent="center"
         >
-          <Box
-            display="flex"
-            component="form"
-            onSubmit={handleSubmitQuery}
-            gap={2}
-            p={2}
-            sx={{
-              // borderTop: `1px solid ${theme.palette.divider}`,
-              backgroundColor: theme.palette.background.paper,
+          <TextField
+            fullWidth
+            multiline
+            minRows={3}
+            maxRows={3}
+            placeholder="Digite sua mensagem..."
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === "Enter" && !e.shiftKey) {
+                e.preventDefault();
+                handleSendPrompt();
+              }
             }}
-            width={"50%"}
-          >
-            <TextField
-              fullWidth
-              multiline
-              minRows={2}
-              placeholder="Digite sua mensagem..."
-              value={query}
-              onChange={(e) => setQuery(e.target.value)}
-              disabled={isLoading}
-              autoFocus
-            />
-            <Button
+            disabled={isLoading}
+            autoFocus
+            sx={{
+              "& .MuiOutlinedInput-root": {
+                borderRadius: "16px", // Aqui você define o grau de arredondamento
+                backgroundColor: theme.palette.background.paper,
+              },
+
+              width: "45%",
+            }}
+            slotProps={{
+              input: {
+                style: { padding: "24px" },
+                endAdornment: (
+                  <InputAdornment position="end">
+                    <Box display="flex" flexDirection="column">
+                      <IconButton
+                        size="small"
+                        onClick={handleSendPrompt}
+                        edge="end"
+                        title="Enviar"
+                      >
+                        <Send fontSize="small" />
+                      </IconButton>
+                      <IconButton
+                        size="small"
+                        onClick={() => setQuery("")}
+                        edge="end"
+                        title="Limpar"
+                      >
+                        <Clear fontSize="small" />
+                      </IconButton>
+                    </Box>
+                  </InputAdornment>
+                ),
+              },
+              inputLabel: { shrink: true },
+            }}
+          />
+          {/* <Button
               type="submit"
               variant="contained"
               disabled={isLoading}
               sx={{ width: "200px" }}
             >
               {isLoading ? <CircularProgress size={24} /> : "Enviar"}
-            </Button>
-          </Box>
+            </Button> */}
         </Grid>
       </Grid>
     </Box>

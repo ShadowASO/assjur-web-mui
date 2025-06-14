@@ -29,6 +29,7 @@ import {
   Paper,
   TextField,
   Tooltip,
+  Typography,
 } from "@mui/material";
 import { ContentCopy } from "@mui/icons-material";
 //import style from "../../shared/styles/teste.module.css";
@@ -65,12 +66,17 @@ export const DetalhePrompt = () => {
         setIsLoading(true);
         const rsp = await selectPrompt(Number(idReg));
         setIsLoading(false);
-
-        if (rsp instanceof Error) {
-          showFlashMessage(rsp.message, "error", TIME_FLASH_ALERTA_SEC);
-          navigate("/prompts");
-        } else {
+        if (rsp) {
           RForm.reset(rsp);
+        } else {
+          RForm.reset({
+            nm_desc: "",
+            txt_prompt: "",
+            id_nat: 0,
+            id_doc: 0,
+            id_classe: 0,
+            id_assunto: 0,
+          });
         }
       } else {
         RForm.reset({
@@ -203,13 +209,7 @@ export const DetalhePrompt = () => {
           )}
 
           {/* Coluna esquerda: descrição + comboboxes */}
-          <Grid size={{ xs: 7, sm: 6, md: 5, lg: 4, xl: 3 }}>
-            <Box
-              display="flex"
-              justifyContent="flex-end"
-              height="56px"
-              alignItems="center"
-            ></Box>
+          <Grid size={{ xs: 7, sm: 6, md: 5, lg: 4, xl: 3 }} padding={1}>
             <Grid
               container
               spacing={2}
@@ -331,27 +331,8 @@ export const DetalhePrompt = () => {
           {/* Coluna direita: conteúdo do prompt */}
           <Grid size={{ xs: 12, sm: 12, md: 6, lg: 7, xl: 7 }}>
             <Box
-              display="flex"
-              justifyContent="flex-end"
-              height="56px"
-              alignItems="center"
-            >
-              <Tooltip title="Copiar conteúdo">
-                <span>
-                  <IconButton
-                    onClick={() =>
-                      copiarParaClipboard(RForm.getValues("txt_prompt"))
-                    }
-                    disabled={isLoading}
-                  >
-                    <ContentCopy fontSize="small" />
-                  </IconButton>
-                </span>
-              </Tooltip>
-            </Box>
-            <Box
               sx={{
-                height: "calc(100vh - 310px)",
+                height: "calc(100vh - 300px)",
                 overflow: "auto",
                 padding: 1,
               }}
@@ -366,26 +347,41 @@ export const DetalhePrompt = () => {
                 {...RForm.register("txt_prompt")}
                 disabled={isLoading}
                 sx={{
-                  height: "100%",
                   "& textarea": {
-                    height: "100% !important",
                     textAlign: "justify",
                     hyphens: "auto",
-                  },
-                  "& .MuiInputBase-root": {
-                    height: "100%",
-                    alignItems: "start",
                   },
                 }}
                 slotProps={{
                   input: {
                     style: {
-                      padding: "24px", // ajuste conforme desejado
+                      padding: "24px",
                     },
                   },
                   inputLabel: { shrink: true },
                 }}
               />
+            </Box>
+            {/* Boão de copiar para área de transferência */}
+            <Box
+              display="flex"
+              justifyContent="flex-end"
+              height="56px"
+              alignItems="center"
+            >
+              <Tooltip title="Copiar">
+                <span>
+                  <IconButton
+                    onClick={() =>
+                      copiarParaClipboard(RForm.getValues("txt_prompt"))
+                    }
+                    disabled={isLoading}
+                  >
+                    <ContentCopy fontSize="small" />
+                    <Typography variant="body2">Copiar</Typography>
+                  </IconButton>
+                </span>
+              </Tooltip>
             </Box>
           </Grid>
         </Grid>

@@ -42,23 +42,23 @@ interface IResponseDataDocs<T = unknown> {
  * @param rspApi
  * @returns
  */
-function parseApiResponseDataRows<T>(rspApi: StandardBodyResponse): T[] {
+function parseApiResponseDataRows<T>(rspApi: StandardBodyResponse): T[] | null {
   if (rspApi.ok && rspApi.data) {
     const data = rspApi.data as IResponseDataRows<T>;
     if (data.rows) {
       return data.rows;
     }
   }
-  throw new Error("Erro ao fazer parse do Response.");
+  return null;
 }
-function parseApiResponseDataRow<T>(rspApi: StandardBodyResponse): T {
+function parseApiResponseDataRow<T>(rspApi: StandardBodyResponse): T | null {
   if (rspApi.ok && rspApi.data) {
     const data = rspApi.data as IResponseDataRows<T>;
     if (data.row) {
       return data.row;
     }
   }
-  throw new Error("Erro ao fazer parse do Response.");
+  return null;
 }
 
 export interface DataTokenUsage {
@@ -104,14 +104,19 @@ export const uploadFileToServer = async (idContexto: number, file: File) => {
 
 export const refreshUploadFiles = async (
   newContexto: string
-): Promise<UploadFilesRow[]> => {
+): Promise<UploadFilesRow[] | null> => {
   if (newContexto === "") {
     throw new Error("ID do contexto ausente.");
   }
 
   try {
     const rspApi = await api.get(`/contexto/documentos/upload/${newContexto}`);
-    return parseApiResponseDataRows<UploadFilesRow>(rspApi);
+
+    const rows = parseApiResponseDataRows<UploadFilesRow>(rspApi);
+    if (rows) {
+      return rows;
+    }
+    return null;
   } catch (error) {
     console.error("Erro ao acessar a API:", error);
     throw new Error("Erro ao acessar a API.");
@@ -161,7 +166,7 @@ export const extracDocumentWithOCR = async (
 };
 export const refreshOcrByContexto = async (
   idContexto: number
-): Promise<DocsOcrRow[]> => {
+): Promise<DocsOcrRow[] | null> => {
   if (idContexto === 0) {
     throw new Error("ID do registro ausente.");
   }
@@ -169,7 +174,12 @@ export const refreshOcrByContexto = async (
     const rspApi = await api.get(
       `/contexto/documentos/all/${String(idContexto)}`
     );
-    return parseApiResponseDataRows<DocsOcrRow>(rspApi);
+
+    const rows = parseApiResponseDataRows<DocsOcrRow>(rspApi);
+    if (rows) {
+      return rows;
+    }
+    return null;
   } catch (error) {
     console.error("Erro ao acessar a API:", error);
     throw new Error("Erro ao acessar a API.");
@@ -192,13 +202,19 @@ export const deleteOcrdocByIdDoc = async (IdDoc: number): Promise<boolean> => {
   }
 };
 
-export const selectAutosTemp = async (idDoc: number): Promise<DocsOcrRow> => {
+export const selectAutosTemp = async (
+  idDoc: number
+): Promise<DocsOcrRow | null> => {
   if (idDoc === 0) {
     throw new Error("ID do registro ausente.");
   }
   try {
     const rspApi = await api.get(`/contexto/documentos/${String(idDoc)}`);
-    return parseApiResponseDataRow<DocsOcrRow>(rspApi);
+    const row = parseApiResponseDataRow<DocsOcrRow>(rspApi);
+    if (row) {
+      return row;
+    }
+    return null;
   } catch (error) {
     console.error("Erro ao acessar a API:", error);
     throw new Error("Erro ao acessar a API.");
@@ -210,9 +226,17 @@ export const autuarDocumentos = async (
     IdContexto: number;
     IdDoc: number;
   }[]
-) => {
-  if (fileAutuar.length > 0) {
-    await api.post("/contexto/documentos/analise", fileAutuar);
+): Promise<boolean> => {
+  try {
+    if (fileAutuar.length > 0) {
+      await api.post("/contexto/documentos/analise", fileAutuar);
+      return true;
+    } else {
+      return false;
+    }
+  } catch (error) {
+    console.error("Erro ao autuar o documento:", error);
+    throw new Error("Erro ao autuar o documentos.");
   }
 };
 
@@ -223,7 +247,7 @@ export const refreshAutos = async (idContexto: number) => {
   }
   try {
     const rspApi = await api.get(`/contexto/autos/all/${String(idContexto)}`);
-    //console.log(rspApi);
+
     return parseApiResponseDataRows<AutosRow>(rspApi);
   } catch (error) {
     // Lida com erros da chamada à API
@@ -236,13 +260,18 @@ export const refreshAutos = async (idContexto: number) => {
  * @param idDoc
  * @returns
  */
-export const selectAutos = async (idDoc: number): Promise<AutosRow> => {
+export const selectAutos = async (idDoc: number): Promise<AutosRow | null> => {
   if (idDoc === 0) {
     throw new Error("ID do registro ausente.");
   }
   try {
     const rspApi = await api.get(`/contexto/autos/${String(idDoc)}`);
-    return parseApiResponseDataRow<AutosRow>(rspApi);
+
+    const row = parseApiResponseDataRow<AutosRow>(rspApi);
+    if (row) {
+      return row;
+    }
+    return null;
   } catch (error) {
     console.error("Erro ao acessar a API:", error);
     throw new Error("Erro ao acessar a API.");
@@ -275,20 +304,30 @@ export const deleteAutos = async (
 
 export const getContexto = async (
   strProcesso: string
-): Promise<ContextoRow> => {
+): Promise<ContextoRow | null> => {
   try {
     const rspApi = await api.get(`/contexto/processo/${strProcesso}`);
-    return parseApiResponseDataRow<ContextoRow>(rspApi);
+
+    const row = parseApiResponseDataRow<ContextoRow>(rspApi);
+    if (row) {
+      return row;
+    }
+    return null;
   } catch (error) {
     console.error("Erro ao acessar a API:", error);
     throw new Error("Erro ao acessar a API.");
   }
 };
 
-export const refreshContextos = async (): Promise<ContextoRow[]> => {
+export const refreshContextos = async (): Promise<ContextoRow[] | null> => {
   try {
     const rspApi = await api.get("/contexto");
-    return parseApiResponseDataRows<ContextoRow>(rspApi);
+
+    const rows = parseApiResponseDataRows<ContextoRow>(rspApi);
+    if (rows) {
+      return rows;
+    }
+    return null;
   } catch (error) {
     console.error("Erro ao acessar a API:", error);
     throw new Error("Erro ao acessar a API.");
@@ -319,7 +358,7 @@ export const updatePrompt = async (
   idPrompt: number,
   nmDesc: string,
   txtPrompt: string
-): Promise<PromptsRow> => {
+): Promise<PromptsRow | null> => {
   const prompt = {
     IdPrompt: idPrompt,
     NmDesc: nmDesc,
@@ -327,7 +366,12 @@ export const updatePrompt = async (
   };
   try {
     const rspApi = await api.put("/tabelas/prompts", prompt);
-    return parseApiResponseDataRow<PromptsRow>(rspApi);
+
+    const row = parseApiResponseDataRow<PromptsRow>(rspApi);
+    if (row) {
+      return row;
+    }
+    return null;
   } catch (error) {
     console.error("Erro ao alterar o prompt: " + error);
   }
@@ -344,10 +388,15 @@ export const deletePrompt = async (idPrompt: number): Promise<boolean> => {
   }
 };
 
-export const refreshPrompts = async (): Promise<PromptsRow[]> => {
+export const refreshPrompts = async (): Promise<PromptsRow[] | null> => {
   try {
     const rspApi = await api.get("/tabelas/prompts");
-    return parseApiResponseDataRows<PromptsRow>(rspApi);
+
+    const rows = parseApiResponseDataRows<PromptsRow>(rspApi);
+    if (rows) {
+      return rows;
+    }
+    return null;
   } catch (error) {
     // Lida com erros da chamada à API
     console.error("Error accessing the API:", error);
@@ -356,10 +405,17 @@ export const refreshPrompts = async (): Promise<PromptsRow[]> => {
   throw new Error("Erro não identificado.");
 };
 
-export const selectPrompt = async (idPrompt: number): Promise<PromptsRow> => {
+export const selectPrompt = async (
+  idPrompt: number
+): Promise<PromptsRow | null> => {
   try {
     const rspApi = await api.get(`/tabelas/prompts/${String(idPrompt)}`);
-    return parseApiResponseDataRow<PromptsRow>(rspApi);
+
+    const row = parseApiResponseDataRow<PromptsRow>(rspApi);
+    if (row) {
+      return row;
+    }
+    return null;
   } catch (error) {
     // Lida com erros da chamada à API
     console.error("Error accessing the API:", error);
@@ -434,7 +490,6 @@ export const updateModelos = async (
     inteiro_teor: Inteiro_teor,
   };
   try {
-    //console.log(modelos);
     const rspApi = await api.put(`/tabelas/modelos/${Id}`, modelos);
 
     if (rspApi.ok) {
@@ -450,7 +505,7 @@ export const updateModelos = async (
 export const searchModelos = async (
   consulta: string,
   natureza: string
-): Promise<ModelosRow[]> => {
+): Promise<ModelosRow[] | null> => {
   try {
     const bodyObj = {
       Index_name: "ml-modelos-msmarco",
@@ -466,10 +521,10 @@ export const searchModelos = async (
       if (data.docs && data.docs.length > 0) {
         return data.docs;
       } else {
-        new Error("Nenhum valor retornado");
+        return null;
       }
     }
-    throw new Error(rspApi.error?.message);
+    return null;
   } catch (error) {
     console.error("Erro ao buscar modelos:", error);
     // Lança o erro para ser tratado por quem chamou

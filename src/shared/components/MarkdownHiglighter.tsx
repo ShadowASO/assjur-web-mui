@@ -16,25 +16,33 @@ export const MarkdownHighlighter = ({
   children,
 }: MarkdownHighlighterProps) => {
   return (
-    <section>
-      <ReactMarkdown
-        components={{
-          code({ children }) {
-            return (
-              <SyntaxHighlighter
-                language={language}
-                style={thema}
-                customStyle={customStyle}
-              >
-                {String(children).replace(/\n$/, "")}
-              </SyntaxHighlighter>
-            );
-          },
-        }}
-      >
-        {children}
-      </ReactMarkdown>
-    </section>
+    <ReactMarkdown
+      components={{
+        code({ children }) {
+          return (
+            <SyntaxHighlighter
+              language={language}
+              style={thema}
+              customStyle={customStyle}
+            >
+              {String(children).replace(/\n$/, "")}
+            </SyntaxHighlighter>
+          );
+        },
+        li: ({ ...props }) => (
+          <li
+            style={{
+              marginBottom: "4px",
+              paddingLeft: "4px",
+            }}
+            {...props}
+          />
+        ),
+        p: ({ ...props }) => <p style={{ marginBottom: "8px" }} {...props} />,
+      }}
+    >
+      {children}
+    </ReactMarkdown>
   );
 };
 

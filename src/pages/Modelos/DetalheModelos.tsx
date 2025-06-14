@@ -14,6 +14,7 @@ import {
   Paper,
   TextField,
   Tooltip,
+  Typography,
 } from "@mui/material";
 
 import * as yup from "yup";
@@ -198,21 +199,15 @@ export const DetalheModelos = () => {
             </Grid>
           )}
 
-          {/* Coluna esquerda: descrição + comboboxes */}
+          {/* COL-01: Esquerda - comboboxe + ementa */}
           <Grid size={{ xs: 7, sm: 6, md: 5, lg: 4, xl: 4 }}>
-            <Box
-              display="flex"
-              justifyContent="flex-end"
-              height="56px"
-              alignItems="center"
-            ></Box>
             <Grid
               container
               spacing={2}
               direction="column"
               component={Paper}
               padding={2}
-              sx={{ mt: 1, height: "calc(100vh - 310px)" }} // Ajuste fino aqui
+              sx={{ mt: 1, height: "calc(100vh - 300px)" }} // Ajuste fino aqui
               variant="outlined"
             >
               <Grid>
@@ -233,25 +228,6 @@ export const DetalheModelos = () => {
                 </TextField>
               </Grid>
               <Grid>
-                <Box
-                  display="flex"
-                  justifyContent="flex-end"
-                  height="56px"
-                  alignItems="center"
-                >
-                  <Tooltip title="Copiar ementa">
-                    <span>
-                      <IconButton
-                        onClick={() =>
-                          copiarParaClipboard(RForm.getValues("ementa"))
-                        }
-                        disabled={isLoading}
-                      >
-                        <ContentCopy fontSize="small" />
-                      </IconButton>
-                    </span>
-                  </Tooltip>
-                </Box>
                 <Box
                   sx={{
                     overflow: "auto",
@@ -287,6 +263,26 @@ export const DetalheModelos = () => {
                       inputLabel: { shrink: true },
                     }}
                   />
+                  <Box
+                    display="flex"
+                    justifyContent="flex-end"
+                    height="56px"
+                    alignItems="center"
+                  >
+                    <Tooltip title="Copiar">
+                      <span>
+                        <IconButton
+                          onClick={() =>
+                            copiarParaClipboard(RForm.getValues("ementa"))
+                          }
+                          disabled={isLoading}
+                        >
+                          <ContentCopy fontSize="small" />
+                          <Typography variant="body2">Copiar</Typography>
+                        </IconButton>
+                      </span>
+                    </Tooltip>
+                  </Box>
                 </Box>
               </Grid>
             </Grid>
@@ -298,27 +294,8 @@ export const DetalheModelos = () => {
           {/* Coluna direita: conteúdo do prompt */}
           <Grid size={{ xs: 12, sm: 12, md: 6, lg: 7, xl: 7 }}>
             <Box
-              display="flex"
-              justifyContent="flex-end"
-              height="56px"
-              alignItems="center"
-            >
-              <Tooltip title="Copiar prompt">
-                <span>
-                  <IconButton
-                    onClick={() =>
-                      copiarParaClipboard(RForm.getValues("inteiro_teor"))
-                    }
-                    disabled={isLoading}
-                  >
-                    <ContentCopy fontSize="small" />
-                  </IconButton>
-                </span>
-              </Tooltip>
-            </Box>
-            <Box
               sx={{
-                height: "calc(100vh - 310px)",
+                height: "calc(100vh - 300px)",
                 overflow: "auto",
                 padding: 0,
                 pt: 1,
@@ -354,6 +331,26 @@ export const DetalheModelos = () => {
                   inputLabel: { shrink: true },
                 }}
               />
+            </Box>
+            <Box
+              display="flex"
+              justifyContent="flex-end"
+              height="56px"
+              alignItems="center"
+            >
+              <Tooltip title="Copiar prompt">
+                <span>
+                  <IconButton
+                    onClick={() =>
+                      copiarParaClipboard(RForm.getValues("inteiro_teor"))
+                    }
+                    disabled={isLoading}
+                  >
+                    <ContentCopy fontSize="small" />
+                    <Typography variant="body2">Copiar</Typography>
+                  </IconButton>
+                </span>
+              </Tooltip>
             </Box>
           </Grid>
         </Grid>

@@ -62,7 +62,7 @@ export class ApiCliente {
 
       if (refreshResponse.ok) {
         const data = refreshResponse.data as RefreshResponseInterface;
-        console.log("Token revalidado!");
+        //console.log("Token revalidado!");
 
         TokenStorage.accessToken = data.access_token;
         internalResponse = await this.requestInternal(options);

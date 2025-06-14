@@ -1,11 +1,24 @@
 import { Box, Button, Typography, Paper, Stack } from "@mui/material";
 import UploadIcon from "@mui/icons-material/Upload";
+import { useEffect, useState } from "react";
 
 export const UploadStyled = ({
   handleFileChange,
+  loading,
 }: {
   handleFileChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
+  loading?: boolean;
 }) => {
+  const [isLoading, setIsLoading] = useState(false);
+
+  useEffect(() => {
+    const refresh = async () => {
+      if (loading != null) {
+        setIsLoading(loading);
+      }
+    };
+    refresh();
+  }, [loading]);
   return (
     <Paper elevation={3} sx={{ p: 2 }}>
       <Stack spacing={2}>
@@ -16,6 +29,7 @@ export const UploadStyled = ({
             variant="outlined"
             component="label"
             startIcon={<UploadIcon />}
+            disabled={isLoading}
           >
             Escolher Arquivos
             <input hidden type="file" multiple onChange={handleFileChange} />

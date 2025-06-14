@@ -51,12 +51,21 @@ export const itemsAssunto: Item[] = [
   { key: 1000, description: "Outros" },
 ];
 
-export function getDocumentoName(key: number) {
-  return itemsDocumento[key];
+// Função utilitária genérica
+function getItemDescription(items: Item[], key: number): string {
+  const item = items.find((i) => i.key === key);
+  return item ? item.description : "Item não encontrado";
 }
-export function getClasseName(key: number) {
-  return itemsClasse[key];
+
+// Funções específicas
+export function getDocumentoName(key: number): string {
+  return getItemDescription(itemsDocumento, key);
 }
-export function getAssuntoName(key: number) {
-  return itemsAssunto[key];
+
+export function getClasseName(key: number): string {
+  return getItemDescription(itemsClasse, key);
+}
+
+export function getAssuntoName(key: number): string {
+  return getItemDescription(itemsAssunto, key);
 }

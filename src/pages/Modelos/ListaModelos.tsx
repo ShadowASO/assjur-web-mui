@@ -8,11 +8,11 @@ import {
 } from "../../shared/services/api/fetch/apiTools";
 import { useDebounce } from "../../shared/hooks/UseDebounce";
 import {
+  Box,
   Grid,
   Icon,
   IconButton,
   LinearProgress,
-  //Pagination,
   Paper,
   Table,
   TableBody,
@@ -21,10 +21,11 @@ import {
   TableFooter,
   TableHead,
   TableRow,
+  Tooltip,
   Typography,
 } from "@mui/material";
 
-import { Delete, Edit } from "@mui/icons-material";
+import { ContentCopy, Delete, Edit } from "@mui/icons-material";
 import { TIME_FLASH_ALERTA_SEC } from "../../shared/components/FlashAlerta";
 import { useFlash } from "../../shared/contexts/FlashProvider";
 import type { ModelosRow } from "../../shared/types/tabelas";
@@ -37,57 +38,72 @@ export const ListaModelos = () => {
 
   const [rows, setRows] = useState<ModelosRow[]>([]);
 
-  const [isLoading, setIsLoading] = useState(false);
+  const [isLoading, setLoading] = useState(false);
   const [selectedContent, setSelectedContent] = useState<string>("");
 
   const [natureza, setNatureza] = useState<string>("Despacho");
 
-  //const busca = searchParams;
-
   const { showFlashMessage } = useFlash();
-
-  const handleDelete = async (id: string) => {
-    if (confirm("Deseja realmente apagar o modelo?")) {
-      const rsp = await deleteModelos(String(id));
-      if (rsp) {
-        setRows((old) => old.filter((old) => old.id !== id));
-        showFlashMessage(
-          "Registro excluído com sucesso",
-          "success",
-          TIME_FLASH_ALERTA_SEC
-        );
-      } else {
-        showFlashMessage(
-          "Erro ao deletar o registro",
-          "error",
-          TIME_FLASH_ALERTA_SEC
-        );
-      }
-    }
-  };
 
   useEffect(() => {
     debounce(async () => {
       if (searchTexto.length > 0) {
-        setIsLoading(true);
+        setLoading(true);
 
         const rsp = await searchModelos(searchTexto, natureza);
 
-        setIsLoading(false);
-        if (rsp instanceof Error) {
-          showFlashMessage(
-            "Nenhum registro encontrado",
-            "info",
-            TIME_FLASH_ALERTA_SEC
-          );
-        } else {
+        setLoading(false);
+        if (rsp) {
           setRows(rsp);
+        } else {
+          setRows([]);
         }
       } else {
         setRows([]);
       }
     });
   }, [searchTexto, debounce]);
+
+  const handleDelete = async (id: string) => {
+    if (confirm("Deseja realmente apagar o modelo?")) {
+      try {
+        setLoading(true);
+        const rsp = await deleteModelos(String(id));
+        setLoading(false);
+        if (rsp) {
+          setRows((old) => old.filter((old) => old.id !== id));
+          showFlashMessage(
+            "Registro excluído com sucesso",
+            "success",
+            TIME_FLASH_ALERTA_SEC
+          );
+        } else {
+          showFlashMessage(
+            "Erro ao excluir o registro",
+            "error",
+            TIME_FLASH_ALERTA_SEC
+          );
+        }
+      } catch (error) {
+        console.log(error);
+        showFlashMessage(
+          "Erro ao excluir o registro",
+          "error",
+          TIME_FLASH_ALERTA_SEC
+        );
+      } finally {
+        setLoading(false);
+      }
+    }
+  };
+  const copiarParaClipboard = (texto: string) => {
+    navigator.clipboard.writeText(texto);
+    showFlashMessage(
+      "Texto copiado para a área de transferência!",
+      "success",
+      3
+    );
+  };
 
   return (
     <PageBaseLayout
@@ -97,10 +113,7 @@ export const ListaModelos = () => {
           buttonLabel="Nova"
           fieldValue={searchTexto}
           onButtonClick={() => navigate(`/modelos/detalhes/nova`)}
-          onFieldChange={(txt) =>
-            //setSearchParams({ busca: txt, pagina: "1" }, { replace: true })
-            setSearchTexto(txt)
-          }
+          onFieldChange={(txt) => setSearchTexto(txt)}
           itemsTable={itemsNatureza}
           selectItem={setNatureza}
           selected={natureza}
@@ -198,7 +211,7 @@ export const ListaModelos = () => {
           <Paper
             variant="outlined"
             sx={{
-              height: "calc(100vh - 300px)",
+              height: "calc(100vh - 350px)",
               overflowY: "auto",
               p: 2,
               whiteSpace: "pre-wrap",
@@ -208,6 +221,25 @@ export const ListaModelos = () => {
           >
             <Typography variant="body2">{selectedContent || ""}</Typography>
           </Paper>
+          {/* Boão de copiar para área de transferência */}
+          <Box
+            display="flex"
+            justifyContent="flex-end"
+            height="56px"
+            alignItems="center"
+          >
+            <Tooltip title="Copiar">
+              <span>
+                <IconButton
+                  onClick={() => copiarParaClipboard(selectedContent)}
+                  disabled={isLoading}
+                >
+                  <ContentCopy fontSize="small" />
+                  <Typography variant="body2">Copiar</Typography>
+                </IconButton>
+              </span>
+            </Tooltip>
+          </Box>
         </Grid>
       </Grid>
     </PageBaseLayout>

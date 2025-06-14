@@ -1,5 +1,4 @@
-//import React from "react";
-import { Clear, ContentCopy, Send } from "@mui/icons-material";
+import { Clear, ContentCopy, Height, Send } from "@mui/icons-material";
 import {
   Box,
   Grid,
@@ -20,21 +19,18 @@ import {
 import { useFlash } from "../../shared/contexts/FlashProvider";
 import { useEffect, useState } from "react";
 import ReactMarkdown from "react-markdown";
-import { useNavigate, useParams } from "react-router-dom";
+import { useParams } from "react-router-dom";
 import { TIME_FLASH_ALERTA_SEC } from "../../shared/components/FlashAlerta";
 import { refreshAutos } from "../../shared/services/api/fetch/apiTools";
 import type { AutosRow } from "../../shared/types/tabelas";
 import { getDocumentoName } from "../../shared/constants/itemsPrompt";
 
-//import ReactMarkdown from "react-markdown";
 import { Prism as SyntaxHighlighter } from "react-syntax-highlighter";
 import {
-  atomDark,
+  duotoneDark,
   duotoneLight,
-  duotoneSea,
-  materialOceanic,
+  solarizedlight,
 } from "react-syntax-highlighter/dist/esm/styles/prism";
-
 import { MarkdownHighlighter } from "../../shared/components/MarkdownHiglighter";
 
 // const customStyle = {
@@ -48,29 +44,34 @@ import { MarkdownHighlighter } from "../../shared/components/MarkdownHiglighter"
 export const AnalisesMain = () => {
   const { id: idCtxt } = useParams();
   const { showFlashMessage } = useFlash();
-  const [isLoading, setIsLoading] = useState(false);
+  const [isLoading, setLoading] = useState(false);
 
   const [autos, setAutos] = useState<AutosRow[]>([]);
   const [minuta, setMinuta] = useState("");
   const [dialogo, setDialogo] = useState("");
   const [prompt, setPrompt] = useState("");
   const theme = useTheme();
-  const navigate = useNavigate();
 
   useEffect(() => {
     (async () => {
-      setIsLoading(true);
-      const rsp = await refreshAutos(Number(idCtxt));
-      setIsLoading(false);
-      if (rsp && rsp.length > 0) {
-        setAutos(rsp);
-      } else {
-        setAutos([]);
+      try {
+        setLoading(true);
+        const rsp = await refreshAutos(Number(idCtxt));
+        setLoading(false);
+        if (rsp && rsp.length > 0) {
+          setAutos(rsp);
+        } else {
+          setAutos([]);
+        }
+      } catch (error) {
+        console.log(error);
         showFlashMessage(
-          "Nenhum registro retornado",
+          "Erro ao listar os autos!",
           "error",
           TIME_FLASH_ALERTA_SEC
         );
+      } finally {
+        setLoading(false);
       }
     })();
   }, [idCtxt]);
@@ -80,7 +81,7 @@ export const AnalisesMain = () => {
     showFlashMessage(
       "Texto copiado para a área de transferência!",
       "success",
-      3
+      TIME_FLASH_ALERTA_SEC
     );
   };
 
@@ -137,7 +138,7 @@ export const AnalisesMain = () => {
                           onClick={() => handleSelectPeca(reg)}
                           sx={{ cursor: "pointer" }}
                         >
-                          {getDocumentoName(reg.id_nat).description}
+                          {getDocumentoName(reg.id_nat)}
                         </TableCell>
                       </TableRow>
                     ))}
@@ -163,28 +164,28 @@ export const AnalisesMain = () => {
               variant="outlined"
               sx={{
                 flexGrow: 1,
-                mb: 4,
+                mb: 1,
                 p: 2,
                 overflow: "auto",
                 backgroundColor: theme.palette.background.default,
               }}
             >
-              {/* Botão para copiar para área de transferência */}
-              <Box display="flex" justifyContent="flex-end" mb={1}>
-                <Tooltip title="Copiar conteúdo">
-                  <IconButton
-                    size="small"
-                    onClick={() => copiarParaClipboard(minuta)}
-                  >
-                    <ContentCopy fontSize="small" />
-                    Copiar
-                  </IconButton>
-                </Tooltip>
-              </Box>
               <Typography variant="body2">
                 <ReactMarkdown>{dialogo}</ReactMarkdown>
               </Typography>
             </Paper>
+            {/* Botão para copiar para área de transferência */}
+            <Box display="flex" justifyContent="flex-end" mb={1}>
+              <Tooltip title="Copiar">
+                <IconButton
+                  size="small"
+                  onClick={() => copiarParaClipboard(minuta)}
+                >
+                  <ContentCopy fontSize="small" />
+                  <Typography variant="body2">Copiar</Typography>
+                </IconButton>
+              </Tooltip>
+            </Box>
 
             {/* Campo de Prompt */}
 
@@ -258,43 +259,41 @@ export const AnalisesMain = () => {
               flexDirection: "column",
             }}
           >
+            {/* Área que cresce e faz scroll */}
             <Box
-              flexGrow={1}
-              component={Paper}
-              variant="outlined"
               sx={{
                 flexGrow: 1,
                 overflow: "auto",
-
-                mb: 0,
-                p: 2,
                 backgroundColor: theme.palette.background.default,
               }}
             >
-              {/* Botão para copiar para área de transferência */}
-              <Box display="flex" justifyContent="flex-end" mb={1}>
-                <Tooltip title="Copiar conteúdo">
-                  <IconButton
-                    size="small"
-                    onClick={() => copiarParaClipboard(minuta)}
-                  >
-                    <ContentCopy fontSize="small" />
-                    Copiar
-                  </IconButton>
-                </Tooltip>
-              </Box>
+              <SyntaxHighlighter
+                language="json"
+                style={duotoneLight}
+                customStyle={{
+                  height: "auto", // Não força altura fixa
+                  maxHeight: "none", // Não limita por altura
+                  overflow: "visible", // Não cria barra de rolagem interna
+                  width: "100%", // Mantém o conteúdo ajustável horizontalmente
+                  whiteSpace: "pre-wrap", // Quebra de linha automática se quiser evitar scroll horizontal
+                }}
+              >
+                {minuta}
+              </SyntaxHighlighter>
 
               {/* <ReactMarkdown>{`\`\`\`json\n${minuta}\n\`\`\``}</ReactMarkdown> */}
-              <MarkdownHighlighter
-                thema={duotoneLight}
-                language="json"
-                customStyle={{
-                  backgroundColor: theme.palette.background.default,
-                }}
-                // customStyle={customStyle}
-              >
-                {`\`\`\`json\n${minuta}\n\`\`\``}
-              </MarkdownHighlighter>
+            </Box>
+            {/* Botão para copiar para área de transferência */}
+            <Box display="flex" justifyContent="flex-end" mb={1}>
+              <Tooltip title="Copiar conteúdo">
+                <IconButton
+                  size="small"
+                  onClick={() => copiarParaClipboard(minuta)}
+                >
+                  <ContentCopy fontSize="small" />
+                  <Typography variant="body2">Copiar</Typography>
+                </IconButton>
+              </Tooltip>
             </Box>
           </Paper>
         </Grid>

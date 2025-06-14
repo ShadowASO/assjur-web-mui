@@ -36,7 +36,7 @@ export const ListaProcessos = () => {
 
   const [rows, setRows] = useState<ContextoRow[]>([]);
   const [totalPage, setTotalPage] = useState(0);
-  const [isLoading, setIsLoading] = useState(true);
+  const [isLoading, setLoading] = useState(true);
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
   const [selectedId, setSelectedId] = useState<number | null>(null);
 
@@ -85,13 +85,27 @@ export const ListaProcessos = () => {
   };
 
   useEffect(() => {
-    setIsLoading(true);
+    setLoading(true);
     debounce(async () => {
-      const rsp = await refreshContextos();
-      setIsLoading(false);
-      if (!(rsp instanceof Error)) {
-        setTotalPage(rsp.length);
-        setRows(rsp);
+      try {
+        const rsp = await refreshContextos();
+        setLoading(false);
+
+        if (rsp) {
+          setRows(rsp);
+          setTotalPage(rsp.length);
+        } else {
+          setRows([]);
+        }
+      } catch (error) {
+        console.log(error);
+        showFlashMessage(
+          "Erro ao listar contextos!",
+          "error",
+          TIME_FLASH_ALERTA_SEC
+        );
+      } finally {
+        setLoading(false);
       }
     });
   }, [busca, pagina, debounce]);

@@ -8,6 +8,7 @@ import {
 } from "../../shared/services/api/fetch/apiTools";
 import { useDebounce } from "../../shared/hooks/UseDebounce";
 import {
+  Box,
   Grid,
   Icon,
   IconButton,
@@ -21,13 +22,15 @@ import {
   TableFooter,
   TableHead,
   TableRow,
+  Tooltip,
   Typography,
 } from "@mui/material";
 import { Environment } from "../../shared/enviroments";
-import { Delete, Edit } from "@mui/icons-material";
+import { ContentCopy, Delete, Edit } from "@mui/icons-material";
 import { TIME_FLASH_ALERTA_SEC } from "../../shared/components/FlashAlerta";
 import { useFlash } from "../../shared/contexts/FlashProvider";
 import type { PromptsRow } from "../../shared/types/tabelas";
+import ReactMarkdown from "react-markdown";
 
 export const ListaPrompts = () => {
   const [searchParams, setSearchParams] = useSearchParams();
@@ -43,6 +46,22 @@ export const ListaPrompts = () => {
   const pagina = Number(searchParams.get("pagina") || "1");
   const { showFlashMessage } = useFlash();
 
+  useEffect(() => {
+    setIsLoading(true);
+
+    debounce(async () => {
+      const rsp = await refreshPrompts();
+      setIsLoading(false);
+      if (rsp) {
+        setTotalPage(rsp.length);
+        setRows(rsp);
+      } else {
+        setTotalPage(0);
+        setRows([]);
+      }
+    });
+  }, [busca, pagina, debounce]);
+
   const handleDelete = async (id: number) => {
     if (confirm("Realmente deseja apagar?")) {
       const rsp = await deletePrompt(id);
@@ -57,20 +76,14 @@ export const ListaPrompts = () => {
     }
   };
 
-  useEffect(() => {
-    setIsLoading(true);
-
-    debounce(async () => {
-      const rsp = await refreshPrompts();
-      setIsLoading(false);
-      if (rsp instanceof Error) {
-        return;
-      } else {
-        setTotalPage(rsp.length);
-        setRows(rsp);
-      }
-    });
-  }, [busca, pagina, debounce]);
+  const copiarParaClipboard = (texto: string) => {
+    navigator.clipboard.writeText(texto);
+    showFlashMessage(
+      "Texto copiado para a área de transferência!",
+      "success",
+      3
+    );
+  };
 
   return (
     <PageBaseLayout
@@ -163,12 +176,12 @@ export const ListaPrompts = () => {
             </Table>
           </TableContainer>
         </Grid>
-        {/* Esquerda: Componente de texto  */}
+        {/* COL-02: Direita - Componente de texto  */}
         <Grid size={{ xs: 12, sm: 12, md: 5, lg: 5, xl: 5 }}>
           <Paper
             variant="outlined"
             sx={{
-              height: "calc(100vh - 300px)",
+              height: "calc(100vh - 350px)",
               overflowY: "auto",
               p: 2,
               whiteSpace: "pre-wrap",
@@ -176,8 +189,28 @@ export const ListaPrompts = () => {
               flexDirection: "column",
             }}
           >
-            <Typography variant="body2">{selectedContent || ""}</Typography>
+            {/* <Typography variant="body2">{selectedContent || ""}</Typography> */}
+            <ReactMarkdown>{selectedContent}</ReactMarkdown>
           </Paper>
+          {/* Boão de copiar para área de transferência */}
+          <Box
+            display="flex"
+            justifyContent="flex-end"
+            height="56px"
+            alignItems="center"
+          >
+            <Tooltip title="Copiar">
+              <span>
+                <IconButton
+                  onClick={() => copiarParaClipboard(selectedContent)}
+                  disabled={isLoading}
+                >
+                  <ContentCopy fontSize="small" />
+                  <Typography variant="body2">Copiar</Typography>
+                </IconButton>
+              </span>
+            </Tooltip>
+          </Box>
         </Grid>
       </Grid>
       {/* </Box> */}
