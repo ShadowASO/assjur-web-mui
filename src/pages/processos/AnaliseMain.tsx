@@ -1,4 +1,10 @@
-import { Clear, ContentCopy, Height, Send } from "@mui/icons-material";
+/**
+ * File: AnaliseMain.tsx
+ * Criação:  14/06/2025
+ * Janela para interação do usuário com a IA e o processo
+ *
+ */
+import { Clear, ContentCopy, Send } from "@mui/icons-material";
 import {
   Box,
   Grid,
@@ -20,26 +26,12 @@ import { useFlash } from "../../shared/contexts/FlashProvider";
 import { useEffect, useState } from "react";
 import ReactMarkdown from "react-markdown";
 import { useParams } from "react-router-dom";
-import { TIME_FLASH_ALERTA_SEC } from "../../shared/components/FlashAlerta";
 import { refreshAutos } from "../../shared/services/api/fetch/apiTools";
 import type { AutosRow } from "../../shared/types/tabelas";
 import { getDocumentoName } from "../../shared/constants/itemsPrompt";
 
 import { Prism as SyntaxHighlighter } from "react-syntax-highlighter";
-import {
-  duotoneDark,
-  duotoneLight,
-  solarizedlight,
-} from "react-syntax-highlighter/dist/esm/styles/prism";
-import { MarkdownHighlighter } from "../../shared/components/MarkdownHiglighter";
-
-// const customStyle = {
-//   lineHeight: "1.5",
-//   fontSize: "1rem",
-//   borderRadius: "5px",
-//   backgroundColor: "#f7f7f7",
-//   padding: "20px",
-// };
+import { duotoneLight } from "react-syntax-highlighter/dist/esm/styles/prism";
 
 export const AnalisesMain = () => {
   const { id: idCtxt } = useParams();
@@ -65,11 +57,7 @@ export const AnalisesMain = () => {
         }
       } catch (error) {
         console.log(error);
-        showFlashMessage(
-          "Erro ao listar os autos!",
-          "error",
-          TIME_FLASH_ALERTA_SEC
-        );
+        showFlashMessage("Erro ao listar os autos!", "error");
       } finally {
         setLoading(false);
       }
@@ -78,11 +66,7 @@ export const AnalisesMain = () => {
 
   const copiarParaClipboard = (texto: string) => {
     navigator.clipboard.writeText(texto);
-    showFlashMessage(
-      "Texto copiado para a área de transferência!",
-      "success",
-      TIME_FLASH_ALERTA_SEC
-    );
+    showFlashMessage("Texto copiado para a área de transferência!", "success");
   };
 
   const handleSendPrompt = () => {
@@ -117,10 +101,9 @@ export const AnalisesMain = () => {
       bgcolor={theme.palette.background.paper}
     >
       <Grid container spacing={1} padding={1} margin={1}>
-        {/* Coluna 1: AUTOS */}
+        {/************  COL-01 ***** Coluna 1: AUTOS */}
         <Grid size={{ xs: 12, sm: 6, md: 2, lg: 2, xl: 2 }}>
           <Paper elevation={3} sx={{ height: "calc(100vh - 100px)", p: 2 }}>
-            {/* Simulação de itens do grid */}
             {autos.length > 0 && (
               <TableContainer sx={{ maxHeight: "calc(100vh - 180px)" }}>
                 <Table stickyHeader size="small">
@@ -149,7 +132,7 @@ export const AnalisesMain = () => {
           </Paper>
         </Grid>
 
-        {/* Coluna 2: COMPLETION + PROMPT */}
+        {/********* COL-02: COMPLETION + PROMPT */}
         <Grid size={{ xs: 12, sm: 12, md: 5, lg: 5, xl: 5 }}>
           <Paper
             elevation={3}
@@ -160,6 +143,7 @@ export const AnalisesMain = () => {
               flexDirection: "column",
             }}
           >
+            {/********* COL-02 -> COMPLETION ***** */}
             <Paper
               variant="outlined"
               sx={{
@@ -174,7 +158,9 @@ export const AnalisesMain = () => {
                 <ReactMarkdown>{dialogo}</ReactMarkdown>
               </Typography>
             </Paper>
-            {/* Botão para copiar para área de transferência */}
+
+            {/********* COL-02 -> BOTÃO DE CÓPIA ***** */}
+
             <Box display="flex" justifyContent="flex-end" mb={1}>
               <Tooltip title="Copiar">
                 <IconButton
@@ -187,7 +173,7 @@ export const AnalisesMain = () => {
               </Tooltip>
             </Box>
 
-            {/* Campo de Prompt */}
+            {/********* COL-02 -> PROMPT ***** */}
 
             <TextField
               label={"Prompt"}
@@ -232,6 +218,14 @@ export const AnalisesMain = () => {
                         </IconButton>
                         <IconButton
                           size="small"
+                          onClick={() => copiarParaClipboard(prompt)}
+                          edge="end"
+                          title="Copiar"
+                        >
+                          <ContentCopy fontSize="small" />
+                        </IconButton>
+                        <IconButton
+                          size="small"
                           onClick={() => setPrompt("")}
                           edge="end"
                           title="Limpar"
@@ -248,7 +242,7 @@ export const AnalisesMain = () => {
           </Paper>
         </Grid>
 
-        {/* Coluna 3: TEXTO */}
+        {/********* COL-03 -> Área de Texto à Direita ***** */}
         <Grid size={{ xs: 12, sm: 12, md: 5, lg: 5, xl: 5 }}>
           <Paper
             elevation={3}
@@ -283,8 +277,10 @@ export const AnalisesMain = () => {
 
               {/* <ReactMarkdown>{`\`\`\`json\n${minuta}\n\`\`\``}</ReactMarkdown> */}
             </Box>
-            {/* Botão para copiar para área de transferência */}
-            <Box display="flex" justifyContent="flex-end" mb={1}>
+
+            {/********* COL-03 -> BOTÃO DE CÓPIA ***** */}
+
+            <Box display="flex" justifyContent="flex-end" mb={1} mt={1}>
               <Tooltip title="Copiar conteúdo">
                 <IconButton
                   size="small"

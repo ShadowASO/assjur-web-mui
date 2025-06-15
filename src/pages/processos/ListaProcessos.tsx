@@ -1,3 +1,10 @@
+/**
+ * File: ListaProcessos.tsx
+ * Criação:  14/06/2025
+ * Janela para busca,  listagem e criação dos contextos de processos.
+ *
+ */
+
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { BarraListagem } from "../../shared/components/BarraListagem";
 import { PageBaseLayout } from "../../shared/layouts";
@@ -25,9 +32,9 @@ import {
 } from "@mui/material";
 import { Environment } from "../../shared/enviroments";
 import { MoreVert } from "@mui/icons-material";
-import { TIME_FLASH_ALERTA_SEC } from "../../shared/components/FlashAlerta";
 import { useFlash } from "../../shared/contexts/FlashProvider";
 import type { ContextoRow } from "../../shared/types/tabelas";
+import { CriarContexto } from "./CriarContexto";
 
 export const ListaProcessos = () => {
   const [searchParams, setSearchParams] = useSearchParams();
@@ -40,26 +47,38 @@ export const ListaProcessos = () => {
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
   const [selectedId, setSelectedId] = useState<number | null>(null);
 
+  const [dialogOpen, setDialogOpen] = useState(false);
+
   const busca = searchParams.get("busca") || "";
   const pagina = Number(searchParams.get("pagina") || "1");
   const { showFlashMessage } = useFlash();
+
+  const handleReloadContextos = async () => {
+    try {
+      setLoading(true);
+      const rsp = await refreshContextos();
+      if (rsp) {
+        setRows(rsp);
+        setTotalPage(rsp.length);
+      } else {
+        setRows([]);
+      }
+    } catch (error) {
+      console.error(error);
+      showFlashMessage("Erro ao recarregar lista de contextos!", "error");
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const handleDelete = async (id: number) => {
     if (confirm("Realmente deseja apagar?")) {
       const rsp = await deleteContexto(String(id));
       if (rsp) {
         setRows((old) => old.filter((row) => row.id_ctxt !== id));
-        showFlashMessage(
-          "Registro apagado com sucesso",
-          "success",
-          TIME_FLASH_ALERTA_SEC
-        );
+        showFlashMessage("Registro apagado com sucesso", "success");
       } else {
-        showFlashMessage(
-          "Erro ao deletar o registro",
-          "error",
-          TIME_FLASH_ALERTA_SEC
-        );
+        showFlashMessage("Erro ao deletar o registro", "error");
       }
     }
   };
@@ -84,6 +103,10 @@ export const ListaProcessos = () => {
     handleMenuClose();
   };
 
+  const handleNovoContexto = () => {
+    setDialogOpen(true);
+  };
+
   useEffect(() => {
     setLoading(true);
     debounce(async () => {
@@ -99,11 +122,7 @@ export const ListaProcessos = () => {
         }
       } catch (error) {
         console.log(error);
-        showFlashMessage(
-          "Erro ao listar contextos!",
-          "error",
-          TIME_FLASH_ALERTA_SEC
-        );
+        showFlashMessage("Erro ao listar contextos!", "error");
       } finally {
         setLoading(false);
       }
@@ -115,9 +134,9 @@ export const ListaProcessos = () => {
       title="Listagem de Processos"
       toolBar={
         <BarraListagem
-          buttonLabel="Nova"
+          buttonLabel="Novo"
           fieldValue={busca}
-          onButtonClick={() => navigate(`/processos/detalhes/nova`)}
+          onButtonClick={handleNovoContexto} // Corrigido: executando a função
           onFieldChange={(txt) =>
             setSearchParams({ busca: txt, pagina: "1" }, { replace: true })
           }
@@ -125,12 +144,8 @@ export const ListaProcessos = () => {
       }
     >
       <Grid container spacing={1} padding={1} margin={1}>
-        <Grid size={{ xs: 12, sm: 12, md: 12, lg: 12, xl: 12 }}>
-          <TableContainer
-            component={Paper}
-            variant="outlined"
-            sx={{ m: 0, width: "auto" }}
-          >
+        <Grid size={{ xs: 12 }}>
+          <TableContainer component={Paper} variant="outlined">
             <Table>
               <TableHead>
                 <TableRow>
@@ -212,6 +227,11 @@ export const ListaProcessos = () => {
           </TableContainer>
         </Grid>
       </Grid>
+      <CriarContexto
+        open={dialogOpen}
+        onClose={() => setDialogOpen(false)}
+        onSuccess={handleReloadContextos}
+      />
     </PageBaseLayout>
   );
 };

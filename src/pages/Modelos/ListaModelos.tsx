@@ -1,3 +1,10 @@
+/**
+ * File: ListaModelos.tsx
+ * Criação:  14/06/2025
+ * Janela para buscar e listar modelos de documentos
+ *
+ */
+
 import { useNavigate } from "react-router-dom";
 import { BarraListagem } from "../../shared/components/BarraListagem";
 import { PageBaseLayout } from "../../shared/layouts";
@@ -26,7 +33,6 @@ import {
 } from "@mui/material";
 
 import { ContentCopy, Delete, Edit } from "@mui/icons-material";
-import { TIME_FLASH_ALERTA_SEC } from "../../shared/components/FlashAlerta";
 import { useFlash } from "../../shared/contexts/FlashProvider";
 import type { ModelosRow } from "../../shared/types/tabelas";
 import { itemsNatureza } from "../../shared/constants/itemsModelos";
@@ -72,25 +78,13 @@ export const ListaModelos = () => {
         setLoading(false);
         if (rsp) {
           setRows((old) => old.filter((old) => old.id !== id));
-          showFlashMessage(
-            "Registro excluído com sucesso",
-            "success",
-            TIME_FLASH_ALERTA_SEC
-          );
+          showFlashMessage("Registro excluído com sucesso", "success");
         } else {
-          showFlashMessage(
-            "Erro ao excluir o registro",
-            "error",
-            TIME_FLASH_ALERTA_SEC
-          );
+          showFlashMessage("Erro ao excluir o registro", "error");
         }
       } catch (error) {
         console.log(error);
-        showFlashMessage(
-          "Erro ao excluir o registro",
-          "error",
-          TIME_FLASH_ALERTA_SEC
-        );
+        showFlashMessage("Erro ao excluir o registro", "error");
       } finally {
         setLoading(false);
       }
@@ -183,24 +177,6 @@ export const ListaModelos = () => {
                     </TableCell>
                   </TableRow>
                 )}
-                {/* {totalPage > 0 && totalPage > Environment.LIMITE_DE_LINHAS && (
-                  <TableRow>
-                    <TableCell colSpan={3}>
-                      <Pagination
-                        page={pagina}
-                        count={Math.ceil(
-                          totalPage / Environment.LIMITE_DE_LINHAS
-                        )}
-                        onChange={(_, newPage) =>
-                          setSearchParams(
-                            { busca, pagina: newPage.toString() },
-                            { replace: true }
-                          )
-                        }
-                      />
-                    </TableCell>
-                  </TableRow>
-                )} */}
               </TableFooter>
             </Table>
           </TableContainer>

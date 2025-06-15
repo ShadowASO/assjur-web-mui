@@ -1,3 +1,11 @@
+/**
+ * File: CardConsumoTokens.tsx
+ * Criação:  14/06/2025
+ * Cria um card para ser exibido na interface DAshboard com os múmeros do
+ * consumo de token da API da OpenAI
+ *
+ */
+
 import { useEffect, useState } from "react";
 import {
   Box,

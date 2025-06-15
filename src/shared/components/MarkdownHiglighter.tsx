@@ -1,6 +1,14 @@
 import ReactMarkdown from "react-markdown";
 import { Prism as SyntaxHighlighter } from "react-syntax-highlighter";
 
+// const customStyle = {
+//   lineHeight: "1.5",
+//   fontSize: "1rem",
+//   borderRadius: "5px",
+//   backgroundColor: "#f7f7f7",
+//   padding: "20px",
+// };
+
 interface MarkdownHighlighterProps {
   language: string;
   thema: {

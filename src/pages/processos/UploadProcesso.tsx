@@ -1,3 +1,13 @@
+/**
+ * File: UploadProcesso.tsx
+ * Criação:  14/06/2025
+ * Janela para formação do contexto processual, permitindo ao usuário
+ * selecionar arquivos pdf, enviá-los para o servidor(upload), extrair
+ * o texto com o uso de OCR e fazer a juntada do documentos aos autos,
+ * com prévia análise pela IA.
+ *
+ */
+
 import { useParams } from "react-router-dom";
 import {
   Alert,
@@ -25,7 +35,6 @@ import {
 } from "../../shared/services/api/fetch/apiTools";
 import { ListaOCR } from "./ListaOCR";
 import { Close, ContentCopy } from "@mui/icons-material";
-import { TIME_FLASH_ALERTA_SEC } from "../../shared/components/FlashAlerta";
 import { useFlash } from "../../shared/contexts/FlashProvider";
 
 export const UploadProcesso = () => {
@@ -54,22 +63,14 @@ export const UploadProcesso = () => {
       if (ok) {
         setRefreshKeyOCR((prev) => prev + 1); // Força refresh da lista OCR
         setRefreshKeyPecas((prev) => prev + 1); // Força refresh da lista de peças
-        showFlashMessage(
-          "OCR realizado com sucesso!",
-          "success",
-          TIME_FLASH_ALERTA_SEC
-        );
+        showFlashMessage("OCR realizado com sucesso!", "success");
       } else {
         console.log("houve um erro na transferência do arquivo!");
-        showFlashMessage(
-          "Erro ao realizar OCR!",
-          "error",
-          TIME_FLASH_ALERTA_SEC
-        );
+        showFlashMessage("Erro ao realizar OCR!", "error");
       }
     } catch (error) {
       console.log(error);
-      showFlashMessage("Erro ao realizar OCR!", "error", TIME_FLASH_ALERTA_SEC);
+      showFlashMessage("Erro ao realizar OCR!", "error");
     } finally {
       setLoading(false);
     }
@@ -82,19 +83,11 @@ export const UploadProcesso = () => {
       setLoading(false);
       if (ok) {
         setRefreshKeyOCR((prev) => prev + 1); // Força refresh da lista OCR
-        showFlashMessage(
-          "Texto OCR excluído com sucesso!",
-          "success",
-          TIME_FLASH_ALERTA_SEC
-        );
+        showFlashMessage("Texto OCR excluído com sucesso!", "success");
       }
     } catch (err) {
       console.error("Erro ao deletar:", err);
-      showFlashMessage(
-        "Erro ao reqalizar a exclusão do OCR!",
-        "error",
-        TIME_FLASH_ALERTA_SEC
-      );
+      showFlashMessage("Erro ao reqalizar a exclusão do OCR!", "error");
     } finally {
       setLoading(false);
     }
@@ -107,22 +100,14 @@ export const UploadProcesso = () => {
       const ok = await deleteUploadFileById(fileId);
       if (ok) {
         setRefreshKeyPecas((prev) => prev + 1); // Força refresh da lista de peças
-        showFlashMessage(
-          "PDF excluído com sucesso!",
-          "success",
-          TIME_FLASH_ALERTA_SEC
-        );
+        showFlashMessage("PDF excluído com sucesso!", "success");
         //console.log("Deletado com sucesso!");
       } else {
-        showFlashMessage(
-          "Erro ao exccluir PDF!",
-          "error",
-          TIME_FLASH_ALERTA_SEC
-        );
+        showFlashMessage("Erro ao exccluir PDF!", "error");
       }
     } catch (err) {
       console.error("Erro ao deletar:", err);
-      showFlashMessage("Erro ao exccluir PDF!", "error", TIME_FLASH_ALERTA_SEC);
+      showFlashMessage("Erro ao exccluir PDF!", "error");
     } finally {
       setLoading(false);
     }
@@ -140,27 +125,15 @@ export const UploadProcesso = () => {
       ]);
       setLoading(false);
       if (rsp) {
-        showFlashMessage(
-          "Documento juntado com sucesso!",
-          "success",
-          TIME_FLASH_ALERTA_SEC
-        );
+        showFlashMessage("Documento juntado com sucesso!", "success");
         setRefreshKeyOCR((prev) => prev + 1); // Força refresh da lista OCR
       } else {
-        showFlashMessage(
-          "Erro ao juntar documento!",
-          "error",
-          TIME_FLASH_ALERTA_SEC
-        );
+        showFlashMessage("Erro ao juntar documento!", "error");
       }
     } catch (err) {
       setLoading(false);
       console.error("Erro ao juntar o documento:", err);
-      showFlashMessage(
-        "Erro ao juntar o documento",
-        "error",
-        TIME_FLASH_ALERTA_SEC
-      );
+      showFlashMessage("Erro ao juntar o documento", "error");
     } finally {
       setLoading(false);
     }
@@ -193,6 +166,9 @@ export const UploadProcesso = () => {
       <Grid container spacing={2}>
         {/* COL-01 - Seleção dos arquivos a transferir */}
         <Grid size={{ xs: 11, sm: 10, md: 7, lg: 4, xl: 4 }}>
+          <Paper sx={{ p: 2, mb: 2 }}>
+            <Typography variant="subtitle1">Arquivos selecionados</Typography>
+          </Paper>
           <Paper sx={{ p: 2, mb: 2 }}>
             <SelectPecas onUpload={handleUpload} loading={isLoading} />
           </Paper>

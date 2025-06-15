@@ -17,6 +17,7 @@ import type {
   UploadFilesRow,
 } from "./../../../types/tabelas";
 import { TokenStorage } from "./TokenStorage";
+import type { MetadadosProcessoCnj } from "../../../types/cnjTypes";
 
 /**
  * Obtém a instância global da Api
@@ -60,13 +61,46 @@ function parseApiResponseDataRow<T>(rspApi: StandardBodyResponse): T | null {
   }
   return null;
 }
+interface IResponseMetadadosCNJ {
+  metadados: MetadadosProcessoCnj;
+  message?: string;
+}
+/**
+ * Confirma se o processo informado existe e devolve os metadados do CNJ
+ * @param strProcesso
+ * @returns
+ */
+export const searchMetadadosCNJ = async (
+  strProcesso: string
+): Promise<MetadadosProcessoCnj | null> => {
+  try {
+    const bodyObj = { numeroProcesso: strProcesso };
 
+    const rsp = await api.post("/cnj/processo", bodyObj);
+    if (rsp.ok) {
+      const data = rsp.data as IResponseMetadadosCNJ;
+
+      if (data) {
+        const metaDados = data.metadados as MetadadosProcessoCnj;
+
+        if (metaDados.hits.total.value !== 0) {
+          /** Mensagem de debug */
+          console.log("Processo confirmado no CNJ: ", strProcesso);
+          return metaDados;
+        }
+      }
+    }
+    return null;
+  } catch (error) {
+    console.error("Erro na busca do processo no CNJ!", error);
+    throw new Error("Erro na busca do processo no CNJ!");
+  }
+};
 export interface DataTokenUsage {
   prompt_tokens: number;
   completion_tokens: number;
   total_tokens: number;
 }
-
 export const getConsumoTokens = async (): Promise<DataTokenUsage> => {
   try {
     const rspApi = await api.get("/sessions/uso");
@@ -300,6 +334,39 @@ export const deleteAutos = async (
     console.error("erro ao acessa a API:", error);
   }
   return null;
+};
+/**
+ * Cria um novo contexto
+ * @param nrProcesso
+ * @param juizo
+ * @param classe
+ * @param assunto
+ * @returns
+ */
+export const insertContexto = async (
+  //metadadosCnj: MetadadosProcessoCnj
+  nrProcesso: string,
+  juizo: string,
+  classe: string,
+  assunto: string
+): Promise<ContextoRow | null> => {
+  try {
+    const rspApi = await api.post("/contexto", {
+      NrProc: nrProcesso,
+      Juizo: juizo,
+      Classe: classe,
+      Assunto: assunto,
+    });
+
+    const row = parseApiResponseDataRow<ContextoRow>(rspApi);
+    if (row) {
+      return row;
+    }
+    return null;
+  } catch (error) {
+    console.error("Erro ao buscar metadados no CNJ", error);
+    throw new Error("Erro ao buscar metadados no CNJ");
+  }
 };
 
 export const getContexto = async (

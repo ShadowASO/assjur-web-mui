@@ -3,7 +3,6 @@ import { PageBaseLayout } from "../../shared/layouts";
 import { BarraDetalhes } from "../../shared/components/BarraDetalhes";
 import { useEffect, useState } from "react";
 import { useFlash } from "../../shared/contexts/FlashProvider";
-import { TIME_FLASH_ALERTA_SEC } from "../../shared/components/FlashAlerta";
 import { Controller, useForm } from "react-hook-form";
 import * as yup from "yup";
 import { setFormErrors } from "../../shared/forms/rhf/utilitarios";
@@ -32,7 +31,6 @@ import {
   Typography,
 } from "@mui/material";
 import { ContentCopy } from "@mui/icons-material";
-//import style from "../../shared/styles/teste.module.css";
 
 interface IFormPrompt {
   nm_desc: string;
@@ -118,13 +116,9 @@ export const DetalhePrompt = () => {
           valida.txt_prompt
         );
         if (rsp instanceof Error) {
-          showFlashMessage(rsp.message, "error", TIME_FLASH_ALERTA_SEC);
+          showFlashMessage(rsp.message, "error");
         } else {
-          showFlashMessage(
-            "Registro salvo com sucesso",
-            "success",
-            TIME_FLASH_ALERTA_SEC
-          );
+          showFlashMessage("Registro salvo com sucesso", "success");
           navigate(`/prompts/detalhes/${rsp}`);
         }
       } else {
@@ -134,13 +128,9 @@ export const DetalhePrompt = () => {
           valida.txt_prompt
         );
         if (rsp instanceof Error) {
-          showFlashMessage(rsp.message, "error", TIME_FLASH_ALERTA_SEC);
+          showFlashMessage(rsp.message, "error");
         } else {
-          showFlashMessage(
-            "Registro atualizado com sucesso",
-            "success",
-            TIME_FLASH_ALERTA_SEC
-          );
+          showFlashMessage("Registro atualizado com sucesso", "success");
         }
       }
     } catch (err) {
@@ -148,8 +138,7 @@ export const DetalhePrompt = () => {
         setFormErrors(RForm, err);
         showFlashMessage(
           "Preencha corretamente os campos obrigatórios",
-          "error",
-          TIME_FLASH_ALERTA_SEC
+          "error"
         );
       }
     } finally {
@@ -166,17 +155,9 @@ export const DetalhePrompt = () => {
     if (confirm("Deseja realmente excluir o prompt?")) {
       const rsp = await deletePrompt(Number(id));
       if (!rsp) {
-        showFlashMessage(
-          "Erro ao deletar prompt",
-          "error",
-          TIME_FLASH_ALERTA_SEC
-        );
+        showFlashMessage("Erro ao deletar prompt", "error");
       } else {
-        showFlashMessage(
-          "Prompt excluído com sucesso",
-          "success",
-          TIME_FLASH_ALERTA_SEC
-        );
+        showFlashMessage("Prompt excluído com sucesso", "success");
         navigate("/prompts");
       }
     }

@@ -1,3 +1,10 @@
+/**
+ * File: Dashboard.tsx
+ * Criação:  01/06/2025
+ * Janela para interação do usuário com a IA e o processo
+ *
+ */
+
 import { useState } from "react";
 import { PageBaseLayout } from "../../shared/layouts/PageBaseLayout";
 import { BarraListagem } from "../../shared/components/BarraListagem";

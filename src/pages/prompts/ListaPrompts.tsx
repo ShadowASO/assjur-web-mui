@@ -27,7 +27,6 @@ import {
 } from "@mui/material";
 import { Environment } from "../../shared/enviroments";
 import { ContentCopy, Delete, Edit } from "@mui/icons-material";
-import { TIME_FLASH_ALERTA_SEC } from "../../shared/components/FlashAlerta";
 import { useFlash } from "../../shared/contexts/FlashProvider";
 import type { PromptsRow } from "../../shared/types/tabelas";
 import ReactMarkdown from "react-markdown";
@@ -67,11 +66,7 @@ export const ListaPrompts = () => {
       const rsp = await deletePrompt(id);
       if (rsp) {
         setRows((old) => old.filter((old) => old.id_prompt !== id));
-        showFlashMessage(
-          "Registro apagado com sucesso",
-          "success",
-          TIME_FLASH_ALERTA_SEC
-        );
+        showFlashMessage("Registro apagado com sucesso", "success");
       }
     }
   };
@@ -189,7 +184,6 @@ export const ListaPrompts = () => {
               flexDirection: "column",
             }}
           >
-            {/* <Typography variant="body2">{selectedContent || ""}</Typography> */}
             <ReactMarkdown>{selectedContent}</ReactMarkdown>
           </Paper>
           {/* Boão de copiar para área de transferência */}

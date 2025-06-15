@@ -12,12 +12,13 @@
            TIME_FLASH_ALERTA_SEC
          );
  */
-import { createContext, useContext, useState, useEffect, useRef } from "react";
+import { createContext, useContext, useState } from "react";
 
 import type { ReactNode } from "react";
 interface FlashMessage {
   message: string;
   type: "success" | "warning" | "info" | "error";
+  duration: number;
 }
 
 interface FlashContextType {
@@ -28,9 +29,14 @@ interface FlashContextType {
   ) => void;
   flashMessage: FlashMessage | null;
   isShow: boolean;
+  setShow: (log: boolean) => void;
+  duration: number;
+  setDuration: (n: number) => void;
 }
 
 const FlashContext = createContext<FlashContextType | undefined>(undefined);
+
+export const TIME_FLASH_ALERTA_SEC = 3;
 
 interface FlashProviderProps {
   children: ReactNode;
@@ -39,41 +45,28 @@ interface FlashProviderProps {
 export default function FlashProvider({ children }: FlashProviderProps) {
   const [flashMessage, setMessage] = useState<FlashMessage | null>(null);
   const [isShow, setShow] = useState<boolean>(false);
-  const flashTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
-
-  function hiddenFlash() {
-    setShow(false);
-    setMessage(null); // <- limpa o conteúdo
-  }
+  const [duration, setDuration] = useState(3);
 
   const showFlashMessage = (
     message: string,
     type: FlashMessage["type"],
-    duration = 5
+    duration = TIME_FLASH_ALERTA_SEC
   ) => {
-    if (flashTimer.current) {
-      clearTimeout(flashTimer.current);
-    }
-
-    setMessage({ message, type });
+    setMessage({ message, type, duration });
     setShow(true);
-
-    if (duration > 0) {
-      flashTimer.current = setTimeout(hiddenFlash, duration * 1000);
-    }
   };
 
-  // Limpa o timer ao desmontar o componente
-  useEffect(() => {
-    return () => {
-      if (flashTimer.current) {
-        clearTimeout(flashTimer.current);
-      }
-    };
-  }, []);
-
   return (
-    <FlashContext.Provider value={{ showFlashMessage, flashMessage, isShow }}>
+    <FlashContext.Provider
+      value={{
+        showFlashMessage,
+        flashMessage,
+        isShow,
+        setShow,
+        duration,
+        setDuration,
+      }}
+    >
       {children}
     </FlashContext.Provider>
   );

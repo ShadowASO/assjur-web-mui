@@ -1,3 +1,10 @@
+/**
+ * File: UploadStyled.tsx
+ * Criação:  13/06/2025
+ * Componente que concentra a lógica de seleção de núltiplos arquivos PDF
+ *
+ */
+
 import { Box, Button, Typography, Paper, Stack } from "@mui/material";
 import UploadIcon from "@mui/icons-material/Upload";
 import { useEffect, useState } from "react";

@@ -1,3 +1,10 @@
+/**
+ * File: Chat-ia.tsx
+ * Criação:  14/06/2025
+ * Interface para conversar diretametne com a IA usando prompts
+ *
+ */
+
 import { useEffect, useRef, useState } from "react";
 import {
   Box,

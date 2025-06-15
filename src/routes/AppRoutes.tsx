@@ -69,14 +69,6 @@ export const AppRoutes = () => {
           </RequireAuth>
         }
       />
-      {/* <Route
-        path="/processos/detalhes/:id"
-        element={
-          <RequireAuth>
-            <UploadProcesso></UploadProcesso>
-          </RequireAuth>
-        }
-      /> */}
       <Route
         path="/processos/upload/:id"
         element={
