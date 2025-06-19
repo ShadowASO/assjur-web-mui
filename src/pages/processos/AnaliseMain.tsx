@@ -32,6 +32,8 @@ import { getDocumentoName } from "../../shared/constants/itemsPrompt";
 
 import { Prism as SyntaxHighlighter } from "react-syntax-highlighter";
 import { duotoneLight } from "react-syntax-highlighter/dist/esm/styles/prism";
+import { useApi } from "../../shared/contexts/ApiProvider";
+import { type IResponseOpenaiApi } from "../../shared/services/query/QueryResponse";
 
 export const AnalisesMain = () => {
   const { id: idCtxt } = useParams();
@@ -42,7 +44,11 @@ export const AnalisesMain = () => {
   const [minuta, setMinuta] = useState("");
   const [dialogo, setDialogo] = useState("");
   const [prompt, setPrompt] = useState("");
+  const [prevId, setPrevId] = useState("");
+
   const theme = useTheme();
+  const Api = useApi();
+  //const { addMessage, addOutput, messagesRef } = useMessageReponse();
 
   useEffect(() => {
     (async () => {
@@ -69,18 +75,46 @@ export const AnalisesMain = () => {
     showFlashMessage("Texto copiado para a área de transferência!", "success");
   };
 
-  const handleSendPrompt = () => {
+  const handleSendPrompt = async () => {
     if (!prompt.trim()) {
       showFlashMessage("Digite um prompt antes de enviar.", "warning", 3);
       return;
     }
-    //console.log("Enviando prompt:", prompt);
-    setMinuta(prompt);
+    try {
+      //Params body da chamada
+      const payload = {
+        id_ctxt: idCtxt,
+        txt_prompt: prompt,
+        previd: prevId,
+      };
+      setLoading(true);
+      const response = await Api.post("/contexto/query/rag", payload);
+
+      if (response.ok && response.data) {
+        const data = response.data as IResponseOpenaiApi;
+
+        const output = data?.output?.[0];
+
+        if (output) {
+          //setMinuta(output.content[0].text);
+          setDialogo(output.content[0].text);
+          setPrevId(output.id);
+        } else {
+          // setMinuta("");
+          setDialogo("");
+        }
+      } else {
+        // setMinuta("");
+        setDialogo("");
+      }
+    } catch (error) {
+      console.error("Erro ao acessar a API:", error);
+    } finally {
+      setLoading(false);
+    }
   };
 
   const handleSelectPeca = (reg: AutosRow) => {
-    //console.log("Peça selecionada:", reg);
-
     if (reg.autos_json) {
       if (typeof reg.autos_json === "string") {
         setMinuta(reg.autos_json);
@@ -154,9 +188,7 @@ export const AnalisesMain = () => {
                 backgroundColor: theme.palette.background.default,
               }}
             >
-              <Typography variant="body2">
-                <ReactMarkdown>{dialogo}</ReactMarkdown>
-              </Typography>
+              <ReactMarkdown>{dialogo}</ReactMarkdown>
             </Paper>
 
             {/********* COL-02 -> BOTÃO DE CÓPIA ***** */}

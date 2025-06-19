@@ -17,57 +17,81 @@ import {
   IconButton,
   InputAdornment,
 } from "@mui/material";
-import {
-  useQueryGPT,
-  type IRespostaOpenai,
-} from "../../shared/services/query/Query";
 
 import ReactMarkdown from "react-markdown";
 import { useApi } from "../../shared/contexts/ApiProvider";
 import { Clear, ContentCopy, Send } from "@mui/icons-material";
+import {
+  useMessageReponse,
+  type IMessageResponseItem,
+  type IResponseOpenaiApi,
+} from "../../shared/services/query/QueryResponse";
 
 export const ChatIA = () => {
   const theme = useTheme();
   const scrollRef = useRef<HTMLDivElement>(null);
   const [query, setQuery] = useState("");
+  const [prevId, setPrevId] = useState("");
+
   const [isLoading, setIsLoading] = useState(false);
 
-  const { addMessage, messagesRef, getMessages } = useQueryGPT();
+  const { addMessage, addOutput, messagesRef } = useMessageReponse();
+
   const Api = useApi();
 
   const handleSendPrompt = async () => {
-    //e.preventDefault();
-
     //Se o campo de prompt estiver vazio, faz nada
     if (!query.trim()) return;
 
     //Caso o campo de prompt possua valores
-    const userQuery = { role: "user", content: query } as const;
+    const userQuery: IMessageResponseItem = {
+      id: prevId,
+      role: "user",
+      text: query,
+    };
 
     setQuery("");
-    setIsLoading(true);
 
-    addMessage(userQuery.role, userQuery.content);
+    addMessage(userQuery.id, userQuery.role, userQuery.text);
 
     try {
-      const payload = { messages: getMessages() };
+      const payload = {
+        messages: [
+          { id: userQuery.id, role: userQuery.role, text: userQuery.text },
+        ],
+      };
+
+      setIsLoading(true);
+      console.log(payload);
 
       const response = await Api.post("/query", payload);
-      if (response.ok && response.data) {
-        const data = response.data as IRespostaOpenai;
-        const mensagem = data?.choices?.[0]?.message?.content;
 
-        if (mensagem) {
-          addMessage("assistant", mensagem);
+      if (response.ok && response.data) {
+        const data = response.data as IResponseOpenaiApi;
+
+        const output = data?.output?.[0];
+
+        if (output) {
+          console.log(data.id);
+          addOutput(output);
+          setPrevId(data.id);
         } else {
-          addMessage("assistant", "⚠️ Não foi possível obter resposta.");
+          addMessage(
+            "",
+            "assistant",
+            "⚠️ Erro ao processar a resposta da API."
+          );
         }
       } else {
-        addMessage("assistant", "⚠️ Erro ao processar a resposta da API.");
+        //addMessage("assistant", "⚠️ Erro ao processar a resposta da API.");
+        //setOutputs([...outputs, "Não foi possível obter resposta."]);
+        addMessage("", "assistant", "⚠️ Erro ao processar a resposta da API.");
       }
     } catch (error) {
       console.error("Erro ao acessar a API:", error);
-      addMessage("assistant", "⚠️ Erro na comunicação com o servidor.");
+      //addMessage("assistant", "⚠️ Erro na comunicação com o servidor.");
+      //setOutputs([...outputs, "Não foi possível obter resposta."]);
+      addMessage("", "assistant", "⚠️ Erro ao processar a resposta da API.");
     } finally {
       setIsLoading(false);
     }
@@ -132,7 +156,7 @@ export const ChatIA = () => {
                           <IconButton
                             size="small"
                             onClick={() =>
-                              navigator.clipboard.writeText(msg.content)
+                              navigator.clipboard.writeText(msg.text)
                             }
                           >
                             <ContentCopy fontSize="small" />
@@ -143,7 +167,7 @@ export const ChatIA = () => {
                     )}
 
                     {msg.role === "user" ? (
-                      <Typography variant="body1">{msg.content}</Typography>
+                      <Typography variant="body1">{msg.text}</Typography>
                     ) : (
                       <ReactMarkdown
                         components={{
@@ -161,7 +185,7 @@ export const ChatIA = () => {
                           ),
                         }}
                       >
-                        {msg.content}
+                        {msg.text}
                       </ReactMarkdown>
                     )}
                   </Paper>

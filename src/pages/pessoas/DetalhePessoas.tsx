@@ -4,7 +4,7 @@ import { BarraDetalhes } from "../../shared/components/BarraDetalhes";
 import { useEffect, useState } from "react";
 import { PessoasService } from "../../shared/services/PessoasService";
 import { useFlash } from "../../shared/contexts/FlashProvider";
-import { TIME_FLASH_ALERTA_SEC } from "../../shared/components/FlashAlerta";
+//import { TIME_FLASH_ALERTA_SEC } from "../../shared/components/FlashAlerta";
 import { InputField } from "../../shared/forms/rhf/InputField";
 import { useForm } from "react-hook-form";
 import { Box, Grid, LinearProgress, Paper, Typography } from "@mui/material";
@@ -41,7 +41,7 @@ export const DetalhePessoas = () => {
         const rsp = await PessoasService.getById(id);
         setIsLoading(false);
         if (rsp instanceof Error) {
-          showFlashMessage(rsp.message, "error", TIME_FLASH_ALERTA_SEC);
+          showFlashMessage(rsp.message, "error");
           navigate("/pessoas");
         } else {
           setNome(rsp.nomeCompleto);
@@ -79,8 +79,7 @@ export const DetalhePessoas = () => {
         //Exibe mensagem
         showFlashMessage(
           "Preencha corretamente os campos obrigatórios",
-          "error",
-          TIME_FLASH_ALERTA_SEC
+          "error"
         );
       }
       return;
@@ -91,14 +90,10 @@ export const DetalhePessoas = () => {
     if (id === "nova") {
       const rsp = await PessoasService.create(valida);
       if (rsp instanceof Error) {
-        showFlashMessage(rsp.message, "error", TIME_FLASH_ALERTA_SEC);
+        showFlashMessage(rsp.message, "error");
         //navigate("/pessoas");
       } else {
-        showFlashMessage(
-          "Registro salvo com sucesso",
-          "success",
-          TIME_FLASH_ALERTA_SEC
-        );
+        showFlashMessage("Registro salvo com sucesso", "success");
         navigate(`/pessoas/detalhes/${rsp}`);
       }
     } else {
@@ -109,14 +104,10 @@ export const DetalhePessoas = () => {
         ...valida,
       });
       if (rsp instanceof Error) {
-        showFlashMessage(rsp.message, "error", TIME_FLASH_ALERTA_SEC);
+        showFlashMessage(rsp.message, "error");
         //navigate("/pessoas");
       } else {
-        showFlashMessage(
-          "Registro alterado com sucesso",
-          "success",
-          TIME_FLASH_ALERTA_SEC
-        );
+        showFlashMessage("Registro alterado com sucesso", "success");
         navigate(`/pessoas/detalhes/${id}`);
       }
     }
@@ -127,14 +118,10 @@ export const DetalhePessoas = () => {
     if (confirm("Realmente deseja apagar?")) {
       const rsp = await PessoasService.deleteById(id);
       if (rsp instanceof Error) {
-        showFlashMessage(rsp.message, "error", TIME_FLASH_ALERTA_SEC);
+        showFlashMessage(rsp.message, "error");
       } else {
         navigate("/pessoas");
-        showFlashMessage(
-          "Registro apagado com sucesso",
-          "success",
-          TIME_FLASH_ALERTA_SEC
-        );
+        showFlashMessage("Registro apagado com sucesso", "success");
       }
     }
   };

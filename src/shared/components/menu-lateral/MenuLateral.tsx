@@ -84,7 +84,7 @@ export const MenuLateral = ({ children }: IMenuLateralProps) => {
           >
             <Avatar
               sx={{ height: theme.spacing(12), width: theme.spacing(12) }}
-              src="public/img/Foto-aldenor.jpeg"
+              src="/img/Foto-aldenor.jpeg"
             />
           </Box>
           <Divider />

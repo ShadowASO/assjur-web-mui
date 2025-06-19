@@ -52,3 +52,39 @@ face do Chat-ia, alterações na API relacionadas aos uso de tokens, criação d
 componente CardConsumoTokens para exibir no Dashboard;
 b) modificações também na interface do componente DetalhePrompts;
 
+# -----------------------------------------------------------------------------
+#             Em 13/15-06-2025: Versão 1.0.0                                    
+# -----------------------------------------------------------------------------
+a) desenvolvido componente de criação de contexto;
+b) crido ShowMetadados, ajustada interface de formação do contexto processual;
+c) reformulada a interface do Chat IA;
+d) ajustadas as rotinas de chamada à API;
+e) criada a interface de Análise processual;
+f) implementada a autuação de peças processuais;
+g) extensos testes de formação de contexto;
+
+# -----------------------------------------------------------------------------
+#             Em 16/17-06-2025: Versão 1.0.0                                    
+# -----------------------------------------------------------------------------
+a) implementada a nova API da OpenAI Responses;
+b) implementada a API REsponses para realizar chamadas de funções, a partir de
+um prompt inserido pelo usuário;
+
+# -----------------------------------------------------------------------------
+#             Em 18-06-2025: Versão 1.0.0                                    
+# -----------------------------------------------------------------------------
+a) concluída a implementação da rotina genérica para utilização das novas API
+Responses da openai, com a chamada de funções;
+b) criadas rotinas genéricas para a criação e passagem das funções/parâmetros
+das chamadas à API;
+c) implementado o handler para as chamadas de análise dos autos;
+d) iniciada a implementação da chamada da API na interface de análise do cliente;
+e) reestruturada a aplicação backend para acomodar as rotinas de  tools e rag 
+para uso das funcionalidade da openai.
+
+# -----------------------------------------------------------------------------
+#             Em 19-06-2025: Versão 1.0.0                                    
+# -----------------------------------------------------------------------------
+a) realizados testes na interface do cliente;
+
+

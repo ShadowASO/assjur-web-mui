@@ -4,7 +4,7 @@ import { BarraDetalhes } from "../../shared/components/BarraDetalhes";
 import { useEffect, useState } from "react";
 import { CidadesService } from "../../shared/services/CidadesService";
 import { useFlash } from "../../shared/contexts/FlashProvider";
-import { TIME_FLASH_ALERTA_SEC } from "../../shared/components/FlashAlerta";
+//import { TIME_FLASH_ALERTA_SEC } from "../../shared/components/FlashAlerta";
 import { InputField } from "../../shared/forms/rhf/InputField";
 import { useForm } from "react-hook-form";
 import { Box, Grid, LinearProgress, Paper, Typography } from "@mui/material";
@@ -36,7 +36,7 @@ export const DetalheCidades = () => {
         const rsp = await CidadesService.getById(id);
         setIsLoading(false);
         if (rsp instanceof Error) {
-          showFlashMessage(rsp.message, "error", TIME_FLASH_ALERTA_SEC);
+          showFlashMessage(rsp.message, "error");
           navigate("/cidades");
         } else {
           setNome(rsp.nome);
@@ -71,8 +71,7 @@ export const DetalheCidades = () => {
         //Exibe mensagem
         showFlashMessage(
           "Preencha corretamente os campos obrigatórios",
-          "error",
-          TIME_FLASH_ALERTA_SEC
+          "error"
         );
       }
       return;
@@ -83,14 +82,10 @@ export const DetalheCidades = () => {
     if (id === "nova") {
       const rsp = await CidadesService.create(valida);
       if (rsp instanceof Error) {
-        showFlashMessage(rsp.message, "error", TIME_FLASH_ALERTA_SEC);
+        showFlashMessage(rsp.message, "error");
         //navigate("/cidades");
       } else {
-        showFlashMessage(
-          "Registro salvo com sucesso",
-          "success",
-          TIME_FLASH_ALERTA_SEC
-        );
+        showFlashMessage("Registro salvo com sucesso", "success");
         navigate(`/cidades/detalhes/${rsp}`);
       }
     } else {
@@ -101,14 +96,10 @@ export const DetalheCidades = () => {
         ...valida,
       });
       if (rsp instanceof Error) {
-        showFlashMessage(rsp.message, "error", TIME_FLASH_ALERTA_SEC);
+        showFlashMessage(rsp.message, "error");
         //navigate("/cidades");
       } else {
-        showFlashMessage(
-          "Registro alterado com sucesso",
-          "success",
-          TIME_FLASH_ALERTA_SEC
-        );
+        showFlashMessage("Registro alterado com sucesso", "success");
         navigate(`/cidades/detalhes/${id}`);
       }
     }
@@ -119,14 +110,10 @@ export const DetalheCidades = () => {
     if (confirm("Realmente deseja apagar?")) {
       const rsp = await CidadesService.deleteById(id);
       if (rsp instanceof Error) {
-        showFlashMessage(rsp.message, "error", TIME_FLASH_ALERTA_SEC);
+        showFlashMessage(rsp.message, "error");
       } else {
         navigate("/cidades");
-        showFlashMessage(
-          "Registro apagado com sucesso",
-          "success",
-          TIME_FLASH_ALERTA_SEC
-        );
+        showFlashMessage("Registro apagado com sucesso", "success");
       }
     }
   };

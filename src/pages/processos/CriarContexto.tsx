@@ -101,8 +101,14 @@ export const CriarContexto = ({
       const juizo = hit?.orgaoJulgador.nome;
       const classe = hit?.classe.nome;
       const assunto = hit?.assuntos[0]?.nome ?? "Assunto não identificado";
+      const numeroProcessoLimpo = numeroProcesso.replace(/\D/g, ""); // Remove pontos, traços, espaços etc.
 
-      const rsp = await insertContexto(numeroProcesso, juizo, classe, assunto);
+      const rsp = await insertContexto(
+        numeroProcessoLimpo,
+        juizo,
+        classe,
+        assunto
+      );
 
       if (rsp) {
         showFlashMessage("Contexto criado com sucesso!", "success");

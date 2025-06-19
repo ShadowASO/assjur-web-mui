@@ -23,7 +23,7 @@ import {
 } from "@mui/material";
 import { Environment } from "../../shared/enviroments";
 import { Delete, Edit } from "@mui/icons-material";
-import { TIME_FLASH_ALERTA_SEC } from "../../shared/components/FlashAlerta";
+//import { TIME_FLASH_ALERTA_SEC } from "../../shared/components/FlashAlerta";
 import { useFlash } from "../../shared/contexts/FlashProvider";
 
 export const ListaPessoas = () => {
@@ -45,17 +45,13 @@ export const ListaPessoas = () => {
     if (confirm("Realmetne deseja apagar?")) {
       const rsp = await PessoasService.deleteById(id);
       if (rsp instanceof Error) {
-        showFlashMessage(rsp.message, "error", TIME_FLASH_ALERTA_SEC);
+        showFlashMessage(rsp.message, "error");
       } else {
         setRows((old) => {
           return [...old.filter((old) => old.id !== id)];
         });
 
-        showFlashMessage(
-          "Registro apagado com sucesso",
-          "success",
-          TIME_FLASH_ALERTA_SEC
-        );
+        showFlashMessage("Registro apagado com sucesso", "success");
       }
     }
   };

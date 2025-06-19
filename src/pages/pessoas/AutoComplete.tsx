@@ -5,7 +5,7 @@ import {
   type IListagemCidade,
 } from "../../shared/services/CidadesService";
 import { useFlash } from "../../shared/contexts/FlashProvider";
-import { TIME_FLASH_ALERTA_SEC } from "../../shared/components/FlashAlerta";
+//import { TIME_FLASH_ALERTA_SEC } from "../../shared/components/FlashAlerta";
 import { useDebounce } from "../../shared/hooks/UseDebounce";
 import {
   Controller,
@@ -92,11 +92,7 @@ export const AutoCompleteCidade = <T extends FieldValues>({
 
       if (rsp instanceof Error) {
         setOptions([]);
-        showFlashMessage(
-          "Erro ao buscar as cidades",
-          "error",
-          TIME_FLASH_ALERTA_SEC
-        );
+        showFlashMessage("Erro ao buscar as cidades", "error");
       } else {
         const data = rsp.data as IListagemCidade[];
         const mapped = data.map((cidade) => ({
