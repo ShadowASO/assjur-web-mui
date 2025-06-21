@@ -521,12 +521,15 @@ export const insertPrompt = async (
   return null;
 };
 // // ** Modelos rows
-
+interface ResponseModelosInsert {
+  id: string;
+  message: string;
+}
 export const insertModelos = async (
   Natureza: string,
   Ementa: string,
   Inteiro_teor: string
-): Promise<ModelosRow | null> => {
+): Promise<ResponseModelosInsert | null> => {
   const modelos = {
     natureza: Natureza,
     ementa: Ementa,
@@ -535,9 +538,10 @@ export const insertModelos = async (
   try {
     const rspApi = await api.post("/tabelas/modelos", modelos);
 
-    if (rspApi.ok) {
-      const data = rspApi.data as IResponseDataDocs<ModelosRow>;
-      return data.doc || null;
+    if (rspApi.ok && rspApi.data) {
+      const data = rspApi.data as ResponseModelosInsert;
+      //console.log(data);
+      return data;
     }
   } catch (error) {
     console.error("Erro ao inserir o modelo: " + error);

@@ -60,7 +60,9 @@ export const DetalheModelos = () => {
     (async () => {
       if (idReg !== "nova") {
         setIsLoading(true);
+        //console.log(idReg);
         const rsp = await selectModelo(idReg);
+        //console.log(rsp);
         setIsLoading(false);
         if (rsp instanceof Error) {
           showFlashMessage(rsp.message, "error");
@@ -107,7 +109,7 @@ export const DetalheModelos = () => {
         abortEarly: false,
       });
 
-      console.log(valida);
+      //console.log(valida);
 
       setIsLoading(true);
       if (idReg === "nova") {
@@ -119,8 +121,9 @@ export const DetalheModelos = () => {
         if (rsp instanceof Error) {
           showFlashMessage(rsp.message, "error");
         } else {
+          //console.log(rsp);
           showFlashMessage("Registro salvo com sucesso", "success");
-          navigate(`/modelos/detalhes/${rsp}`);
+          navigate(`/modelos/detalhes/${rsp?.id}`);
         }
       } else {
         const rsp = await updateModelos(
@@ -291,7 +294,7 @@ export const DetalheModelos = () => {
               <TextField
                 component={Paper}
                 variant="outlined"
-                label="Prompt"
+                label="Conteúdo"
                 multiline
                 fullWidth
                 minRows={10}

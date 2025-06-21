@@ -78,6 +78,7 @@ export const ListaModelos = () => {
         setLoading(false);
         if (rsp) {
           setRows((old) => old.filter((old) => old.id !== id));
+          setSelectedContent("");
           showFlashMessage("Registro excluído com sucesso", "success");
         } else {
           showFlashMessage("Erro ao excluir o registro", "error");

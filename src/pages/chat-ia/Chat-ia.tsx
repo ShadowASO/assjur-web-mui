@@ -62,9 +62,9 @@ export const ChatIA = () => {
       };
 
       setIsLoading(true);
-      console.log(payload);
+      //console.log(payload);
 
-      const response = await Api.post("/query", payload);
+      const response = await Api.post("/query/chat", payload);
 
       if (response.ok && response.data) {
         const data = response.data as IResponseOpenaiApi;
@@ -72,26 +72,19 @@ export const ChatIA = () => {
         const output = data?.output?.[0];
 
         if (output) {
-          console.log(data.id);
+          //console.log(data.id);
           addOutput(output);
           setPrevId(data.id);
         } else {
-          addMessage(
-            "",
-            "assistant",
-            "⚠️ Erro ao processar a resposta da API."
-          );
+          addMessage("", "assistant", "Erro ao processar a resposta da API.");
         }
       } else {
-        //addMessage("assistant", "⚠️ Erro ao processar a resposta da API.");
-        //setOutputs([...outputs, "Não foi possível obter resposta."]);
-        addMessage("", "assistant", "⚠️ Erro ao processar a resposta da API.");
+        addMessage("", "assistant", "Erro ao processar a resposta da API.");
       }
     } catch (error) {
       console.error("Erro ao acessar a API:", error);
-      //addMessage("assistant", "⚠️ Erro na comunicação com o servidor.");
-      //setOutputs([...outputs, "Não foi possível obter resposta."]);
-      addMessage("", "assistant", "⚠️ Erro ao processar a resposta da API.");
+
+      addMessage("", "assistant", "Erro ao processar a resposta da API.");
     } finally {
       setIsLoading(false);
     }
@@ -211,7 +204,7 @@ export const ChatIA = () => {
             value={query}
             onChange={(e) => setQuery(e.target.value)}
             onKeyDown={(e) => {
-              if (e.key === "Enter" && !e.shiftKey) {
+              if (e.key === "Enter" && !e.shiftKey && !isLoading) {
                 e.preventDefault();
                 handleSendPrompt();
               }
@@ -237,6 +230,7 @@ export const ChatIA = () => {
                         onClick={handleSendPrompt}
                         edge="end"
                         title="Enviar"
+                        disabled={isLoading}
                       >
                         <Send fontSize="small" />
                       </IconButton>
@@ -245,6 +239,7 @@ export const ChatIA = () => {
                         onClick={() => setQuery("")}
                         edge="end"
                         title="Limpar"
+                        disabled={isLoading}
                       >
                         <Clear fontSize="small" />
                       </IconButton>

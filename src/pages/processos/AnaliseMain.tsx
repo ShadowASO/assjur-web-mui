@@ -212,10 +212,11 @@ export const AnalisesMain = () => {
               multiline
               minRows={4}
               fullWidth
+              disabled={isLoading}
               value={prompt}
               onChange={(e) => setPrompt(e.target.value)}
               onKeyDown={(e) => {
-                if (e.key === "Enter" && !e.shiftKey) {
+                if (e.key === "Enter" && !e.shiftKey && !isLoading) {
                   e.preventDefault();
                   handleSendPrompt();
                 }
@@ -245,6 +246,7 @@ export const AnalisesMain = () => {
                           onClick={handleSendPrompt}
                           edge="end"
                           title="Enviar"
+                          disabled={isLoading}
                         >
                           <Send fontSize="small" />
                         </IconButton>
@@ -253,6 +255,7 @@ export const AnalisesMain = () => {
                           onClick={() => copiarParaClipboard(prompt)}
                           edge="end"
                           title="Copiar"
+                          disabled={isLoading}
                         >
                           <ContentCopy fontSize="small" />
                         </IconButton>
@@ -261,6 +264,7 @@ export const AnalisesMain = () => {
                           onClick={() => setPrompt("")}
                           edge="end"
                           title="Limpar"
+                          disabled={isLoading}
                         >
                           <Clear fontSize="small" />
                         </IconButton>
