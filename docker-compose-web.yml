@@ -11,6 +11,7 @@ networks:
 services:
     assjur-web:
         build: .
+        image: assjur-web
         container_name: assjur-web
         restart: always
 
@@ -21,4 +22,4 @@ services:
             - '9001:3002'
 
         environment:
-            - NODE_ENV=production
+            NODE_ENV: production
