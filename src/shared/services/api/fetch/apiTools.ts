@@ -191,12 +191,30 @@ export const extracDocumentWithOCR = async (
 
   objBody.push(obj);
   try {
-    await api.post("/contexto/documentos", objBody);
+    await api.post("/contexto/documentos/ocr", objBody);
     return true;
   } catch (error) {
     console.error("Erro ao extrair documento com OCR: " + error);
     throw new Error("Erro ao extrair documento com OCR: ");
   }
+};
+
+export const extracWithOCRByContexto = async (
+  idContexto: number
+): Promise<boolean> => {
+  try {
+    const rspApi = await api.post(
+      `/contexto/documentos/ocr/${String(idContexto)}`
+    );
+    //console.log(rspApi);
+    if (rspApi.ok) {
+      return true;
+    }
+  } catch (error) {
+    console.error("Erro ao extrair documento com OCR: " + error);
+    throw new Error("Erro ao extrair documento com OCR: ");
+  }
+  return false;
 };
 export const refreshOcrByContexto = async (
   idContexto: number
@@ -206,7 +224,7 @@ export const refreshOcrByContexto = async (
   }
   try {
     const rspApi = await api.get(
-      `/contexto/documentos/all/${String(idContexto)}`
+      `/contexto/documentos/ocr/all/${String(idContexto)}`
     );
 
     const rows = parseApiResponseDataRows<DocsOcrRow>(rspApi);
@@ -222,7 +240,9 @@ export const refreshOcrByContexto = async (
 
 export const deleteOcrdocByIdDoc = async (IdDoc: number): Promise<boolean> => {
   try {
-    const rspApi = await api.delete(`/contexto/documentos/${String(IdDoc)}`);
+    const rspApi = await api.delete(
+      `/contexto/documentos/ocr/${String(IdDoc)}`
+    );
 
     if (rspApi.ok) {
       return true;
@@ -263,7 +283,7 @@ export const autuarDocumentos = async (
 ): Promise<boolean> => {
   try {
     if (fileAutuar.length > 0) {
-      await api.post("/contexto/documentos/analise", fileAutuar);
+      await api.post("/contexto/autos/analise", fileAutuar);
       return true;
     } else {
       return false;

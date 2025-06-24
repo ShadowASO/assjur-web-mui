@@ -12,6 +12,7 @@ import { useParams } from "react-router-dom";
 import {
   Alert,
   Box,
+  Button,
   Dialog,
   DialogContent,
   DialogTitle,
@@ -31,10 +32,11 @@ import {
   deleteOcrdocByIdDoc,
   deleteUploadFileById,
   extracDocumentWithOCR,
+  extracWithOCRByContexto,
   uploadFileToServer,
 } from "../../shared/services/api/fetch/apiTools";
 import { ListaOCR } from "./ListaOCR";
-import { Close, ContentCopy } from "@mui/icons-material";
+import { Close, ContentCopy, DocumentScanner } from "@mui/icons-material";
 import { useFlash } from "../../shared/contexts/FlashProvider";
 
 export const UploadProcesso = () => {
@@ -52,6 +54,28 @@ export const UploadProcesso = () => {
   const handleUpload = async (file: File) => {
     await uploadFileToServer(Number(idCtxt), file);
     setRefreshKeyPecas((prev) => prev + 1); // Força refresh da lista de peças
+  };
+
+  const handleExtrairByContexto = async () => {
+    try {
+      setLoading(true);
+      const ok = await extracWithOCRByContexto(Number(idCtxt));
+      setLoading(false);
+
+      if (ok) {
+        setRefreshKeyOCR((prev) => prev + 1); // Força refresh da lista OCR
+        setRefreshKeyPecas((prev) => prev + 1); // Força refresh da lista de peças
+        showFlashMessage("OCR realizado com sucesso!", "success");
+      } else {
+        console.log("houve um erro na transferência do arquivo!");
+        showFlashMessage("Erro ao realizar OCR!", "error");
+      }
+    } catch (error) {
+      console.log(error);
+      showFlashMessage("Erro ao realizar OCR!", "error");
+    } finally {
+      setLoading(false);
+    }
   };
 
   const handleExtrairTexto = async (fileId: number) => {
@@ -176,8 +200,25 @@ export const UploadProcesso = () => {
 
         {/*COL-2 Arquivos transferidos por upload */}
         <Grid size={{ xs: 11, sm: 10, md: 7, lg: 4, xl: 4 }}>
-          <Paper sx={{ p: 2, mb: 2 }}>
+          <Paper
+            sx={{
+              p: 2,
+              mb: 2,
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "space-between",
+            }}
+          >
             <Typography variant="subtitle1">Documentos transferidos</Typography>
+            <Button
+              variant="contained"
+              size="small"
+              onClick={handleExtrairByContexto}
+              disabled={isLoading}
+            >
+              <Typography variant="body2">Extrair todos</Typography>
+              <DocumentScanner fontSize="small" sx={{ ml: 2 }} />
+            </Button>
           </Paper>
 
           <Paper sx={{ p: 2 }}>
