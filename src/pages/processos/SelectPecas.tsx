@@ -50,7 +50,8 @@ export const SelectPecas = ({ onUpload, loading }: SelectPecasProps) => {
   };
 
   return (
-    <Box display="flex" flexDirection="column" gap={2}>
+    // <Box display="flex" flexDirection="column" gap={2}>
+    <Box position="relative" sx={{ maxHeight: 700, overflowY: "auto" }}>
       <UploadStyled
         handleFileChange={handleFileChange}
         loading={isLoading}

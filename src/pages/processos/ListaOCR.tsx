@@ -69,8 +69,8 @@ export const ListaOCR = ({
   }, [loading]);
 
   return (
-    <Box position="relative">
-      <Table size="small">
+    <Box position="relative" sx={{ maxHeight: 700, overflowY: "auto" }}>
+      <Table size="small" stickyHeader>
         <TableHead>
           <TableRow>
             <TableCell>Nome</TableCell>

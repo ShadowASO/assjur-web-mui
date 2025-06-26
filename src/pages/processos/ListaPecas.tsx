@@ -75,7 +75,7 @@ export const ListaPecas = ({
   }, [loading]);
 
   return (
-    <Box position="relative">
+    <Box position="relative" sx={{ maxHeight: 700, overflowY: "auto" }}>
       <Table size="small">
         <TableHead>
           <TableRow>

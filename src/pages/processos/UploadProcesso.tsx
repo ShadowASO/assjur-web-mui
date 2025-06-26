@@ -193,7 +193,7 @@ export const UploadProcesso = () => {
           <Paper sx={{ p: 2, mb: 2 }}>
             <Typography variant="subtitle1">Arquivos selecionados</Typography>
           </Paper>
-          <Paper sx={{ p: 2, mb: 2 }}>
+          <Paper sx={{ p: 2, mb: 2, maxHeight: 720, overflow: "hidden" }}>
             <SelectPecas onUpload={handleUpload} loading={isLoading} />
           </Paper>
         </Grid>
@@ -221,7 +221,7 @@ export const UploadProcesso = () => {
             </Button>
           </Paper>
 
-          <Paper sx={{ p: 2 }}>
+          <Paper sx={{ p: 2, mb: 2, maxHeight: 720, overflow: "hidden" }}>
             {/* <Typography variant="subtitle1">Peças Vinculadas</Typography> */}
             <ListaPecas
               processoId={idCtxt!}
@@ -242,8 +242,7 @@ export const UploadProcesso = () => {
             </Typography>
           </Paper>
 
-          <Paper sx={{ p: 2, mb: 2 }}>
-            {/* <Typography variant="subtitle1">Peças Extraídas por OCR</Typography> */}
+          <Paper sx={{ p: 2, mb: 2, maxHeight: 720, overflow: "hidden" }}>
             <ListaOCR
               processoId={idCtxt!}
               onView={handleAbrirDialog}
