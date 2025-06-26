@@ -216,6 +216,25 @@ export const extracWithOCRByContexto = async (
   }
   return false;
 };
+
+export const juntadaByContexto = async (
+  idContexto: number
+): Promise<boolean> => {
+  try {
+    const rspApi = await api.post(
+      `/contexto/documentos/ocr/juntada/${String(idContexto)}`
+    );
+    //console.log(rspApi);
+    if (rspApi.ok) {
+      return true;
+    }
+  } catch (error) {
+    console.error("Erro ao extrair documento com OCR: " + error);
+    throw new Error("Erro ao extrair documento com OCR: ");
+  }
+  return false;
+};
+
 export const refreshOcrByContexto = async (
   idContexto: number
 ): Promise<DocsOcrRow[] | null> => {
