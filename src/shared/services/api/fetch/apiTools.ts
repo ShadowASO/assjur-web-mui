@@ -466,9 +466,9 @@ export const updatePrompt = async (
   txtPrompt: string
 ): Promise<PromptsRow | null> => {
   const prompt = {
-    IdPrompt: idPrompt,
-    NmDesc: nmDesc,
-    TxtPrompt: txtPrompt,
+    id_prompt: idPrompt,
+    nm_desc: nmDesc,
+    txt_prompt: txtPrompt,
   };
   try {
     const rspApi = await api.put("/tabelas/prompts", prompt);

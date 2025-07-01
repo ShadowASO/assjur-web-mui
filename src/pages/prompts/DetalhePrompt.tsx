@@ -63,9 +63,11 @@ export const DetalhePrompt = () => {
       if (idReg !== "nova") {
         setIsLoading(true);
         const rsp = await selectPrompt(Number(idReg));
+        //console.log(rsp);
         setIsLoading(false);
         if (rsp) {
           RForm.reset(rsp);
+          //console.log(RForm);
         } else {
           RForm.reset({
             nm_desc: "",
@@ -122,6 +124,7 @@ export const DetalhePrompt = () => {
           navigate(`/prompts/detalhes/${rsp}`);
         }
       } else {
+        console.log(idReg);
         const rsp = await updatePrompt(
           Number(idReg),
           valida.nm_desc,
