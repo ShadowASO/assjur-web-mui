@@ -36,7 +36,7 @@ export const BarraListagem = ({
       <Grid container spacing={2} alignItems="center">
         {/* Campo de busca */}
         {showField && (
-          <Grid size={{ xs: 12, sm: 6, md: 5, lg: 4, xl: 4 }}>
+          <Grid size={{ xs: 12, sm: 7, md: 6, lg: 5, xl: 5 }}>
             <Box display="flex" height="100%">
               <TextField
                 type="text"
@@ -76,7 +76,7 @@ export const BarraListagem = ({
           <Grid size={{ xs: 0, sm: 0, md: 4, lg: 3, xl: 3 }}></Grid>
         )}
         {/* Esparçador */}
-        <Grid size={{ xs: 0, sm: 0, md: 1, lg: 2, xl: 3 }}></Grid>
+        <Grid size={{ xs: 0, sm: 0, md: 2, lg: 2, xl: 2 }}></Grid>
 
         {/* Botão */}
         {showButton && (

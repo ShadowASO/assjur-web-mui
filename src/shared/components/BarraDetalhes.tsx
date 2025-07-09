@@ -43,17 +43,17 @@ export const BarraDetalhes = ({
   return (
     <Box
       height={theme.spacing(5)}
-      marginX={1}
-      padding={1}
-      paddingX={2}
-      display={"flex"}
+      mx={1}
+      px={2}
+      py={1}
+      display="flex"
       gap={1}
-      alignItems={"center"}
+      alignItems="center"
       component={Paper}
     >
       {/* Botão */}
       {
-        <Box flex={1} display={"flex"} justifyContent={"start"}>
+        <Box flex={1} display={"flex"} justifyContent={"flex-start"} gap={0.5}>
           {showButtonSalvar && (
             <Button
               color="primary"
@@ -130,7 +130,8 @@ export const BarraDetalhes = ({
             </Button>
           )}
 
-          <Divider variant="middle" orientation="vertical" />
+          {/* <Divider variant="middle" orientation="vertical" /> */}
+          <Divider orientation="vertical" flexItem sx={{ mx: 1 }} />
 
           {showButtonVoltar && (
             <Button

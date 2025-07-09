@@ -55,8 +55,10 @@ export const AnalisesMain = () => {
       try {
         setLoading(true);
         const rsp = await refreshAutos(Number(idCtxt));
+
         setLoading(false);
         if (rsp && rsp.length > 0) {
+          // console.log(rsp);
           setAutos(rsp);
         } else {
           setAutos([]);
@@ -115,11 +117,12 @@ export const AnalisesMain = () => {
   };
 
   const handleSelectPeca = (reg: AutosRow) => {
-    if (reg.autos_json) {
-      if (typeof reg.autos_json === "string") {
-        setMinuta(reg.autos_json);
+    //onsole.log(reg);
+    if (reg.doc_json) {
+      if (typeof reg.doc_json === "string") {
+        setMinuta(reg.doc_json);
       } else {
-        setMinuta(JSON.stringify(reg.autos_json, null, 4));
+        setMinuta(JSON.stringify(reg.doc_json, null, 4));
       }
     } else {
       setMinuta(""); // Campo vazio ou nulo
@@ -150,12 +153,12 @@ export const AnalisesMain = () => {
                   </TableHead>
                   <TableBody>
                     {autos.map((reg) => (
-                      <TableRow key={reg.id_autos} hover>
+                      <TableRow key={reg.id} hover>
                         <TableCell
                           onClick={() => handleSelectPeca(reg)}
                           sx={{ cursor: "pointer" }}
                         >
-                          {getDocumentoName(reg.id_nat)}
+                          {getDocumentoName(reg.id_natu)}
                         </TableCell>
                       </TableRow>
                     ))}

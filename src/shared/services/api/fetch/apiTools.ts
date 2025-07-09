@@ -257,7 +257,7 @@ export const refreshOcrByContexto = async (
   }
 };
 
-export const deleteOcrdocByIdDoc = async (IdDoc: number): Promise<boolean> => {
+export const deleteOcrdocByIdDoc = async (IdDoc: string): Promise<boolean> => {
   try {
     const rspApi = await api.delete(
       `/contexto/documentos/ocr/${String(IdDoc)}`
@@ -297,7 +297,7 @@ export const selectAutosTemp = async (
 export const autuarDocumentos = async (
   fileAutuar: {
     IdContexto: number;
-    IdDoc: number;
+    IdDoc: string;
   }[]
 ): Promise<boolean> => {
   try {
@@ -320,6 +320,7 @@ export const refreshAutos = async (idContexto: number) => {
   }
   try {
     const rspApi = await api.get(`/contexto/autos/all/${String(idContexto)}`);
+    //console.log(rspApi);
 
     return parseApiResponseDataRows<AutosRow>(rspApi);
   } catch (error) {

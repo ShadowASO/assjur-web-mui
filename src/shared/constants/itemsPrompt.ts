@@ -54,11 +54,13 @@ export const itemsAssunto: Item[] = [
 // Função utilitária genérica
 function getItemDescription(items: Item[], key: number): string {
   const item = items.find((i) => i.key === key);
+  //console.log(key);
   return item ? item.description : "Item não encontrado";
 }
 
 // Funções específicas
 export function getDocumentoName(key: number): string {
+  //console.log(key);
   return getItemDescription(itemsDocumento, key);
 }
 

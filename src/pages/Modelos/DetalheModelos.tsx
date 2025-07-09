@@ -60,7 +60,7 @@ export const DetalheModelos = () => {
     (async () => {
       if (idReg !== "nova") {
         setIsLoading(true);
-        //console.log(idReg);
+        console.log(idReg);
         const rsp = await selectModelo(idReg);
         //console.log(rsp);
         setIsLoading(false);
@@ -80,6 +80,7 @@ export const DetalheModelos = () => {
           }
         }
       } else {
+        console.log(idReg);
         RForm.reset({
           natureza: "Selecione a natureza",
           ementa: "",
@@ -121,7 +122,7 @@ export const DetalheModelos = () => {
         if (rsp instanceof Error) {
           showFlashMessage(rsp.message, "error");
         } else {
-          //console.log(rsp);
+          console.log(rsp);
           showFlashMessage("Registro salvo com sucesso", "success");
           navigate(`/modelos/detalhes/${rsp?.id}`);
         }

@@ -1,22 +1,40 @@
+// type AutosRow = {
+//   id_autos: number;
+//   id_ctxt: number;
+//   id_nat: number;
+//   id_pje: string;
+//   dt_pje: Date;
+//   autos_json: string;
+//   dt_inc: Date;
+//   status: string;
+// };
+
 type AutosRow = {
-  id_autos: number;
+  id: string;
   id_ctxt: number;
-  id_nat: number;
+  id_natu: number;
   id_pje: string;
-  dt_pje: Date;
-  autos_json: string;
-  dt_inc: Date;
-  status: string;
+  doc: string;
+  doc_json: string;
+  doc_embedding: number[];
 };
 
+// type DocsOcrRow = {
+//   id_doc: number;
+//   id_ctxt: number;
+//   nm_file_new: string;
+//   nm_file_ori: string;
+//   txt_doc: string;
+//   dt_inc: Date;
+//   status: string;
+// };
+
 type DocsOcrRow = {
-  id_doc: number;
+  id: string;
   id_ctxt: number;
-  nm_file_new: string;
-  nm_file_ori: string;
-  txt_doc: string;
-  dt_inc: Date;
-  status: string;
+  id_natu: number;
+  id_pje: string;
+  doc: string;
 };
 
 type UploadFilesRow = {

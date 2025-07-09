@@ -25,8 +25,8 @@ interface ListaPecasProps {
   processoId: string;
   refreshKey: number;
   onView: (texto: string) => void;
-  onJuntada: (fileId: number) => void;
-  onDelete: (fileId: number) => void;
+  onJuntada: (fileId: string) => void;
+  onDelete: (fileId: string) => void;
   loading?: boolean;
 }
 
@@ -48,6 +48,7 @@ export const ListaOCR = ({
       setRows([]);
 
       const rsp = await refreshOcrByContexto(Number(processoId));
+      //console.log(rsp);
 
       setIsLoading(false);
       if (rsp && rsp.length > 0) {
@@ -80,11 +81,11 @@ export const ListaOCR = ({
         <TableBody>
           {rows.length > 0 &&
             rows.map((row) => (
-              <TableRow key={row.id_doc}>
-                <TableCell>{row.nm_file_new || "N/A"}</TableCell>
+              <TableRow key={row.id}>
+                <TableCell>{row.id_pje || "N/A"}</TableCell>
                 <TableCell>
                   <IconButton
-                    onClick={() => onJuntada(row.id_doc)}
+                    onClick={() => onJuntada(row.id)}
                     title="Juntar aos Autos"
                     disabled={isLoading}
                   >
@@ -92,7 +93,7 @@ export const ListaOCR = ({
                   </IconButton>
                   <IconButton
                     onClick={() =>
-                      onViewText(row.txt_doc || "Texto não disponível")
+                      onViewText(row.doc || "Texto não disponível")
                     }
                     title="Visualizar texto extraído"
                     disabled={isLoading}
@@ -100,7 +101,7 @@ export const ListaOCR = ({
                     <Visibility />
                   </IconButton>
                   <IconButton
-                    onClick={() => onDelete(row.id_doc)}
+                    onClick={() => onDelete(row.id)}
                     title="Deletar o registro"
                     disabled={isLoading}
                   >

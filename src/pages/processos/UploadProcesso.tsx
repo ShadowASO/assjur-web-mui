@@ -122,7 +122,7 @@ export const UploadProcesso = () => {
     }
   };
   //Deleta o registro extraído com OCR
-  const handleDeleteOCR = async (fileId: number) => {
+  const handleDeleteOCR = async (fileId: string) => {
     try {
       setLoading(true);
       const ok = await deleteOcrdocByIdDoc(fileId);
@@ -163,7 +163,7 @@ export const UploadProcesso = () => {
     setTextoOCR(texto);
     setDialogOpen(true);
   };
-  const handleJuntarOCR = async (idFile: number) => {
+  const handleJuntarOCR = async (idFile: string) => {
     try {
       setLoading(true);
       const rsp = await autuarDocumentos([
