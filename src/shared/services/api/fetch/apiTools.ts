@@ -191,7 +191,7 @@ export const extracDocumentWithOCR = async (
 
   objBody.push(obj);
   try {
-    await api.post("/contexto/documentos/ocr", objBody);
+    await api.post("/contexto/documentos", objBody);
     return true;
   } catch (error) {
     console.error("Erro ao extrair documento com OCR: " + error);
@@ -203,9 +203,7 @@ export const extracWithOCRByContexto = async (
   idContexto: number
 ): Promise<boolean> => {
   try {
-    const rspApi = await api.post(
-      `/contexto/documentos/ocr/${String(idContexto)}`
-    );
+    const rspApi = await api.post(`/contexto/documentos/${String(idContexto)}`);
     //console.log(rspApi);
     if (rspApi.ok) {
       return true;
@@ -216,13 +214,17 @@ export const extracWithOCRByContexto = async (
   }
   return false;
 };
-
+/**
+ * Juntada de todos os docuemntos da tabela Autos_temp na tabela Autos
+ * @param idContexto
+ * @returns
+ */
 export const juntadaByContexto = async (
   idContexto: number
 ): Promise<boolean> => {
   try {
     const rspApi = await api.post(
-      `/contexto/documentos/ocr/juntada/${String(idContexto)}`
+      `/contexto/documentos/juntada/${String(idContexto)}`
     );
     //console.log(rspApi);
     if (rspApi.ok) {
@@ -243,7 +245,7 @@ export const refreshOcrByContexto = async (
   }
   try {
     const rspApi = await api.get(
-      `/contexto/documentos/ocr/all/${String(idContexto)}`
+      `/contexto/documentos/all/${String(idContexto)}`
     );
 
     const rows = parseApiResponseDataRows<DocsOcrRow>(rspApi);
@@ -259,9 +261,7 @@ export const refreshOcrByContexto = async (
 
 export const deleteOcrdocByIdDoc = async (IdDoc: string): Promise<boolean> => {
   try {
-    const rspApi = await api.delete(
-      `/contexto/documentos/ocr/${String(IdDoc)}`
-    );
+    const rspApi = await api.delete(`/contexto/documentos/${String(IdDoc)}`);
 
     if (rspApi.ok) {
       return true;
@@ -293,7 +293,11 @@ export const selectAutosTemp = async (
     throw new Error("Erro ao acessar a API.");
   }
 };
-
+/**
+ * Juntada dos documentos de forma individualizada
+ * @param fileAutuar
+ * @returns
+ */
 export const autuarDocumentos = async (
   fileAutuar: {
     IdContexto: number;
@@ -302,7 +306,7 @@ export const autuarDocumentos = async (
 ): Promise<boolean> => {
   try {
     if (fileAutuar.length > 0) {
-      await api.post("/contexto/autos/analise", fileAutuar);
+      await api.post("/contexto/documentos/analise", fileAutuar);
       return true;
     } else {
       return false;
