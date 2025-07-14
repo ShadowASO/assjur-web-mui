@@ -32,7 +32,7 @@ import {
   deleteOcrdocByIdDoc,
   deleteUploadFileById,
   extracDocumentWithOCR,
-  juntadaByContexto,
+  SanearByContexto,
   uploadFileToServer,
 } from "../../shared/services/api/fetch/apiTools";
 import { ListaOCR } from "./ListaOCR";
@@ -81,7 +81,7 @@ export const UploadProcesso = () => {
   const handleJuntadaByContexto = async () => {
     try {
       setLoading(true);
-      const ok = await juntadaByContexto(Number(idCtxt));
+      const ok = await SanearByContexto(Number(idCtxt));
       setLoading(false);
 
       if (ok) {
@@ -163,7 +163,7 @@ export const UploadProcesso = () => {
     setTextoOCR(texto);
     setDialogOpen(true);
   };
-  const handleJuntarOCR = async (idFile: string) => {
+  const handleAutuar = async (idFile: string) => {
     try {
       setLoading(true);
       const rsp = await autuarDocumentos([
@@ -274,7 +274,7 @@ export const UploadProcesso = () => {
             <ListaOCR
               processoId={idCtxt!}
               onView={handleAbrirDialog}
-              onJuntada={handleJuntarOCR}
+              onJuntada={handleAutuar}
               onDelete={handleDeleteOCR}
               refreshKey={refreshKeyOCR}
               loading={isLoading}

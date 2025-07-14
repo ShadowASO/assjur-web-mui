@@ -117,7 +117,7 @@ export const AnalisesMain = () => {
   };
 
   const handleSelectPeca = (reg: AutosRow) => {
-    //onsole.log(reg);
+    //console.log(reg);
     if (reg.doc_json) {
       if (typeof reg.doc_json === "string") {
         setMinuta(reg.doc_json);

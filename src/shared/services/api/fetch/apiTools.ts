@@ -219,12 +219,12 @@ export const extracWithOCRByContexto = async (
  * @param idContexto
  * @returns
  */
-export const juntadaByContexto = async (
+export const SanearByContexto = async (
   idContexto: number
 ): Promise<boolean> => {
   try {
     const rspApi = await api.post(
-      `/contexto/documentos/juntada/${String(idContexto)}`
+      `/contexto/documentos/saneador/${String(idContexto)}`
     );
     //console.log(rspApi);
     if (rspApi.ok) {
@@ -306,7 +306,7 @@ export const autuarDocumentos = async (
 ): Promise<boolean> => {
   try {
     if (fileAutuar.length > 0) {
-      await api.post("/contexto/documentos/analise", fileAutuar);
+      await api.post("/contexto/documentos/autua", fileAutuar);
       return true;
     } else {
       return false;
