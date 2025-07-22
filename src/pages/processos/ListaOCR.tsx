@@ -24,7 +24,7 @@ import type { DocsOcrRow } from "../../shared/types/tabelas";
 interface ListaPecasProps {
   processoId: string;
   refreshKey: number;
-  onView: (texto: string) => void;
+  onView: (id_doc: string, id_pje: string, texto: string) => void;
   onJuntada: (fileId: string) => void;
   onDelete: (fileId: string) => void;
   loading?: boolean;
@@ -32,7 +32,8 @@ interface ListaPecasProps {
 
 export const ListaOCR = ({
   processoId,
-  onView: onViewText,
+  //onView: onViewText,
+  onView,
   onJuntada,
   onDelete,
   refreshKey,
@@ -59,6 +60,22 @@ export const ListaOCR = ({
     };
     refresh();
   }, [processoId, refreshKey]);
+
+  const handleViewText = (id: string) => {
+    // rows é um vetor de objetos com a propriedade id
+    const registro = rows.find((row) => row.id === id);
+
+    if (registro) {
+      // Faz algo com o registro encontrado, por exemplo:
+      //console.log("Registro encontrado:", registro);
+      // Ou chama alguma função passando registro.doc, por exemplo:
+      // onViewText(registro.doc || "Texto não disponível");
+      onView(registro.id, registro.id_pje, registro.doc);
+    } else {
+      //console.log("Registro não encontrado para o id:", id);
+      onView("", id, "Texto não disponível");
+    }
+  };
 
   useEffect(() => {
     const refresh = async () => {
@@ -93,7 +110,8 @@ export const ListaOCR = ({
                   </IconButton>
                   <IconButton
                     onClick={() =>
-                      onViewText(row.doc || "Texto não disponível")
+                      // onViewText(row.doc || "Texto não disponível")
+                      handleViewText(row.id)
                     }
                     title="Visualizar texto extraído"
                     disabled={isLoading}

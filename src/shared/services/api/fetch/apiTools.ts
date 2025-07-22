@@ -356,6 +356,34 @@ export const selectAutos = async (idDoc: number): Promise<AutosRow | null> => {
   }
 };
 
+export const insertDocumentoAutos = async (
+  IdCtxt: number,
+  IdNatu: number,
+  IdPje: string,
+  Doc: string,
+  DocJson: string
+): Promise<AutosRow | null> => {
+  try {
+    const doc = {
+      id_ctxt: IdCtxt,
+      id_natu: IdNatu,
+      id_pje: IdPje,
+      doc: Doc,
+      doc_json: DocJson,
+    };
+    const rspApi = await api.post(`/contexto/autos`, doc);
+
+    const row = parseApiResponseDataRow<AutosRow>(rspApi);
+    if (row) {
+      return row;
+    }
+    return null;
+  } catch (error) {
+    console.error("Erro ao acessar a API:", error);
+    throw new Error("Erro ao acessar a API.");
+  }
+};
+
 /**
  * Deleta uma peça dos autos pelo idDoc
  * @param idDoc

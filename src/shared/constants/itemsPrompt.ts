@@ -22,21 +22,22 @@ export const itemsDocumento: Item[] = [
   { key: 1, description: "Petição inicial" },
   { key: 2, description: "Contestação" },
   { key: 3, description: "Réplica" },
-  { key: 4, description: "Despacho inicial" },
+  { key: 4, description: "Despacho" },
   { key: 5, description: "Despacho ordinatório" },
   { key: 6, description: "Petição diversa" },
   { key: 7, description: "Decisão interlocutória" },
   { key: 8, description: "Sentença" },
   { key: 9, description: "Embargos de declaração" },
-  { key: 10, description: "Contra-razões" },
-  { key: 11, description: "Recurso de Apelação" },
+  { key: 10, description: "Recurso de Apelação" },
+  { key: 11, description: "Contra-razões" },
   { key: 12, description: "Procuração" },
   { key: 13, description: "Rol de Testemunhas" },
   { key: 14, description: "Contrato" },
   { key: 15, description: "Laudo Pericial" },
-  { key: 16, description: "Ata de Audiência" },
+  { key: 16, description: "Termo de Audiência" },
   { key: 17, description: "Manifestação do Ministério Público" },
   { key: 1000, description: "Autos Processuais" },
+  { key: 2000, description: "Análise por IA" },
 ];
 
 export const itemsClasse: Item[] = [
@@ -61,6 +62,7 @@ function getItemDescription(items: Item[], key: number): string {
 // Funções específicas
 export function getDocumentoName(key: number): string {
   //console.log(key);
+  //console.log(getItemDescription(itemsDocumento, key));
   return getItemDescription(itemsDocumento, key);
 }
 

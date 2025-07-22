@@ -4,7 +4,7 @@
  * Janela para interação do usuário com a IA e o processo
  *
  */
-import { Clear, ContentCopy, Send } from "@mui/icons-material";
+import { Clear, ContentCopy, Save, Send } from "@mui/icons-material";
 import {
   Box,
   Grid,
@@ -26,7 +26,10 @@ import { useFlash } from "../../shared/contexts/FlashProvider";
 import { useEffect, useState } from "react";
 import ReactMarkdown from "react-markdown";
 import { useParams } from "react-router-dom";
-import { refreshAutos } from "../../shared/services/api/fetch/apiTools";
+import {
+  insertDocumentoAutos,
+  refreshAutos,
+} from "../../shared/services/api/fetch/apiTools";
 import type { AutosRow } from "../../shared/types/tabelas";
 import { getDocumentoName } from "../../shared/constants/itemsPrompt";
 
@@ -34,6 +37,7 @@ import { Prism as SyntaxHighlighter } from "react-syntax-highlighter";
 import { duotoneLight } from "react-syntax-highlighter/dist/esm/styles/prism";
 import { useApi } from "../../shared/contexts/ApiProvider";
 import { type IResponseOpenaiApi } from "../../shared/services/query/QueryResponse";
+import { NATU_DOC_ANALISE_IA } from "../../shared/constants/autosDoc";
 
 export const AnalisesMain = () => {
   const { id: idCtxt } = useParams();
@@ -58,7 +62,7 @@ export const AnalisesMain = () => {
 
         setLoading(false);
         if (rsp && rsp.length > 0) {
-          // console.log(rsp);
+          //console.log(rsp);
           setAutos(rsp);
         } else {
           setAutos([]);
@@ -75,6 +79,51 @@ export const AnalisesMain = () => {
   const copiarParaClipboard = (texto: string) => {
     navigator.clipboard.writeText(texto);
     showFlashMessage("Texto copiado para a área de transferência!", "success");
+  };
+
+  const handleSaveAnaliseByIA = async (texto: string) => {
+    console.log(texto);
+
+    if (texto.length === 0) {
+      showFlashMessage(
+        "Não há qualquer análise disponível para salvamento!",
+        "warning"
+      );
+      return; // evita continuar execução
+    }
+
+    // Converter idCtxt para número, assumir que idCtxt vem de algum lugar externo (exemplo: props, state, etc.)
+    // Se idCtxt for string, converta assim:
+    const idCtxtNum = Number(idCtxt);
+
+    if (isNaN(idCtxtNum) || idCtxtNum <= 0) {
+      showFlashMessage("Contexto inválido para salvar a análise!", "error");
+      return;
+    }
+
+    try {
+      setLoading(true);
+
+      // Chamada API para salvar documento, idCtxt numérico
+      const response = await insertDocumentoAutos(
+        idCtxtNum,
+        NATU_DOC_ANALISE_IA,
+        "",
+        texto,
+        ""
+      );
+
+      if (response) {
+        showFlashMessage("Análise salva com sucesso!", "success");
+      } else {
+        showFlashMessage("Erro ao salvar a análise!", "error");
+      }
+    } catch (error) {
+      console.error("Erro ao acessar a API:", error);
+      showFlashMessage("Erro inesperado ao salvar a análise.", "error");
+    } finally {
+      setLoading(false);
+    }
   };
 
   const handleSendPrompt = async () => {
@@ -118,6 +167,10 @@ export const AnalisesMain = () => {
 
   const handleSelectPeca = (reg: AutosRow) => {
     //console.log(reg);
+    if (reg.id_natu === NATU_DOC_ANALISE_IA) {
+      setDialogo(reg.doc);
+      return;
+    }
     if (reg.doc_json) {
       if (typeof reg.doc_json === "string") {
         setMinuta(reg.doc_json);
@@ -200,10 +253,19 @@ export const AnalisesMain = () => {
               <Tooltip title="Copiar">
                 <IconButton
                   size="small"
-                  onClick={() => copiarParaClipboard(minuta)}
+                  onClick={() => copiarParaClipboard(dialogo)}
                 >
                   <ContentCopy fontSize="small" />
                   <Typography variant="body2">Copiar</Typography>
+                </IconButton>
+              </Tooltip>
+              <Tooltip title="Salvar análise">
+                <IconButton
+                  size="small"
+                  onClick={() => handleSaveAnaliseByIA(dialogo)}
+                >
+                  <Save fontSize="small" />
+                  <Typography variant="body2">Salvar</Typography>
                 </IconButton>
               </Tooltip>
             </Box>

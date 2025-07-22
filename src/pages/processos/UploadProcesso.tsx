@@ -36,13 +36,21 @@ import {
   uploadFileToServer,
 } from "../../shared/services/api/fetch/apiTools";
 import { ListaOCR } from "./ListaOCR";
-import { Close, ContentCopy, DocumentScanner } from "@mui/icons-material";
+import {
+  Close,
+  ContentCopy,
+  Delete,
+  DocumentScanner,
+  PostAdd,
+} from "@mui/icons-material";
 import { useFlash } from "../../shared/contexts/FlashProvider";
 
 export const UploadProcesso = () => {
   const { id: idCtxt } = useParams();
   const [dialogOpen, setDialogOpen] = useState(false);
   const [textoOCR, setTextoOCR] = useState("");
+  const [idPJE, setIdPJE] = useState("");
+  const [idDoc, setIdDoc] = useState("");
   const [snackbarOpen, setSnackbarOpen] = useState(false);
   const [snackbarError, setSnackbarError] = useState(false);
   //Refresh das interfaces filhas
@@ -159,8 +167,10 @@ export const UploadProcesso = () => {
     }
   };
 
-  const handleAbrirDialog = (texto: string) => {
+  const handleAbrirDialog = (idDoc: string, pje: string, texto: string) => {
+    setIdDoc(idDoc);
     setTextoOCR(texto);
+    setIdPJE(pje);
     setDialogOpen(true);
   };
   const handleAutuar = async (idFile: string) => {
@@ -290,7 +300,25 @@ export const UploadProcesso = () => {
         fullWidth
       >
         <DialogTitle>
-          Texto Extraído
+          ID: {idPJE}
+          <IconButton
+            onClick={() => handleDeleteOCR(idDoc)}
+            title="Deletar o registro"
+            sx={{ position: "absolute", right: 250, top: 8 }}
+            disabled={isLoading}
+          >
+            <Delete />
+            <Typography variant="body2">Excluir</Typography>
+          </IconButton>
+          <IconButton
+            onClick={() => handleAutuar(idDoc)}
+            title="Juntar aos Autos"
+            sx={{ position: "absolute", right: 150, top: 8 }}
+            disabled={isLoading}
+          >
+            <PostAdd />
+            <Typography variant="body2">Autuar</Typography>
+          </IconButton>
           {/* Botão de cópia no topo, à direita */}
           <IconButton
             onClick={handleCopyText}
