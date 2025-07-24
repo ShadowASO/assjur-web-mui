@@ -20,6 +20,7 @@ import { Delete, PostAdd, Visibility } from "@mui/icons-material";
 import { refreshOcrByContexto } from "../../shared/services/api/fetch/apiTools";
 
 import type { DocsOcrRow } from "../../shared/types/tabelas";
+import { getDocumentoName } from "../../shared/constants/autosDoc";
 
 interface ListaPecasProps {
   processoId: string;
@@ -91,7 +92,8 @@ export const ListaOCR = ({
       <Table size="small" stickyHeader>
         <TableHead>
           <TableRow>
-            <TableCell>Nome</TableCell>
+            <TableCell>ID</TableCell>
+            <TableCell>Natureza</TableCell>
             <TableCell>Ações</TableCell>
           </TableRow>
         </TableHead>
@@ -100,6 +102,7 @@ export const ListaOCR = ({
             rows.map((row) => (
               <TableRow key={row.id}>
                 <TableCell>{row.id_pje || "N/A"}</TableCell>
+                <TableCell>{getDocumentoName(row.id_natu) || "N/A"}</TableCell>
                 <TableCell>
                   <IconButton
                     onClick={() => onJuntada(row.id)}

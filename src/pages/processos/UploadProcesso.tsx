@@ -25,13 +25,15 @@ import {
 } from "@mui/material";
 import { SelectPecas } from "./SelectPecas";
 import { ListaPecas } from "./ListaPecas";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 
 import {
   autuarDocumentos,
   deleteOcrdocByIdDoc,
   deleteUploadFileById,
   extracDocumentWithOCR,
+  formatNumeroProcesso,
+  getContextoById,
   SanearByContexto,
   uploadFileToServer,
 } from "../../shared/services/api/fetch/apiTools";
@@ -47,6 +49,7 @@ import { useFlash } from "../../shared/contexts/FlashProvider";
 
 export const UploadProcesso = () => {
   const { id: idCtxt } = useParams();
+  const [processo, setProcesso] = useState("");
   const [dialogOpen, setDialogOpen] = useState(false);
   const [textoOCR, setTextoOCR] = useState("");
   const [idPJE, setIdPJE] = useState("");
@@ -59,32 +62,36 @@ export const UploadProcesso = () => {
   const { showFlashMessage } = useFlash();
   const [isLoading, setLoading] = useState(false);
 
+  useEffect(() => {
+    (async () => {
+      try {
+        setLoading(true);
+        if (!idCtxt) {
+          setProcesso("");
+          return;
+        }
+        const rsp = await getContextoById(idCtxt);
+
+        setLoading(false);
+        if (rsp) {
+          //console.log(rsp);
+          setProcesso(rsp.nr_proc);
+        } else {
+          setProcesso("");
+        }
+      } catch (error) {
+        console.log(error);
+        showFlashMessage("Erro ao listar o número do processo!", "error");
+      } finally {
+        setLoading(false);
+      }
+    })();
+  }, [idCtxt]);
+
   const handleUpload = async (file: File) => {
     await uploadFileToServer(Number(idCtxt), file);
     setRefreshKeyPecas((prev) => prev + 1); // Força refresh da lista de peças
   };
-
-  // const handleExtrairByContexto = async () => {
-  //   try {
-  //     setLoading(true);
-  //     const ok = await extracWithOCRByContexto(Number(idCtxt));
-  //     setLoading(false);
-
-  //     if (ok) {
-  //       setRefreshKeyOCR((prev) => prev + 1); // Força refresh da lista OCR
-  //       setRefreshKeyPecas((prev) => prev + 1); // Força refresh da lista de peças
-  //       showFlashMessage("OCR realizado com sucesso!", "success");
-  //     } else {
-  //       console.log("houve um erro na transferência do arquivo!");
-  //       showFlashMessage("Erro ao realizar OCR!", "error");
-  //     }
-  //   } catch (error) {
-  //     console.log(error);
-  //     showFlashMessage("Erro ao realizar OCR!", "error");
-  //   } finally {
-  //     setLoading(false);
-  //   }
-  // };
 
   const handleJuntadaByContexto = async () => {
     try {
@@ -216,7 +223,8 @@ export const UploadProcesso = () => {
   return (
     <Box p={2}>
       <Typography variant="h5" gutterBottom>
-        Formação do Contexto Processual - Upload de Peças - Contexto nº {idCtxt}
+        Processo {formatNumeroProcesso(processo)}: Formação do Contexto
+        Processual
       </Typography>
 
       <Grid container spacing={2}>

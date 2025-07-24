@@ -4,7 +4,7 @@
  * Janela para interação do usuário com a IA e o processo
  *
  */
-import { Clear, ContentCopy, Save, Send } from "@mui/icons-material";
+import { Clear, ContentCopy, Delete, Save, Send } from "@mui/icons-material";
 import {
   Box,
   Grid,
@@ -27,20 +27,27 @@ import { useEffect, useState } from "react";
 import ReactMarkdown from "react-markdown";
 import { useParams } from "react-router-dom";
 import {
+  deleteAutos,
+  formatNumeroProcesso,
+  getContextoById,
   insertDocumentoAutos,
   refreshAutos,
 } from "../../shared/services/api/fetch/apiTools";
 import type { AutosRow } from "../../shared/types/tabelas";
-import { getDocumentoName } from "../../shared/constants/itemsPrompt";
+//import { getDocumentoName } from "../../shared/constants/itemsPrompt";
 
 import { Prism as SyntaxHighlighter } from "react-syntax-highlighter";
 import { duotoneLight } from "react-syntax-highlighter/dist/esm/styles/prism";
 import { useApi } from "../../shared/contexts/ApiProvider";
 import { type IResponseOpenaiApi } from "../../shared/services/query/QueryResponse";
-import { NATU_DOC_ANALISE_IA } from "../../shared/constants/autosDoc";
+import {
+  NATU_DOC_ANALISE_IA,
+  getDocumentoName,
+} from "../../shared/constants/autosDoc";
 
 export const AnalisesMain = () => {
   const { id: idCtxt } = useParams();
+  const [processo, setProcesso] = useState("");
   const { showFlashMessage } = useFlash();
   const [isLoading, setLoading] = useState(false);
 
@@ -49,6 +56,7 @@ export const AnalisesMain = () => {
   const [dialogo, setDialogo] = useState("");
   const [prompt, setPrompt] = useState("");
   const [prevId, setPrevId] = useState("");
+  const [refreshPecas, setRefreshPecas] = useState(0);
 
   const theme = useTheme();
   const Api = useApi();
@@ -70,6 +78,32 @@ export const AnalisesMain = () => {
       } catch (error) {
         console.log(error);
         showFlashMessage("Erro ao listar os autos!", "error");
+      } finally {
+        setLoading(false);
+      }
+    })();
+  }, [idCtxt, refreshPecas]);
+
+  useEffect(() => {
+    (async () => {
+      try {
+        setLoading(true);
+        if (!idCtxt) {
+          setProcesso("");
+          return;
+        }
+        const rsp = await getContextoById(idCtxt);
+
+        setLoading(false);
+        if (rsp) {
+          //console.log(rsp);
+          setProcesso(rsp.nr_proc);
+        } else {
+          setProcesso("");
+        }
+      } catch (error) {
+        console.log(error);
+        showFlashMessage("Erro ao listar o número do processo!", "error");
       } finally {
         setLoading(false);
       }
@@ -182,6 +216,24 @@ export const AnalisesMain = () => {
     }
   };
 
+  //Deleta uma peça dos autos
+  const handleDeleteAutos = async (idDoc: string) => {
+    try {
+      setLoading(true);
+      const ok = await deleteAutos(idDoc);
+      setLoading(false);
+      if (ok) {
+        setRefreshPecas((prev) => prev + 1); // Força refresh da lista OCR
+        showFlashMessage("Texto OCR excluído com sucesso!", "success");
+      }
+    } catch (err) {
+      console.error("Erro ao deletar:", err);
+      showFlashMessage("Erro ao reqalizar a exclusão do OCR!", "error");
+    } finally {
+      setLoading(false);
+    }
+  };
+
   return (
     <Box
       p={0}
@@ -190,18 +242,29 @@ export const AnalisesMain = () => {
       flexDirection="column"
       bgcolor={theme.palette.background.paper}
     >
+      <Typography
+        variant="h5"
+        gutterBottom
+        ml={2}
+        mt={2}
+        sx={{ boxSizing: "border-box" }}
+      >
+        Processo {formatNumeroProcesso(processo)}: Análise do Processual
+      </Typography>
+
       <Grid container spacing={1} padding={1} margin={1}>
         {/************  COL-01 ***** Coluna 1: AUTOS */}
         <Grid size={{ xs: 12, sm: 6, md: 2, lg: 2, xl: 2 }}>
-          <Paper elevation={3} sx={{ height: "calc(100vh - 100px)", p: 2 }}>
+          <Paper elevation={3} sx={{ height: "calc(100vh - 120px)", p: 2 }}>
             {autos.length > 0 && (
-              <TableContainer sx={{ maxHeight: "calc(100vh - 180px)" }}>
+              <TableContainer sx={{ maxHeight: "calc(100vh - 200px)" }}>
                 <Table stickyHeader size="small">
                   <TableHead>
                     <TableRow>
                       <TableCell>
-                        <Typography variant="h6">Tipo de Documento</Typography>
+                        <Typography variant="h6">Peça</Typography>
                       </TableCell>
+                      <TableCell>Ações</TableCell>
                     </TableRow>
                   </TableHead>
                   <TableBody>
@@ -212,6 +275,16 @@ export const AnalisesMain = () => {
                           sx={{ cursor: "pointer" }}
                         >
                           {getDocumentoName(reg.id_natu)}
+                        </TableCell>
+
+                        <TableCell>
+                          <IconButton
+                            onClick={() => handleDeleteAutos(reg.id)}
+                            title="Deletar o registro"
+                            disabled={isLoading}
+                          >
+                            <Delete />
+                          </IconButton>
                         </TableCell>
                       </TableRow>
                     ))}
@@ -227,7 +300,7 @@ export const AnalisesMain = () => {
           <Paper
             elevation={3}
             sx={{
-              height: "calc(100vh - 100px)",
+              height: "calc(100vh - 120px)",
               p: 2,
               display: "flex",
               flexDirection: "column",
@@ -348,7 +421,7 @@ export const AnalisesMain = () => {
           <Paper
             elevation={3}
             sx={{
-              height: "calc(100vh - 100px)",
+              height: "calc(100vh - 120px)",
               p: 2,
               display: "flex",
               flexDirection: "column",

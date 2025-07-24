@@ -390,13 +390,13 @@ export const insertDocumentoAutos = async (
  * @returns
  */
 export const deleteAutos = async (
-  idAutos: number
+  id: string
 ): Promise<StandardBodyResponse | null> => {
-  if (idAutos === 0) {
+  if (id.length === 0) {
     return null;
   }
   try {
-    const rspApi = await api.delete(`/contexto/autos/${String(idAutos)}`);
+    const rspApi = await api.delete(`/contexto/autos/${id}`);
 
     if (rspApi.ok) {
       return rspApi;
@@ -446,6 +446,23 @@ export const getContexto = async (
 ): Promise<ContextoRow | null> => {
   try {
     const rspApi = await api.get(`/contexto/processo/${strProcesso}`);
+
+    const row = parseApiResponseDataRow<ContextoRow>(rspApi);
+    if (row) {
+      return row;
+    }
+    return null;
+  } catch (error) {
+    console.error("Erro ao acessar a API:", error);
+    throw new Error("Erro ao acessar a API.");
+  }
+};
+
+export const getContextoById = async (
+  idCtxt: string
+): Promise<ContextoRow | null> => {
+  try {
+    const rspApi = await api.get(`/contexto/${idCtxt}`);
 
     const row = parseApiResponseDataRow<ContextoRow>(rspApi);
     if (row) {

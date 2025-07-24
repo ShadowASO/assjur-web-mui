@@ -90,7 +90,7 @@ export const ListaPecas = ({
               <TableCell>
                 <IconButton
                   onClick={() => onExtract(row.id_file)}
-                  title="Executar OCR"
+                  title="Extrair documentos"
                   disabled={isLoading}
                 >
                   <DocumentScanner></DocumentScanner>
