@@ -36,7 +36,7 @@ import {
   // SanearByContexto,
   uploadFileToServer,
 } from "../../shared/services/api/fetch/apiTools";
-import { ListaOCR } from "./ListaOCR";
+import { ListaDocumentos } from "./ListaDocumentos";
 import {
   Close,
   ContentCopy,
@@ -333,7 +333,7 @@ export const UploadProcesso = () => {
           </Paper>
 
           <Paper sx={{ p: 2, mb: 2, maxHeight: 720, overflow: "hidden" }}>
-            <ListaOCR
+            <ListaDocumentos
               processoId={idCtxt!}
               onView={handleAbrirDialog}
               onJuntada={handleAutuar}

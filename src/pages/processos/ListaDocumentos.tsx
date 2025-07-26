@@ -27,7 +27,7 @@ interface ListaPecasProps {
   loading?: boolean;
 }
 
-export const ListaOCR = ({
+export const ListaDocumentos = ({
   processoId,
   onView,
   onJuntada,
