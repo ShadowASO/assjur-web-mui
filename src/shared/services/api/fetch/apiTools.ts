@@ -298,18 +298,24 @@ export const selectAutosTemp = async (
  * @param fileAutuar
  * @returns
  */
+export interface DataAutuaDocumento {
+  extractedFiles: string[];
+  extractedErros: string[];
+  message: string;
+}
 export const autuarDocumentos = async (
   fileAutuar: {
     IdContexto: number;
     IdDoc: string;
   }[]
-): Promise<boolean> => {
+): Promise<DataAutuaDocumento | null> => {
   try {
     if (fileAutuar.length > 0) {
-      await api.post("/contexto/documentos/autua", fileAutuar);
-      return true;
+      const rspApi = await api.post("/contexto/documentos/autua", fileAutuar);
+      const data = rspApi.data as DataAutuaDocumento;
+      return data;
     } else {
-      return false;
+      return null;
     }
   } catch (error) {
     console.error("Erro ao autuar o documento:", error);

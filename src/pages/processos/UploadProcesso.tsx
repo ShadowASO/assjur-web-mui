@@ -12,7 +12,6 @@ import { useParams } from "react-router-dom";
 import {
   Alert,
   Box,
-  Button,
   Dialog,
   DialogContent,
   DialogTitle,
@@ -34,7 +33,7 @@ import {
   extracDocumentWithOCR,
   formatNumeroProcesso,
   getContextoById,
-  SanearByContexto,
+  // SanearByContexto,
   uploadFileToServer,
 } from "../../shared/services/api/fetch/apiTools";
 import { ListaOCR } from "./ListaOCR";
@@ -42,7 +41,7 @@ import {
   Close,
   ContentCopy,
   Delete,
-  DocumentScanner,
+  // DocumentScanner,
   PostAdd,
 } from "@mui/icons-material";
 import { useFlash } from "../../shared/contexts/FlashProvider";
@@ -93,27 +92,27 @@ export const UploadProcesso = () => {
     setRefreshKeyPecas((prev) => prev + 1); // Força refresh da lista de peças
   };
 
-  const handleJuntadaByContexto = async () => {
-    try {
-      setLoading(true);
-      const ok = await SanearByContexto(Number(idCtxt));
-      setLoading(false);
+  // const handleJuntadaByContexto = async () => {
+  //   try {
+  //     setLoading(true);
+  //     const ok = await SanearByContexto(Number(idCtxt));
+  //     setLoading(false);
 
-      if (ok) {
-        setRefreshKeyOCR((prev) => prev + 1); // Força refresh da lista OCR
-        setRefreshKeyPecas((prev) => prev + 1); // Força refresh da lista de peças
-        showFlashMessage("OCR realizado com sucesso!", "success");
-      } else {
-        console.log("houve um erro na transferência do arquivo!");
-        showFlashMessage("Erro ao realizar OCR!", "error");
-      }
-    } catch (error) {
-      console.log(error);
-      showFlashMessage("Erro ao realizar OCR!", "error");
-    } finally {
-      setLoading(false);
-    }
-  };
+  //     if (ok) {
+  //       setRefreshKeyOCR((prev) => prev + 1); // Força refresh da lista OCR
+  //       setRefreshKeyPecas((prev) => prev + 1); // Força refresh da lista de peças
+  //       showFlashMessage("OCR realizado com sucesso!", "success");
+  //     } else {
+  //       console.log("houve um erro na transferência do arquivo!");
+  //       showFlashMessage("Erro ao realizar OCR!", "error");
+  //     }
+  //   } catch (error) {
+  //     console.log(error);
+  //     showFlashMessage("Erro ao realizar OCR!", "error");
+  //   } finally {
+  //     setLoading(false);
+  //   }
+  // };
 
   const handleExtrairTexto = async (fileId: number) => {
     try {
@@ -183,24 +182,78 @@ export const UploadProcesso = () => {
   const handleAutuar = async (idFile: string) => {
     try {
       setLoading(true);
-      const rsp = await autuarDocumentos([
-        { IdContexto: Number(idCtxt), IdDoc: idFile },
-      ]);
+
+      // Prepara o payload no formato esperado pela API
+      const payload = [
+        {
+          IdContexto: Number(idCtxt),
+          IdDoc: idFile,
+        },
+      ];
+
+      const rsp = await autuarDocumentos(payload);
       setLoading(false);
-      if (rsp) {
-        showFlashMessage("Documento juntado com sucesso!", "success");
-        setRefreshKeyOCR((prev) => prev + 1); // Força refresh da lista OCR
+
+      if (rsp && rsp.extractedErros && rsp.extractedErros.length === 0) {
+        showFlashMessage("Documentos juntados com sucesso!", "success");
+        setRefreshKeyOCR((prev) => prev + 1);
+      } else if (rsp && rsp.extractedErros && rsp.extractedErros.length > 0) {
+        showFlashMessage(
+          `Alguns documentos não foram juntados: ${rsp.extractedErros.join(
+            ", "
+          )}`,
+          "warning"
+        );
+        setRefreshKeyOCR((prev) => prev + 1);
+      } else if (rsp) {
+        showFlashMessage("Nenhum documento juntado!", "warning");
       } else {
-        showFlashMessage("Erro ao juntar documento!", "error");
+        showFlashMessage("Erro ao juntar documentos!", "error");
       }
     } catch (err) {
       setLoading(false);
-      console.error("Erro ao juntar o documento:", err);
-      showFlashMessage("Erro ao juntar o documento", "error");
+      console.error("Erro ao juntar documentos:", err);
+      showFlashMessage("Erro ao juntar documentos", "error");
     } finally {
       setLoading(false);
     }
   };
+
+  const handleAutuarMultipla = async (idFile: string[]) => {
+    try {
+      setLoading(true);
+      // Monta o array de objetos esperados pela API
+      const payload = idFile.map((id) => ({
+        IdContexto: Number(idCtxt),
+        IdDoc: id,
+      }));
+
+      const rsp = await autuarDocumentos(payload);
+      setLoading(false);
+
+      if (rsp && rsp.extractedErros && rsp.extractedErros.length === 0) {
+        showFlashMessage("Documentos juntados com sucesso!", "success");
+        setRefreshKeyOCR((prev) => prev + 1); // Força refresh da lista OCR
+      } else if (rsp && rsp.extractedErros && rsp.extractedErros.length > 0) {
+        showFlashMessage(
+          `Alguns documentos não foram juntados: ${rsp.extractedErros.join(
+            ", "
+          )}`,
+          "warning"
+        );
+        setRefreshKeyOCR((prev) => prev + 1);
+      } else {
+        showFlashMessage("Erro ao juntar documentos!", "error");
+      }
+    } catch (err) {
+      setLoading(false);
+      console.error("Erro ao juntar documentos:", err);
+      showFlashMessage("Erro ao juntar documentos", "error");
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const handleFecharDialog = () => {
     setDialogOpen(false);
     setTextoOCR("");
@@ -239,7 +292,7 @@ export const UploadProcesso = () => {
         </Grid>
 
         {/*COL-2 Arquivos transferidos por upload */}
-        <Grid size={{ xs: 11, sm: 10, md: 7, lg: 4, xl: 4 }}>
+        <Grid size={{ xs: 11, sm: 10, md: 7, lg: 3, xl: 3 }}>
           <Paper
             sx={{
               p: 2,
@@ -266,7 +319,7 @@ export const UploadProcesso = () => {
         </Grid>
 
         {/*COL-3 Arquivos transferidos por upload */}
-        <Grid size={{ xs: 11, sm: 10, md: 7, lg: 4, xl: 4 }}>
+        <Grid size={{ xs: 11, sm: 10, md: 7, lg: 5, xl: 5 }}>
           <Paper
             sx={{
               p: 2,
@@ -277,15 +330,6 @@ export const UploadProcesso = () => {
             }}
           >
             <Typography variant="subtitle1">Peças processuais</Typography>
-            <Button
-              variant="contained"
-              size="small"
-              onClick={handleJuntadaByContexto}
-              disabled={isLoading}
-            >
-              <Typography variant="body2">Juntada</Typography>
-              <DocumentScanner fontSize="small" sx={{ ml: 2 }} />
-            </Button>
           </Paper>
 
           <Paper sx={{ p: 2, mb: 2, maxHeight: 720, overflow: "hidden" }}>
@@ -293,6 +337,7 @@ export const UploadProcesso = () => {
               processoId={idCtxt!}
               onView={handleAbrirDialog}
               onJuntada={handleAutuar}
+              onJuntadaMultipla={handleAutuarMultipla}
               onDelete={handleDeleteOCR}
               refreshKey={refreshKeyOCR}
               loading={isLoading}

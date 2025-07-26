@@ -21,6 +21,8 @@ import {
   TableCell,
   TableBody,
   InputAdornment,
+  Checkbox,
+  Button,
 } from "@mui/material";
 import { useFlash } from "../../shared/contexts/FlashProvider";
 import { useEffect, useState } from "react";
@@ -57,10 +59,46 @@ export const AnalisesMain = () => {
   const [prompt, setPrompt] = useState("");
   const [prevId, setPrevId] = useState("");
   const [refreshPecas, setRefreshPecas] = useState(0);
+  const [selectedIds, setSelectedIds] = useState<string[]>([]);
 
   const theme = useTheme();
   const Api = useApi();
   //const { addMessage, addOutput, messagesRef } = useMessageReponse();
+
+  // Função para selecionar/deselecionar todos
+  const handleSelectAll = (checked: boolean) => {
+    if (checked) {
+      setSelectedIds(autos.map((reg) => reg.id));
+    } else {
+      setSelectedIds([]);
+    }
+  };
+
+  // Seleciona/deseleciona individual
+  const handleSelectRow = (id: string, checked: boolean) => {
+    setSelectedIds((prev) =>
+      checked ? [...prev, id] : prev.filter((sid) => sid !== id)
+    );
+  };
+
+  // Deleta múltiplos selecionados
+  const handleDeleteSelected = async () => {
+    if (selectedIds.length === 0) return;
+    setLoading(true);
+    let errors = 0;
+    for (const id of selectedIds) {
+      const ok = await deleteAutos(id);
+      if (!ok) errors++;
+    }
+    setSelectedIds([]);
+    setRefreshPecas((prev) => prev + 1);
+    setLoading(false);
+    if (errors === 0) {
+      showFlashMessage("Itens excluídos com sucesso!", "success");
+    } else {
+      showFlashMessage("Erro ao excluir alguns itens.", "error");
+    }
+  };
 
   useEffect(() => {
     (async () => {
@@ -205,32 +243,14 @@ export const AnalisesMain = () => {
       setDialogo(reg.doc);
       return;
     }
-    if (reg.doc_json) {
-      if (typeof reg.doc_json === "string") {
-        setMinuta(reg.doc_json);
+    if (reg.doc_json_raw) {
+      if (typeof reg.doc_json_raw === "string") {
+        setMinuta(reg.doc_json_raw);
       } else {
-        setMinuta(JSON.stringify(reg.doc_json, null, 4));
+        setMinuta(JSON.stringify(reg.doc_json_raw, null, 4));
       }
     } else {
       setMinuta(""); // Campo vazio ou nulo
-    }
-  };
-
-  //Deleta uma peça dos autos
-  const handleDeleteAutos = async (idDoc: string) => {
-    try {
-      setLoading(true);
-      const ok = await deleteAutos(idDoc);
-      setLoading(false);
-      if (ok) {
-        setRefreshPecas((prev) => prev + 1); // Força refresh da lista OCR
-        showFlashMessage("Texto OCR excluído com sucesso!", "success");
-      }
-    } catch (err) {
-      console.error("Erro ao deletar:", err);
-      showFlashMessage("Erro ao reqalizar a exclusão do OCR!", "error");
-    } finally {
-      setLoading(false);
     }
   };
 
@@ -249,7 +269,7 @@ export const AnalisesMain = () => {
         mt={2}
         sx={{ boxSizing: "border-box" }}
       >
-        Processo {formatNumeroProcesso(processo)}: Análise do Processual
+        Processo {formatNumeroProcesso(processo)}: Análise Processual
       </Typography>
 
       <Grid container spacing={1} padding={1} margin={1}>
@@ -257,40 +277,69 @@ export const AnalisesMain = () => {
         <Grid size={{ xs: 12, sm: 6, md: 2, lg: 2, xl: 2 }}>
           <Paper elevation={3} sx={{ height: "calc(100vh - 120px)", p: 2 }}>
             {autos.length > 0 && (
-              <TableContainer sx={{ maxHeight: "calc(100vh - 200px)" }}>
-                <Table stickyHeader size="small">
-                  <TableHead>
-                    <TableRow>
-                      <TableCell>
-                        <Typography variant="h6">Peça</Typography>
-                      </TableCell>
-                      <TableCell>Ações</TableCell>
-                    </TableRow>
-                  </TableHead>
-                  <TableBody>
-                    {autos.map((reg) => (
-                      <TableRow key={reg.id} hover>
-                        <TableCell
-                          onClick={() => handleSelectPeca(reg)}
-                          sx={{ cursor: "pointer" }}
-                        >
-                          {getDocumentoName(reg.id_natu)}
-                        </TableCell>
-
-                        <TableCell>
-                          <IconButton
-                            onClick={() => handleDeleteAutos(reg.id)}
-                            title="Deletar o registro"
+              <>
+                {/* Botão Deletar Selecionados */}
+                <Box mb={1}>
+                  <Button
+                    color="error"
+                    variant="contained"
+                    startIcon={<Delete />}
+                    disabled={selectedIds.length === 0 || isLoading}
+                    onClick={handleDeleteSelected}
+                    size="small"
+                  >
+                    Deletar Selecionados
+                  </Button>
+                </Box>
+                <TableContainer sx={{ maxHeight: "calc(100vh - 200px)" }}>
+                  <Table stickyHeader size="small">
+                    <TableHead>
+                      <TableRow>
+                        <TableCell padding="checkbox">
+                          <Checkbox
+                            checked={
+                              selectedIds.length > 0 &&
+                              selectedIds.length === autos.length
+                            }
+                            indeterminate={
+                              selectedIds.length > 0 &&
+                              selectedIds.length < autos.length
+                            }
+                            onChange={(e) => handleSelectAll(e.target.checked)}
                             disabled={isLoading}
-                          >
-                            <Delete />
-                          </IconButton>
+                          />
+                        </TableCell>
+                        <TableCell>
+                          <Typography variant="h6" fontWeight="bold">
+                            Autos
+                          </Typography>
                         </TableCell>
                       </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
-              </TableContainer>
+                    </TableHead>
+                    <TableBody>
+                      {autos.map((reg) => (
+                        <TableRow key={reg.id} hover>
+                          <TableCell padding="checkbox">
+                            <Checkbox
+                              checked={selectedIds.includes(reg.id)}
+                              onChange={(e) =>
+                                handleSelectRow(reg.id, e.target.checked)
+                              }
+                              disabled={isLoading}
+                            />
+                          </TableCell>
+                          <TableCell
+                            onClick={() => handleSelectPeca(reg)}
+                            sx={{ cursor: "pointer" }}
+                          >
+                            {getDocumentoName(reg.id_natu)}
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </TableContainer>
+              </>
             )}
           </Paper>
         </Grid>

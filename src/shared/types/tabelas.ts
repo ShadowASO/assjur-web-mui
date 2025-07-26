@@ -1,33 +1,12 @@
-// type AutosRow = {
-//   id_autos: number;
-//   id_ctxt: number;
-//   id_nat: number;
-//   id_pje: string;
-//   dt_pje: Date;
-//   autos_json: string;
-//   dt_inc: Date;
-//   status: string;
-// };
-
 type AutosRow = {
   id: string;
   id_ctxt: number;
   id_natu: number;
   id_pje: string;
   doc: string;
-  doc_json: string;
+  doc_json_raw: string;
   doc_embedding: number[];
 };
-
-// type DocsOcrRow = {
-//   id_doc: number;
-//   id_ctxt: number;
-//   nm_file_new: string;
-//   nm_file_ori: string;
-//   txt_doc: string;
-//   dt_inc: Date;
-//   status: string;
-// };
 
 type DocsOcrRow = {
   id: string;

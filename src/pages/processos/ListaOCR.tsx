@@ -1,9 +1,3 @@
-/**
- * File: ListaOCR.tsx
- * Data: 08-06-2025
- * Lista todos os documentos já extraídos por OCR, permitindo realizar a juntada aos autos,
- * a exibiçao do conteúdo em formato texto e a deleção do documentos extraído.
- */
 import { useEffect, useState } from "react";
 import {
   Table,
@@ -15,10 +9,11 @@ import {
   LinearProgress,
   Box,
   TableFooter,
+  Checkbox,
+  Button,
 } from "@mui/material";
 import { Delete, PostAdd, Visibility } from "@mui/icons-material";
 import { refreshOcrByContexto } from "../../shared/services/api/fetch/apiTools";
-
 import type { DocsOcrRow } from "../../shared/types/tabelas";
 import { getDocumentoName } from "../../shared/constants/autosDoc";
 
@@ -27,71 +22,129 @@ interface ListaPecasProps {
   refreshKey: number;
   onView: (id_doc: string, id_pje: string, texto: string) => void;
   onJuntada: (fileId: string) => void;
+  onJuntadaMultipla?: (fileIds: string[]) => void; // NOVO: callback para juntar vários
   onDelete: (fileId: string) => void;
   loading?: boolean;
 }
 
 export const ListaOCR = ({
   processoId,
-  //onView: onViewText,
   onView,
   onJuntada,
+  onJuntadaMultipla,
   onDelete,
   refreshKey,
   loading,
 }: ListaPecasProps) => {
   const [rows, setRows] = useState<DocsOcrRow[]>([]);
   const [isLoading, setIsLoading] = useState(false);
-  //const { showFlashMessage } = useFlash();
+  const [selected, setSelected] = useState<string[]>([]); // IDs selecionados
 
+  // Carregar documentos
   useEffect(() => {
     const refresh = async () => {
       setIsLoading(true);
       setRows([]);
-
+      setSelected([]); // Limpa seleção ao recarregar
       const rsp = await refreshOcrByContexto(Number(processoId));
-      //console.log(rsp);
-
       setIsLoading(false);
-      if (rsp && rsp.length > 0) {
-        setRows(rsp);
-      } else {
-        setRows([]);
-      }
+      setRows(rsp && rsp.length > 0 ? rsp : []);
     };
     refresh();
   }, [processoId, refreshKey]);
 
-  const handleViewText = (id: string) => {
-    // rows é um vetor de objetos com a propriedade id
-    const registro = rows.find((row) => row.id === id);
+  // Loading externo
+  useEffect(() => {
+    if (loading !== undefined) setIsLoading(loading);
+  }, [loading]);
 
-    if (registro) {
-      // Faz algo com o registro encontrado, por exemplo:
-      //console.log("Registro encontrado:", registro);
-      // Ou chama alguma função passando registro.doc, por exemplo:
-      // onViewText(registro.doc || "Texto não disponível");
-      onView(registro.id, registro.id_pje, registro.doc);
+  // Visualização individual
+  const handleViewText = (id: string) => {
+    const registro = rows.find((row) => row.id === id);
+    if (registro) onView(registro.id, registro.id_pje, registro.doc);
+    else onView("", id, "Texto não disponível");
+  };
+
+  // Seleção individual
+  const handleCheckbox = (id: string) => {
+    setSelected((prev) =>
+      prev.includes(id) ? prev.filter((sel) => sel !== id) : [...prev, id]
+    );
+  };
+
+  // Seleção global
+  const handleSelectAll = (event: React.ChangeEvent<HTMLInputElement>) => {
+    if (event.target.checked) {
+      setSelected(rows.map((row) => row.id));
     } else {
-      //console.log("Registro não encontrado para o id:", id);
-      onView("", id, "Texto não disponível");
+      setSelected([]);
     }
   };
 
-  useEffect(() => {
-    const refresh = async () => {
-      if (loading != null) {
-        setIsLoading(loading);
-      }
-    };
-    refresh();
-  }, [loading]);
+  // Autuação em lote
+  const handleAutuarSelecionados = () => {
+    if (onJuntadaMultipla) {
+      onJuntadaMultipla(selected);
+    } else {
+      // fallback: chamar um a um
+      selected.forEach((id) => onJuntada(id));
+    }
+    setSelected([]); // Limpa seleção após ação
+  };
+
+  // Lógica de deleção em lote
+  const handleDeleteSelecionados = () => {
+    selected.forEach((id) => onDelete(id));
+    setSelected([]);
+  };
+
+  // Helper para checar se todos estão selecionados
+  const allSelected = rows.length > 0 && selected.length === rows.length;
+  const someSelected = selected.length > 0 && !allSelected;
 
   return (
     <Box position="relative" sx={{ maxHeight: 700, overflowY: "auto" }}>
+      {/* Botão para autuar selecionados */}
+      <Box display="flex" alignItems="center" p={1} gap={2}>
+        <Button
+          variant="contained"
+          color="primary"
+          size="small"
+          disabled={selected.length === 0 || isLoading}
+          onClick={handleAutuarSelecionados}
+          startIcon={<PostAdd />}
+        >
+          Autuar selecionados
+        </Button>
+        <Button
+          variant="contained"
+          color="error"
+          size="small"
+          disabled={selected.length === 0 || isLoading}
+          onClick={handleDeleteSelecionados}
+          startIcon={<Delete />}
+        >
+          Deletar selecionados
+        </Button>
+        {selected.length > 0 && (
+          <span style={{ fontSize: 12 }}>
+            {selected.length} documento(s) selecionado(s)
+          </span>
+        )}
+      </Box>
+
       <Table size="small" stickyHeader>
         <TableHead>
           <TableRow>
+            <TableCell padding="checkbox">
+              <Checkbox
+                indeterminate={someSelected}
+                checked={allSelected}
+                onChange={handleSelectAll}
+                disabled={isLoading || rows.length === 0}
+                inputProps={{ "aria-label": "Selecionar todos" }}
+              />
+            </TableCell>
             <TableCell>ID</TableCell>
             <TableCell>Natureza</TableCell>
             <TableCell>Ações</TableCell>
@@ -100,33 +153,23 @@ export const ListaOCR = ({
         <TableBody>
           {rows.length > 0 &&
             rows.map((row) => (
-              <TableRow key={row.id}>
+              <TableRow key={row.id} selected={selected.includes(row.id)}>
+                <TableCell padding="checkbox">
+                  <Checkbox
+                    checked={selected.includes(row.id)}
+                    onChange={() => handleCheckbox(row.id)}
+                    disabled={isLoading}
+                  />
+                </TableCell>
                 <TableCell>{row.id_pje || "N/A"}</TableCell>
                 <TableCell>{getDocumentoName(row.id_natu) || "N/A"}</TableCell>
                 <TableCell>
                   <IconButton
-                    onClick={() => onJuntada(row.id)}
-                    title="Juntar aos Autos"
-                    disabled={isLoading}
-                  >
-                    <PostAdd />
-                  </IconButton>
-                  <IconButton
-                    onClick={() =>
-                      // onViewText(row.doc || "Texto não disponível")
-                      handleViewText(row.id)
-                    }
+                    onClick={() => handleViewText(row.id)}
                     title="Visualizar texto extraído"
                     disabled={isLoading}
                   >
                     <Visibility />
-                  </IconButton>
-                  <IconButton
-                    onClick={() => onDelete(row.id)}
-                    title="Deletar o registro"
-                    disabled={isLoading}
-                  >
-                    <Delete />
                   </IconButton>
                 </TableCell>
               </TableRow>
@@ -135,7 +178,7 @@ export const ListaOCR = ({
         <TableFooter>
           {isLoading && (
             <TableRow>
-              <TableCell colSpan={3}>
+              <TableCell colSpan={4}>
                 <LinearProgress variant="indeterminate" />
               </TableCell>
             </TableRow>

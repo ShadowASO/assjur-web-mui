@@ -11,6 +11,7 @@ import { PageBaseLayout } from "../../shared/layouts";
 import { useEffect, useState } from "react";
 import {
   deleteContexto,
+  formatNumeroProcesso,
   refreshContextos,
 } from "../../shared/services/api/fetch/apiTools";
 import { useDebounce } from "../../shared/hooks/UseDebounce";
@@ -167,7 +168,7 @@ export const ListaProcessos = () => {
                           <MoreVert />
                         </IconButton>
                       </TableCell>
-                      <TableCell>{row.nr_proc}</TableCell>
+                      <TableCell>{formatNumeroProcesso(row.nr_proc)}</TableCell>
                       <TableCell>{row.assunto}</TableCell>
                     </TableRow>
                   ))}

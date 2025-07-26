@@ -14,7 +14,7 @@ import {
 } from "../../shared/services/api/fetch/apiTools";
 import {
   itemsNatureza,
-  itemsDocumento,
+  //itemsDocumento,
   itemsClasse,
   itemsAssunto,
 } from "../../shared/constants/itemsPrompt";
@@ -31,6 +31,7 @@ import {
   Typography,
 } from "@mui/material";
 import { ContentCopy } from "@mui/icons-material";
+import { itemsDocumento } from "../../shared/constants/autosDoc";
 
 interface IFormPrompt {
   nm_desc: string;
