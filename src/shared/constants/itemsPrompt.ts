@@ -7,13 +7,12 @@ import { type Item } from "./items";
 
 export const itemsNatureza: Item[] = [
   { key: 0, description: "Selecione a natureza" },
-  { key: 1, description: "Análise de documento" },
+  { key: 1, description: "Análise de Autuação" },
   { key: 2, description: "Análise de Contexto" },
-  { key: 3, description: "Análise da Inicial" },
-  { key: 4, description: "Análise do Saneador" },
-  { key: 5, description: "Análise de Tutela" },
-  { key: 6, description: "Análise de Julgamento" },
-  { key: 100, description: "Mascara Dados Pessoais" },
+  { key: 3, description: "Análise de Julgamento" },
+  { key: 4, description: "Análise do Documento" },
+
+  { key: 100, description: "Analise de Anonimização" },
   { key: 101, description: "Formata Respostas" },
 ];
 

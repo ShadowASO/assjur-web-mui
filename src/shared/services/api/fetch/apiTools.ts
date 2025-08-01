@@ -595,12 +595,12 @@ export const insertPrompt = async (
   txtPrompt: string
 ): Promise<PromptsRow | null> => {
   const prompt = {
-    idNat: idNat,
-    idDoc: idDoc,
-    idClasse: idClasse,
-    idAssunto: idAssunto,
-    nmDesc: nmDesc,
-    txtPrompt: txtPrompt,
+    id_nat: idNat,
+    id_doc: idDoc,
+    id_classe: idClasse,
+    id_assunto: idAssunto,
+    nm_desc: nmDesc,
+    txt_prompt: txtPrompt,
   };
   try {
     const rspApi = await api.post("/tabelas/prompts", prompt);

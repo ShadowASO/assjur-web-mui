@@ -14,7 +14,6 @@ import {
 } from "../../shared/services/api/fetch/apiTools";
 import {
   itemsNatureza,
-  //itemsDocumento,
   itemsClasse,
   itemsAssunto,
 } from "../../shared/constants/itemsPrompt";
@@ -52,7 +51,7 @@ const formValidationSchema: yup.ObjectSchema<IFormPrompt> = yup.object({
 });
 
 export const DetalhePrompt = () => {
-  const { id: idReg = "nova" } = useParams<"id">();
+  const { id: idReg = "novo" } = useParams<"id">();
   const navigate = useNavigate();
   const { showFlashMessage } = useFlash();
   const [isLoading, setIsLoading] = useState(false);
@@ -61,7 +60,7 @@ export const DetalhePrompt = () => {
 
   useEffect(() => {
     (async () => {
-      if (idReg !== "nova") {
+      if (idReg !== "novo") {
         setIsLoading(true);
         const rsp = await selectPrompt(Number(idReg));
         //console.log(rsp);
@@ -108,8 +107,9 @@ export const DetalhePrompt = () => {
       });
 
       setIsLoading(true);
+      //console.log(idReg);
 
-      if (idReg === "nova") {
+      if (idReg === "novo") {
         const rsp = await insertPrompt(
           valida.id_nat,
           valida.id_doc,
@@ -118,14 +118,15 @@ export const DetalhePrompt = () => {
           valida.nm_desc,
           valida.txt_prompt
         );
+        //console.log(valida);
         if (rsp instanceof Error) {
           showFlashMessage(rsp.message, "error");
         } else {
           showFlashMessage("Registro salvo com sucesso", "success");
-          navigate(`/prompts/detalhes/${rsp}`);
+          navigate(`/prompts/detalhes/${rsp?.id_prompt}`);
         }
       } else {
-        console.log(idReg);
+        //console.log(idReg);
         const rsp = await updatePrompt(
           Number(idReg),
           valida.nm_desc,
@@ -169,17 +170,17 @@ export const DetalhePrompt = () => {
 
   return (
     <PageBaseLayout
-      title={idReg === "nova" ? "Novo Prompt" : "Detalhe do Prompt"}
+      title={idReg === "novo" ? "Novo Prompt" : "Detalhe do Prompt"}
       toolBar={
         <BarraDetalhes
           labelButtonNovo="Novo"
-          showButtonNovo={idReg !== "nova"}
+          showButtonNovo={idReg !== "novo"}
           showButtonSalvarFechar
-          showButtonApagar={idReg !== "nova"}
+          showButtonApagar={idReg !== "novo"}
           onClickButtonSalvar={RForm.handleSubmit(handleSave)}
           onClickButtonSalvarFechar={RForm.handleSubmit(handleSaveFechar)}
           onClickButtonApagar={() => handleDelete(idReg)}
-          onClickButtonNovo={() => navigate("/prompts/detalhes/nova")}
+          onClickButtonNovo={() => navigate("/prompts/detalhes/novo")}
           onClickButtonVoltar={() => navigate("/prompts")}
         />
       }
@@ -223,7 +224,7 @@ export const DetalhePrompt = () => {
                   render={({ field }) => (
                     <TextField
                       select
-                      label="Natureza"
+                      label="Natureza da análise"
                       fullWidth
                       disabled={isLoading}
                       {...field}

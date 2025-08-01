@@ -25,7 +25,7 @@ import {
   Button,
 } from "@mui/material";
 import { useFlash } from "../../shared/contexts/FlashProvider";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import ReactMarkdown from "react-markdown";
 import { useParams } from "react-router-dom";
 import {
@@ -36,12 +36,14 @@ import {
   refreshAutos,
 } from "../../shared/services/api/fetch/apiTools";
 import type { AutosRow } from "../../shared/types/tabelas";
-//import { getDocumentoName } from "../../shared/constants/itemsPrompt";
-
 import { Prism as SyntaxHighlighter } from "react-syntax-highlighter";
 import { duotoneLight } from "react-syntax-highlighter/dist/esm/styles/prism";
 import { useApi } from "../../shared/contexts/ApiProvider";
-import { type IResponseOpenaiApi } from "../../shared/services/query/QueryResponse";
+import {
+  useMessageReponse,
+  type IMessageResponseItem,
+  type IResponseOpenaiApi,
+} from "../../shared/services/query/QueryResponse";
 import {
   NATU_DOC_ANALISE_IA,
   getDocumentoName,
@@ -60,10 +62,12 @@ export const AnalisesMain = () => {
   const [prevId, setPrevId] = useState("");
   const [refreshPecas, setRefreshPecas] = useState(0);
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
+  const { addMessage, getMessages, addOutput, messagesRef } =
+    useMessageReponse();
+  const scrollRef = useRef<HTMLDivElement>(null);
 
   const theme = useTheme();
   const Api = useApi();
-  //const { addMessage, addOutput, messagesRef } = useMessageReponse();
 
   // Função para selecionar/deselecionar todos
   const handleSelectAll = (checked: boolean) => {
@@ -148,6 +152,10 @@ export const AnalisesMain = () => {
     })();
   }, [idCtxt]);
 
+  useEffect(() => {
+    scrollRef.current?.scrollIntoView({ behavior: "smooth" });
+  }, [messagesRef]);
+
   const copiarParaClipboard = (texto: string) => {
     navigator.clipboard.writeText(texto);
     showFlashMessage("Texto copiado para a área de transferência!", "success");
@@ -203,14 +211,36 @@ export const AnalisesMain = () => {
       showFlashMessage("Digite um prompt antes de enviar.", "warning", 3);
       return;
     }
+
+    //Caso o campo de prompt possua valores
+    const userQuery: IMessageResponseItem = {
+      id: prevId,
+      role: "user",
+      text: prompt,
+    };
+
+    // Adiciona a mensagem do usuário ao histórico localmente
+    //const newUserMessage = { role: "user", content: prompt.trim() };
+    //const newHistory = [...history, newUserMessage];
+    //setHistory([...history, { role: "user", content: prompt.trim() }]);
+
+    //setHistory(newHistory);
+    setPrompt("");
+    setLoading(true);
+
+    addMessage(userQuery.id, userQuery.role, userQuery.text);
+
     try {
-      //Params body da chamada
+      // Monta payload enviando todo o histórico de mensagens
+      const msg = getMessages();
       const payload = {
         id_ctxt: idCtxt,
-        txt_prompt: prompt,
+        //messages: newHistory,
+        messages: msg,
         previd: prevId,
       };
-      setLoading(true);
+
+      //console.log(payload);
       const response = await Api.post("/contexto/query/rag", payload);
 
       if (response.ok && response.data) {
@@ -219,15 +249,22 @@ export const AnalisesMain = () => {
         const output = data?.output?.[0];
 
         if (output) {
-          //setMinuta(output.content[0].text);
-          setDialogo(output.content[0].text);
+          // const assistantMessage = {
+          //   role: "assistant",
+          //   content: output.content[0].text,
+          // };
+
+          // Atualiza histórico adicionando a resposta da IA
+          addOutput(output);
+
+          // Atualiza diálogo para renderizar
+          setDialogo((prev) => prev + "\n\n" + output.content[0].text);
+
           setPrevId(output.id);
         } else {
-          // setMinuta("");
           setDialogo("");
         }
       } else {
-        // setMinuta("");
         setDialogo("");
       }
     } catch (error) {
@@ -240,7 +277,8 @@ export const AnalisesMain = () => {
   const handleSelectPeca = (reg: AutosRow) => {
     //console.log(reg);
     if (reg.id_natu === NATU_DOC_ANALISE_IA) {
-      setDialogo(reg.doc);
+      //setDialogo(reg.doc);
+      setMinuta(reg.doc);
       return;
     }
     if (reg.doc_json_raw) {
@@ -366,7 +404,13 @@ export const AnalisesMain = () => {
                 backgroundColor: theme.palette.background.default,
               }}
             >
-              <ReactMarkdown>{dialogo}</ReactMarkdown>
+              <ReactMarkdown>
+                {getMessages()
+                  .map(
+                    (m) => (m.role === "user" ? "Usuário: " : "IA: ") + m.text
+                  )
+                  .join("\n\n")}
+              </ReactMarkdown>
             </Paper>
 
             {/********* COL-02 -> BOTÃO DE CÓPIA ***** */}
