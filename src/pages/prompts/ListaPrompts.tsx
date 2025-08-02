@@ -82,7 +82,7 @@ export const ListaPrompts = () => {
 
   return (
     <PageBaseLayout
-      title="Listagem de Prompts"
+      title="Prompts cadastrados"
       toolBar={
         <BarraListagem
           buttonLabel="Novo"

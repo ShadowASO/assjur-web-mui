@@ -13,6 +13,7 @@ import {
   deleteContexto,
   formatNumeroProcesso,
   refreshContextos,
+  searchContexto,
 } from "../../shared/services/api/fetch/apiTools";
 import { useDebounce } from "../../shared/hooks/UseDebounce";
 import {
@@ -41,6 +42,7 @@ export const ListaProcessos = () => {
   const [searchParams, setSearchParams] = useSearchParams();
   const { debounce } = useDebounce(500);
   const navigate = useNavigate();
+  const [searchTexto, setSearchTexto] = useState("");
 
   const [rows, setRows] = useState<ContextoRow[]>([]);
   const [totalPage, setTotalPage] = useState(0);
@@ -109,6 +111,25 @@ export const ListaProcessos = () => {
   };
 
   useEffect(() => {
+    debounce(async () => {
+      if (searchTexto.length > 0) {
+        setLoading(true);
+
+        const rsp = await searchContexto(searchTexto);
+
+        setLoading(false);
+        if (rsp) {
+          setRows(rsp);
+        } else {
+          setRows([]);
+        }
+      } else {
+        setRows([]);
+      }
+    });
+  }, [searchTexto, debounce]);
+
+  useEffect(() => {
     setLoading(true);
     debounce(async () => {
       try {
@@ -132,15 +153,13 @@ export const ListaProcessos = () => {
 
   return (
     <PageBaseLayout
-      title="Listagem de Processos"
+      title="Processos cadastrados"
       toolBar={
         <BarraListagem
           buttonLabel="Novo"
-          fieldValue={busca}
+          fieldValue={searchTexto}
           onButtonClick={handleNovoContexto} // Corrigido: executando a função
-          onFieldChange={(txt) =>
-            setSearchParams({ busca: txt, pagina: "1" }, { replace: true })
-          }
+          onFieldChange={(txt) => setSearchTexto(txt)}
         />
       }
     >

@@ -20,7 +20,7 @@ export const Dashboard = () => {
 
   return (
     <PageBaseLayout
-      title="Dashboard"
+      title=" Assessor Jurídico - IA"
       toolBar={
         <BarraListagem showButton={false} showField={false}></BarraListagem>
       }

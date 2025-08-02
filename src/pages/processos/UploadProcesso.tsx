@@ -276,8 +276,7 @@ export const UploadProcesso = () => {
   return (
     <Box p={2}>
       <Typography variant="h5" gutterBottom>
-        Processo {formatNumeroProcesso(processo)}: Formação do Contexto
-        Processual
+        Formação do Contexto: Processo {formatNumeroProcesso(processo)}
       </Typography>
 
       <Grid container spacing={2}>

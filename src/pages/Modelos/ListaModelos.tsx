@@ -102,7 +102,7 @@ export const ListaModelos = () => {
 
   return (
     <PageBaseLayout
-      title="Listagem de Modelos"
+      title="Modelos cadastrados"
       toolBar={
         <BarraListagem
           buttonLabel="Nova"

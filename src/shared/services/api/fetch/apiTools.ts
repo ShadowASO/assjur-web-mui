@@ -463,6 +463,32 @@ export const getContexto = async (
     throw new Error("Erro ao acessar a API.");
   }
 };
+/**
+ * Faz a busca dos contextos que possuam um número de processo semelhante ao indicado
+ * @param strProcesso
+ * @returns
+ */
+export const searchContexto = async (
+  strProcesso: string
+): Promise<ContextoRow[] | null> => {
+  try {
+    const bodyObj = {
+      search_processo: strProcesso,
+    };
+
+    const rspApi = await api.post("/contexto/processo/search", bodyObj);
+
+    const rows = parseApiResponseDataRows<ContextoRow>(rspApi);
+
+    if (rows) {
+      return rows;
+    }
+    return null;
+  } catch (error) {
+    console.error("Erro ao acessar a API:", error);
+    throw new Error("Erro ao acessar a API.");
+  }
+};
 
 export const getContextoById = async (
   idCtxt: string

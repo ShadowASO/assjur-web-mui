@@ -48,7 +48,7 @@ export const PageBaseLayout = ({
           overflow={"nowrap"}
           whiteSpace={"nowrap"}
           textOverflow={"ellipsis"}
-          variant={smDown ? "h5" : mdDown ? "h4" : "h3"}
+          variant={smDown ? "h5" : mdDown ? "h5" : "h4"}
         >
           {title}
         </Typography>

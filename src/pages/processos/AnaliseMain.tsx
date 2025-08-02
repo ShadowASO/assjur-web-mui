@@ -376,7 +376,7 @@ export const AnalisesMain = () => {
         mt={2}
         sx={{ boxSizing: "border-box" }}
       >
-        Processo {formatNumeroProcesso(processo)}: Análise Processual
+        Análise Jurídica: Processo {formatNumeroProcesso(processo)}
       </Typography>
 
       <Grid container spacing={1} padding={1} margin={1}>
@@ -705,7 +705,7 @@ export const AnalisesMain = () => {
               <Tooltip title="Salvar análise">
                 <IconButton
                   size="small"
-                  onClick={() => handleSaveAnaliseByIA(dialogo)}
+                  onClick={() => handleSaveAnaliseByIA(minuta)}
                 >
                   <Save fontSize="small" />
                   <Typography variant="body2">Salvar</Typography>
