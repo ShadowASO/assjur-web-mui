@@ -67,7 +67,7 @@ export interface IMessageResponseItem {
   role: TRoleType;
   text: TPromptType;
 }
-interface IOutputResponseItem {
+export interface IOutputResponseItem {
   type: string;
   id: string;
   status: string;

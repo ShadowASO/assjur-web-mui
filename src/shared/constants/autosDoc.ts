@@ -20,7 +20,8 @@ export const NATU_DOC_AUTOS = 1000;
 export const NATU_DOC_OUTROS = 1001;
 export const NATU_DOC_CERTIDOES = 1002;
 export const NATU_DOC_MOVIMENTACAO = 1003;
-export const NATU_DOC_ANALISE_IA = 2000;
+export const NATU_DOC_IA_ANALISE = 2000;
+export const NATU_DOC_IA_SENTENCA = 2001;
 
 export const itemsDocumento: Item[] = [
   { key: 0, description: "Selecione o documento" },
@@ -44,7 +45,9 @@ export const itemsDocumento: Item[] = [
     description: "Manifestação do Ministério Público",
   },
   { key: NATU_DOC_AUTOS, description: "Autos Processuais" },
-  { key: NATU_DOC_ANALISE_IA, description: "Análise por IA" },
+
+  { key: NATU_DOC_IA_ANALISE, description: "Análise por IA" },
+  { key: NATU_DOC_IA_SENTENCA, description: "Sentença por IA" },
 ];
 
 // Função utilitária genérica

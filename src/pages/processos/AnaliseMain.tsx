@@ -4,7 +4,7 @@
  * Janela para interação do usuário com a IA e o processo
  *
  */
-import { Clear, ContentCopy, Delete, Save, Send } from "@mui/icons-material";
+import { ContentCopy, Delete, Save, Send } from "@mui/icons-material";
 import {
   Box,
   Grid,
@@ -42,12 +42,20 @@ import { useApi } from "../../shared/contexts/ApiProvider";
 import {
   useMessageReponse,
   type IMessageResponseItem,
+  type IOutputResponseItem,
   type IResponseOpenaiApi,
 } from "../../shared/services/query/QueryResponse";
 import {
-  NATU_DOC_ANALISE_IA,
   getDocumentoName,
+  NATU_DOC_IA_ANALISE,
+  NATU_DOC_IA_SENTENCA,
 } from "../../shared/constants/autosDoc";
+import {
+  getRespostaDescricao,
+  RESPOSTA_RAG_CHAT,
+  type RespostaRAG,
+} from "../../shared/constants/respostaRag";
+import React from "react";
 
 export const AnalisesMain = () => {
   const { id: idCtxt } = useParams();
@@ -61,71 +69,47 @@ export const AnalisesMain = () => {
   const [prompt, setPrompt] = useState("");
   const [prevId, setPrevId] = useState("");
   const [refreshPecas, setRefreshPecas] = useState(0);
-  const [selectedIds, setSelectedIds] = useState<string[]>([]);
-  const { addMessage, getMessages, addOutput, messagesRef } =
+
+  // Seleção independente para cada tabela
+  const [selectedIdsAutos, setSelectedIdsAutos] = useState<string[]>([]);
+  const [selectedIdsRag, setSelectedIdsRag] = useState<string[]>([]);
+
+  const { addMessage, getMessages, addOutput, clearMessages } =
     useMessageReponse();
   const scrollRef = useRef<HTMLDivElement>(null);
 
   const theme = useTheme();
   const Api = useApi();
 
-  // Função para selecionar/deselecionar todos
-  const handleSelectAll = (checked: boolean) => {
-    if (checked) {
-      setSelectedIds(autos.map((reg) => reg.id));
-    } else {
-      setSelectedIds([]);
-    }
-  };
+  // Filtra autos e rag separados
+  const autosFiltrados = autos.filter(
+    (reg) =>
+      reg.id_natu !== NATU_DOC_IA_ANALISE &&
+      reg.id_natu !== NATU_DOC_IA_SENTENCA
+  );
+  const ragFiltrados = autos.filter(
+    (reg) =>
+      reg.id_natu === NATU_DOC_IA_ANALISE ||
+      reg.id_natu === NATU_DOC_IA_SENTENCA
+  );
 
-  // Seleciona/deseleciona individual
-  const handleSelectRow = (id: string, checked: boolean) => {
-    setSelectedIds((prev) =>
-      checked ? [...prev, id] : prev.filter((sid) => sid !== id)
-    );
-  };
-
-  // Deleta múltiplos selecionados
-  const handleDeleteSelected = async () => {
-    if (selectedIds.length === 0) return;
-    setLoading(true);
-    let errors = 0;
-    for (const id of selectedIds) {
-      const ok = await deleteAutos(id);
-      if (!ok) errors++;
-    }
-    setSelectedIds([]);
-    setRefreshPecas((prev) => prev + 1);
-    setLoading(false);
-    if (errors === 0) {
-      showFlashMessage("Itens excluídos com sucesso!", "success");
-    } else {
-      showFlashMessage("Erro ao excluir alguns itens.", "error");
-    }
-  };
-
+  // Carregar autos
   useEffect(() => {
     (async () => {
       try {
         setLoading(true);
-        const rsp = await refreshAutos(Number(idCtxt));
-
-        setLoading(false);
-        if (rsp && rsp.length > 0) {
-          //console.log(rsp);
-          setAutos(rsp);
-        } else {
-          setAutos([]);
-        }
+        const response = await refreshAutos(Number(idCtxt));
+        setAutos(response?.length ? response : []);
       } catch (error) {
-        console.log(error);
+        console.error(error);
         showFlashMessage("Erro ao listar os autos!", "error");
       } finally {
         setLoading(false);
       }
     })();
-  }, [idCtxt, refreshPecas]);
+  }, [idCtxt, refreshPecas, showFlashMessage]);
 
+  // Carregar número processo
   useEffect(() => {
     (async () => {
       try {
@@ -134,65 +118,99 @@ export const AnalisesMain = () => {
           setProcesso("");
           return;
         }
-        const rsp = await getContextoById(idCtxt);
-
-        setLoading(false);
-        if (rsp) {
-          //console.log(rsp);
-          setProcesso(rsp.nr_proc);
-        } else {
-          setProcesso("");
-        }
+        const response = await getContextoById(idCtxt);
+        setProcesso(response?.nr_proc ?? "");
       } catch (error) {
-        console.log(error);
+        console.error(error);
         showFlashMessage("Erro ao listar o número do processo!", "error");
       } finally {
         setLoading(false);
       }
     })();
-  }, [idCtxt]);
+  }, [idCtxt, showFlashMessage]);
 
+  // Scroll automático para mensagens
+  const messages = getMessages();
   useEffect(() => {
     scrollRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, [messagesRef]);
+  }, [messages.length]);
 
-  const copiarParaClipboard = (texto: string) => {
+  const handleSelectRowAutos = (id: string, checked: boolean) => {
+    setSelectedIdsAutos((prev) =>
+      checked ? [...prev, id] : prev.filter((sid) => sid !== id)
+    );
+  };
+
+  // Handlers para RAG
+  const handleSelectAllRag = (checked: boolean) => {
+    if (checked) {
+      setSelectedIdsRag(ragFiltrados.map((reg) => reg.id));
+    } else {
+      setSelectedIdsRag([]);
+    }
+  };
+  const handleSelectRowRag = (id: string, checked: boolean) => {
+    setSelectedIdsRag((prev) =>
+      checked ? [...prev, id] : prev.filter((sid) => sid !== id)
+    );
+  };
+
+  // Deletar selecionados de ambas as tabelas
+  const handleDeleteSelected = async () => {
+    const allSelected = [...selectedIdsAutos, ...selectedIdsRag];
+    if (allSelected.length === 0) return;
+    setLoading(true);
+    try {
+      const results = await Promise.all(
+        allSelected.map((id) => deleteAutos(id))
+      );
+      const errors = results.filter((ok) => !ok).length;
+      setSelectedIdsAutos([]);
+      setSelectedIdsRag([]);
+      setRefreshPecas((prev) => prev + 1);
+      if (errors === 0) {
+        showFlashMessage("Itens excluídos com sucesso!", "success");
+      } else {
+        showFlashMessage("Erro ao excluir alguns itens.", "error");
+      }
+    } catch (error) {
+      console.error(error);
+      showFlashMessage("Erro inesperado ao excluir itens.", "error");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Copiar texto para clipboard
+  const handlerCopiarParaClipboard = (texto: string) => {
+    if (!texto) return;
     navigator.clipboard.writeText(texto);
     showFlashMessage("Texto copiado para a área de transferência!", "success");
   };
 
+  // Salvar análise IA
   const handleSaveAnaliseByIA = async (texto: string) => {
-    console.log(texto);
-
-    if (texto.length === 0) {
+    if (!texto) {
       showFlashMessage(
         "Não há qualquer análise disponível para salvamento!",
         "warning"
       );
-      return; // evita continuar execução
+      return;
     }
-
-    // Converter idCtxt para número, assumir que idCtxt vem de algum lugar externo (exemplo: props, state, etc.)
-    // Se idCtxt for string, converta assim:
     const idCtxtNum = Number(idCtxt);
-
     if (isNaN(idCtxtNum) || idCtxtNum <= 0) {
       showFlashMessage("Contexto inválido para salvar a análise!", "error");
       return;
     }
-
+    setLoading(true);
     try {
-      setLoading(true);
-
-      // Chamada API para salvar documento, idCtxt numérico
       const response = await insertDocumentoAutos(
         idCtxtNum,
-        NATU_DOC_ANALISE_IA,
+        NATU_DOC_IA_ANALISE,
         "",
         texto,
         ""
       );
-
       if (response) {
         showFlashMessage("Análise salva com sucesso!", "success");
       } else {
@@ -206,61 +224,33 @@ export const AnalisesMain = () => {
     }
   };
 
+  // Enviar prompt para IA
   const handleSendPrompt = async () => {
     if (!prompt.trim()) {
       showFlashMessage("Digite um prompt antes de enviar.", "warning", 3);
       return;
     }
-
-    //Caso o campo de prompt possua valores
     const userQuery: IMessageResponseItem = {
       id: prevId,
       role: "user",
       text: prompt,
     };
-
-    // Adiciona a mensagem do usuário ao histórico localmente
-    //const newUserMessage = { role: "user", content: prompt.trim() };
-    //const newHistory = [...history, newUserMessage];
-    //setHistory([...history, { role: "user", content: prompt.trim() }]);
-
-    //setHistory(newHistory);
     setPrompt("");
     setLoading(true);
-
     addMessage(userQuery.id, userQuery.role, userQuery.text);
-
     try {
-      // Monta payload enviando todo o histórico de mensagens
       const msg = getMessages();
       const payload = {
         id_ctxt: idCtxt,
-        //messages: newHistory,
         messages: msg,
         previd: prevId,
       };
-
-      //console.log(payload);
       const response = await Api.post("/contexto/query/rag", payload);
-
       if (response.ok && response.data) {
         const data = response.data as IResponseOpenaiApi;
-
         const output = data?.output?.[0];
-
         if (output) {
-          // const assistantMessage = {
-          //   role: "assistant",
-          //   content: output.content[0].text,
-          // };
-
-          // Atualiza histórico adicionando a resposta da IA
-          addOutput(output);
-
-          // Atualiza diálogo para renderizar
-          setDialogo((prev) => prev + "\n\n" + output.content[0].text);
-
-          setPrevId(output.id);
+          funcToolFormataResposta(output);
         } else {
           setDialogo("");
         }
@@ -274,10 +264,89 @@ export const AnalisesMain = () => {
     }
   };
 
+  const handlerCleanChat = () => {
+    setPrevId("");
+    setDialogo("");
+    clearMessages();
+  };
+
+  // Formata resposta da ferramenta para UI
+  const funcToolFormataResposta = async (output: IOutputResponseItem) => {
+    if (!output?.content?.[0]?.text) return;
+    try {
+      const rawObj = JSON.parse(output.content[0].text);
+      const respostaObj: RespostaRAG = {
+        tipo_resp: Number(rawObj.tipo_resp),
+        texto: rawObj.texto,
+      };
+      if (respostaObj.tipo_resp === RESPOSTA_RAG_CHAT) {
+        output.content[0].text = respostaObj.texto;
+        addOutput(output);
+        setDialogo((prev) => prev + "\n\n" + output.content[0].text);
+        setPrevId(output.id);
+      } else {
+        setMinuta(respostaObj.texto);
+        await funcToolSaveRAG({
+          tipo_resp: respostaObj.tipo_resp,
+          texto: respostaObj.texto,
+        });
+      }
+    } catch (error) {
+      console.error("Erro ao fazer parse da resposta JSON:", error);
+    }
+  };
+
+  // Salvar RAG no backend
+  const funcToolSaveRAG = async (rag: RespostaRAG) => {
+    if (!rag.texto) {
+      showFlashMessage(
+        "Não há qualquer análise disponível para salvamento!",
+        "warning"
+      );
+      return;
+    }
+    const idCtxtNum = Number(idCtxt);
+    if (isNaN(idCtxtNum) || idCtxtNum <= 0) {
+      showFlashMessage("Contexto inválido para salvar a análise!", "error");
+      return;
+    }
+    setLoading(true);
+    try {
+      const response = await insertDocumentoAutos(
+        idCtxtNum,
+        rag.tipo_resp,
+        "",
+        rag.texto,
+        ""
+      );
+      if (response) {
+        showFlashMessage("Análise salva com sucesso!", "success");
+      } else {
+        showFlashMessage("Erro ao salvar a análise!", "error");
+      }
+    } catch (error) {
+      console.error("Erro ao acessar a API:", error);
+      showFlashMessage("Erro inesperado ao salvar a análise.", "error");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Formata JSON para exibição com indentação
+  const jsonFormatado = React.useMemo(() => {
+    try {
+      return JSON.stringify(JSON.parse(minuta), null, 2);
+    } catch {
+      return minuta;
+    }
+  }, [minuta]);
+
+  // Seleciona peça e exibe texto formatado
   const handleSelectPeca = (reg: AutosRow) => {
-    //console.log(reg);
-    if (reg.id_natu === NATU_DOC_ANALISE_IA) {
-      //setDialogo(reg.doc);
+    if (
+      reg.id_natu === NATU_DOC_IA_ANALISE ||
+      reg.id_natu === NATU_DOC_IA_SENTENCA
+    ) {
       setMinuta(reg.doc);
       return;
     }
@@ -288,7 +357,7 @@ export const AnalisesMain = () => {
         setMinuta(JSON.stringify(reg.doc_json_raw, null, 4));
       }
     } else {
-      setMinuta(""); // Campo vazio ou nulo
+      setMinuta("");
     }
   };
 
@@ -311,57 +380,122 @@ export const AnalisesMain = () => {
       </Typography>
 
       <Grid container spacing={1} padding={1} margin={1}>
-        {/************  COL-01 ***** Coluna 1: AUTOS */}
-        <Grid size={{ xs: 12, sm: 6, md: 2, lg: 2, xl: 2 }}>
-          <Paper elevation={3} sx={{ height: "calc(100vh - 120px)", p: 2 }}>
-            {autos.length > 0 && (
-              <>
-                {/* Botão Deletar Selecionados */}
-                <Box mb={1}>
-                  <Button
-                    color="error"
-                    variant="contained"
-                    startIcon={<Delete />}
-                    disabled={selectedIds.length === 0 || isLoading}
-                    onClick={handleDeleteSelected}
-                    size="small"
-                  >
-                    Deletar Selecionados
-                  </Button>
-                </Box>
-                <TableContainer sx={{ maxHeight: "calc(100vh - 200px)" }}>
-                  <Table stickyHeader size="small">
+        {/* COL-01: AUTOS + RespostaRAG */}
+        <Grid
+          size={{ xs: 12, sm: 6, md: 2, lg: 2, xl: 2 }}
+          sx={{
+            display: "flex",
+            flexDirection: "column",
+            height: "calc(100vh - 120px)",
+            p: 2,
+          }}
+          component={Paper}
+          elevation={3}
+        >
+          <Box
+            sx={{ flex: 1, display: "flex", flexDirection: "column", gap: 2 }}
+          >
+            {/* Tabela autos (sem registros RAG) */}
+            <Box sx={{ flex: 1, overflow: "auto" }}>
+              {autosFiltrados.length > 0 && (
+                <>
+                  <Box mb={1}>
+                    <Button
+                      color="error"
+                      variant="contained"
+                      startIcon={<Delete />}
+                      disabled={
+                        (selectedIdsAutos.length === 0 &&
+                          selectedIdsRag.length === 0) ||
+                        isLoading
+                      }
+                      onClick={handleDeleteSelected}
+                      size="small"
+                    >
+                      Deletar Selecionados
+                    </Button>
+                  </Box>
+                  <TableContainer sx={{ maxHeight: "100%" }}>
+                    <Table stickyHeader size="small" tabIndex={0}>
+                      <TableHead>
+                        <TableRow>
+                          <Typography variant="h6" fontWeight="bold" mb={1}>
+                            Autos
+                          </Typography>
+                        </TableRow>
+                      </TableHead>
+                      <TableBody>
+                        {autosFiltrados.map((reg) => (
+                          <TableRow key={reg.id} hover>
+                            <TableCell padding="checkbox">
+                              <Checkbox
+                                checked={selectedIdsAutos.includes(reg.id)}
+                                onChange={(e) =>
+                                  handleSelectRowAutos(reg.id, e.target.checked)
+                                }
+                                disabled={isLoading}
+                              />
+                            </TableCell>
+                            <TableCell
+                              onClick={() => handleSelectPeca(reg)}
+                              sx={{ cursor: "pointer" }}
+                            >
+                              {getDocumentoName(reg.id_natu)}
+                            </TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  </TableContainer>
+                </>
+              )}
+            </Box>
+
+            {/* Tabela de respostaRag */}
+            <Box
+              sx={{
+                flex: 1,
+                overflow: "auto",
+                borderTop: "1px solid",
+                borderColor: "divider",
+                pt: 1,
+              }}
+            >
+              <Typography variant="h6" fontWeight="bold" mb={1}>
+                Respostas IA
+              </Typography>
+              {ragFiltrados.length > 0 ? (
+                <TableContainer sx={{ maxHeight: "100%" }}>
+                  <Table stickyHeader size="small" tabIndex={0}>
                     <TableHead>
                       <TableRow>
                         <TableCell padding="checkbox">
                           <Checkbox
                             checked={
-                              selectedIds.length > 0 &&
-                              selectedIds.length === autos.length
+                              selectedIdsRag.length > 0 &&
+                              selectedIdsRag.length === ragFiltrados.length
                             }
                             indeterminate={
-                              selectedIds.length > 0 &&
-                              selectedIds.length < autos.length
+                              selectedIdsRag.length > 0 &&
+                              selectedIdsRag.length < ragFiltrados.length
                             }
-                            onChange={(e) => handleSelectAll(e.target.checked)}
+                            onChange={(e) =>
+                              handleSelectAllRag(e.target.checked)
+                            }
                             disabled={isLoading}
                           />
                         </TableCell>
-                        <TableCell>
-                          <Typography variant="h6" fontWeight="bold">
-                            Autos
-                          </Typography>
-                        </TableCell>
+                        <TableCell>Tipo de Resposta</TableCell>
                       </TableRow>
                     </TableHead>
                     <TableBody>
-                      {autos.map((reg) => (
+                      {ragFiltrados.map((reg) => (
                         <TableRow key={reg.id} hover>
                           <TableCell padding="checkbox">
                             <Checkbox
-                              checked={selectedIds.includes(reg.id)}
+                              checked={selectedIdsRag.includes(reg.id)}
                               onChange={(e) =>
-                                handleSelectRow(reg.id, e.target.checked)
+                                handleSelectRowRag(reg.id, e.target.checked)
                               }
                               disabled={isLoading}
                             />
@@ -370,19 +504,23 @@ export const AnalisesMain = () => {
                             onClick={() => handleSelectPeca(reg)}
                             sx={{ cursor: "pointer" }}
                           >
-                            {getDocumentoName(reg.id_natu)}
+                            {getRespostaDescricao(reg.id_natu)}
                           </TableCell>
                         </TableRow>
                       ))}
                     </TableBody>
                   </Table>
                 </TableContainer>
-              </>
-            )}
-          </Paper>
+              ) : (
+                <Typography variant="body2" color="text.secondary">
+                  Nenhuma resposta disponível.
+                </Typography>
+              )}
+            </Box>
+          </Box>
         </Grid>
 
-        {/********* COL-02: COMPLETION + PROMPT */}
+        {/* COL-02: COMPLETION + PROMPT */}
         <Grid size={{ xs: 12, sm: 12, md: 5, lg: 5, xl: 5 }}>
           <Paper
             elevation={3}
@@ -393,7 +531,7 @@ export const AnalisesMain = () => {
               flexDirection: "column",
             }}
           >
-            {/********* COL-02 -> COMPLETION ***** */}
+            {/* COMPLETION */}
             <Paper
               variant="outlined"
               sx={{
@@ -405,7 +543,7 @@ export const AnalisesMain = () => {
               }}
             >
               <ReactMarkdown>
-                {getMessages()
+                {messages
                   .map(
                     (m) => (m.role === "user" ? "Usuário: " : "IA: ") + m.text
                   )
@@ -413,33 +551,33 @@ export const AnalisesMain = () => {
               </ReactMarkdown>
             </Paper>
 
-            {/********* COL-02 -> BOTÃO DE CÓPIA ***** */}
-
-            <Box display="flex" justifyContent="flex-end" mb={1}>
+            {/* BOTÕES */}
+            <Box display="flex" justifyContent="flex-end" mb={1} mr={2}>
               <Tooltip title="Copiar">
                 <IconButton
-                  size="small"
-                  onClick={() => copiarParaClipboard(dialogo)}
+                  size="medium"
+                  onClick={() => handlerCopiarParaClipboard(dialogo)}
                 >
-                  <ContentCopy fontSize="small" />
+                  <ContentCopy fontSize="medium" />
                   <Typography variant="body2">Copiar</Typography>
                 </IconButton>
               </Tooltip>
-              <Tooltip title="Salvar análise">
+              <Tooltip title="Limpar conversa">
                 <IconButton
-                  size="small"
-                  onClick={() => handleSaveAnaliseByIA(dialogo)}
+                  size="medium"
+                  onClick={() => handlerCleanChat}
+                  edge="end"
+                  disabled={isLoading}
                 >
-                  <Save fontSize="small" />
-                  <Typography variant="body2">Salvar</Typography>
+                  <Delete fontSize="medium" />
+                  <Typography variant="body2">Limpar</Typography>
                 </IconButton>
               </Tooltip>
             </Box>
 
-            {/********* COL-02 -> PROMPT ***** */}
-
+            {/* PROMPT */}
             <TextField
-              label={"Prompt"}
+              label="Prompt"
               multiline
               minRows={4}
               fullWidth
@@ -455,10 +593,10 @@ export const AnalisesMain = () => {
               placeholder="Digite o prompt aqui..."
               sx={{
                 "& .MuiOutlinedInput-root": {
-                  borderRadius: "16px", // Aqui você define o grau de arredondamento
+                  borderRadius: "16px",
                 },
                 "& .MuiInputBase-root": {
-                  height: 150, // Altura fixa (ajuste conforme quiser)
+                  height: 150,
                   overflow: "auto",
                 },
                 "& textarea": {
@@ -483,7 +621,7 @@ export const AnalisesMain = () => {
                         </IconButton>
                         <IconButton
                           size="small"
-                          onClick={() => copiarParaClipboard(prompt)}
+                          onClick={() => handlerCopiarParaClipboard(prompt)}
                           edge="end"
                           title="Copiar"
                           disabled={isLoading}
@@ -497,7 +635,7 @@ export const AnalisesMain = () => {
                           title="Limpar"
                           disabled={isLoading}
                         >
-                          <Clear fontSize="small" />
+                          <Delete fontSize="small" />
                         </IconButton>
                       </Box>
                     </InputAdornment>
@@ -509,7 +647,7 @@ export const AnalisesMain = () => {
           </Paper>
         </Grid>
 
-        {/********* COL-03 -> Área de Texto à Direita ***** */}
+        {/* COL-03: ÁREA DE TEXTO À DIREITA */}
         <Grid size={{ xs: 12, sm: 12, md: 5, lg: 5, xl: 5 }}>
           <Paper
             elevation={3}
@@ -521,46 +659,63 @@ export const AnalisesMain = () => {
             }}
           >
             {/* Área que cresce e faz scroll */}
-            <Box
+            <Paper
+              variant="outlined"
               sx={{
                 flexGrow: 1,
-                overflow: "auto",
+                mb: 1,
+                p: 2,
+                overflowX: "auto",
                 backgroundColor: theme.palette.background.default,
               }}
             >
               <SyntaxHighlighter
                 language="json"
                 style={duotoneLight}
+                wrapLongLines
+                codeTagProps={{
+                  style: {
+                    whiteSpace: "pre-wrap",
+                    wordBreak: "break-word",
+                    overflowWrap: "break-word",
+                  },
+                }}
                 customStyle={{
-                  height: "auto", // Não força altura fixa
-                  maxHeight: "none", // Não limita por altura
-                  overflow: "visible", // Não cria barra de rolagem interna
-                  width: "100%", // Mantém o conteúdo ajustável horizontalmente
-                  whiteSpace: "pre-wrap", // Quebra de linha automática se quiser evitar scroll horizontal
+                  width: "100%",
+                  maxWidth: "100%",
+                  boxSizing: "border-box",
+                  overflowX: "auto",
                 }}
               >
-                {minuta}
+                {jsonFormatado}
               </SyntaxHighlighter>
+            </Paper>
 
-              {/* <ReactMarkdown>{`\`\`\`json\n${minuta}\n\`\`\``}</ReactMarkdown> */}
-            </Box>
-
-            {/********* COL-03 -> BOTÃO DE CÓPIA ***** */}
-
+            {/* Botão de copiar */}
             <Box display="flex" justifyContent="flex-end" mb={1} mt={1}>
               <Tooltip title="Copiar conteúdo">
                 <IconButton
                   size="small"
-                  onClick={() => copiarParaClipboard(minuta)}
+                  onClick={() => handlerCopiarParaClipboard(minuta)}
                 >
                   <ContentCopy fontSize="small" />
                   <Typography variant="body2">Copiar</Typography>
+                </IconButton>
+              </Tooltip>
+              <Tooltip title="Salvar análise">
+                <IconButton
+                  size="small"
+                  onClick={() => handleSaveAnaliseByIA(dialogo)}
+                >
+                  <Save fontSize="small" />
+                  <Typography variant="body2">Salvar</Typography>
                 </IconButton>
               </Tooltip>
             </Box>
           </Paper>
         </Grid>
       </Grid>
+      <div ref={scrollRef} />
     </Box>
   );
 };
