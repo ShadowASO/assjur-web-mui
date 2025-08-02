@@ -419,9 +419,11 @@ export const AnalisesMain = () => {
                     <Table stickyHeader size="small" tabIndex={0}>
                       <TableHead>
                         <TableRow>
-                          <Typography variant="h6" fontWeight="bold" mb={1}>
-                            Autos
-                          </Typography>
+                          <TableCell colSpan={2} sx={{ p: 1 }}>
+                            <Typography variant="h6" fontWeight="bold" mb={1}>
+                              Autos
+                            </Typography>
+                          </TableCell>
                         </TableRow>
                       </TableHead>
                       <TableBody>
@@ -563,15 +565,17 @@ export const AnalisesMain = () => {
                 </IconButton>
               </Tooltip>
               <Tooltip title="Limpar conversa">
-                <IconButton
-                  size="medium"
-                  onClick={() => handlerCleanChat}
-                  edge="end"
-                  disabled={isLoading}
-                >
-                  <Delete fontSize="medium" />
-                  <Typography variant="body2">Limpar</Typography>
-                </IconButton>
+                <span>
+                  <IconButton
+                    size="medium"
+                    onClick={handlerCleanChat}
+                    edge="end"
+                    disabled={isLoading}
+                  >
+                    <Delete fontSize="medium" />
+                    <Typography variant="body2">Limpar</Typography>
+                  </IconButton>
+                </span>
               </Tooltip>
             </Box>
 
