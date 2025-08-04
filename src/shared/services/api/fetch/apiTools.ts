@@ -532,7 +532,10 @@ export const deleteContexto = async (IdDoc: string): Promise<boolean> => {
     if (rspApi.ok) {
       return rspApi.ok;
     } else {
-      console.error(`Contexto Id: ${IdDoc} não foi deletado!`);
+      console.error(`Contexto Id: ${rspApi.error?.message} não foi deletado!`);
+      throw new Error(
+        "Exclusão rejeitada! Exclua primeiro os documentos autuados!"
+      );
     }
   } catch (error) {
     console.error("Erro ao deletar o registro: " + error);

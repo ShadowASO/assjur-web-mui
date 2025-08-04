@@ -13,6 +13,7 @@ interface IAuthContextData {
   logout: () => void;
   isAuth: boolean;
   setAuth: React.Dispatch<React.SetStateAction<boolean>>;
+  userLogged: string;
 }
 
 const AuthContext = createContext<IAuthContextData | undefined>(undefined);
@@ -23,6 +24,7 @@ interface IAuthProviderProps {
 
 export const AuthProvider = ({ children }: IAuthProviderProps) => {
   const [isAuth, setAuth] = useState<boolean>(false);
+  const [userLogged, setUserLogged] = useState<string>("");
   const Api = getApiObjeto(); //Obtém a instância global da API
 
   useEffect(() => {
@@ -73,6 +75,7 @@ export const AuthProvider = ({ children }: IAuthProviderProps) => {
       const ok = await Api.login(username, password);
       if (ok) {
         setAuth(true);
+        setUserLogged(username);
       }
       return ok;
     } catch (e) {
@@ -93,6 +96,7 @@ export const AuthProvider = ({ children }: IAuthProviderProps) => {
         isAuth,
         login: handleLogin,
         logout: handleLogout,
+        userLogged,
       }}
     >
       {children}
