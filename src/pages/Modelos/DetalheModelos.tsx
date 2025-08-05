@@ -194,13 +194,13 @@ export const DetalheModelos = () => {
           <Grid size={{ xs: 7, sm: 6, md: 5, lg: 4, xl: 4 }}>
             <Grid
               container
-              spacing={2}
               direction="column"
               component={Paper}
               padding={2}
-              sx={{ mt: 1, height: "calc(100vh - 300px)" }} // Ajuste fino aqui
+              sx={{ mt: 1, height: "calc(100vh - 300px)", display: "flex" }}
               variant="outlined"
             >
+              {/* Item da Natureza - campo fixo */}
               <Grid>
                 <TextField
                   select
@@ -209,7 +209,7 @@ export const DetalheModelos = () => {
                   value={natureza ?? "Selecione a natureza"}
                   onChange={(e) => setValue("natureza", e.target.value)}
                   disabled={isLoading}
-                  sx={{ mt: 1 }} // Ajuste fino aqui
+                  sx={{ mt: 1 }}
                 >
                   {itemsNatureza.map((item) => (
                     <MenuItem key={item.key} value={item.description}>
@@ -218,62 +218,69 @@ export const DetalheModelos = () => {
                   ))}
                 </TextField>
               </Grid>
-              <Grid>
-                <Box
+
+              {/* Item do campo Ementa - deve ocupar o restante do espaço */}
+              <Grid
+                sx={{
+                  flexGrow: 1,
+                  display: "flex",
+                  flexDirection: "column",
+                  mt: 1,
+
+                  minHeight: 0, // importante para scroll funcionar
+                }}
+              >
+                <TextField
+                  label="Ementa"
+                  multiline
+                  minRows={10} // controle a altura mínima aqui
+                  maxRows={20} // opcional para limitar altura máxima
+                  fullWidth
+                  {...RForm.register("ementa")}
+                  disabled={isLoading}
                   sx={{
-                    overflow: "auto",
-                    padding: 0,
-                    pt: 1,
-                  }}
-                >
-                  <TextField
-                    label="Ementa"
-                    multiline
-                    fullWidth
-                    minRows={10}
-                    {...RForm.register("ementa")}
-                    disabled={isLoading}
-                    sx={{
+                    flexGrow: 1,
+                    "& textarea": {
+                      height: "100% !important",
+                      // minHeight: "200px",
+                      overflow: "auto",
+                      textAlign: "justify",
+                      hyphens: "auto",
+                    },
+                    "& .MuiInputBase-root": {
                       height: "100%",
-                      "& textarea": {
-                        height: "100% !important",
-                        textAlign: "justify",
-                        hyphens: "auto",
+                      alignItems: "start",
+                    },
+                  }}
+                  slotProps={{
+                    input: {
+                      style: {
+                        padding: "24px",
                       },
-                      "& .MuiInputBase-root": {
-                        height: "100%",
-                        alignItems: "start",
-                      },
-                    }}
-                    slotProps={{
-                      input: {
-                        style: {
-                          padding: "24px", // ajuste conforme desejado
-                        },
-                      },
-                      inputLabel: { shrink: true },
-                    }}
-                  />
-                  <Box
-                    display="flex"
-                    justifyContent="flex-end"
-                    height="56px"
-                    alignItems="center"
-                  >
-                    <Tooltip title="Copiar">
-                      <span>
-                        <IconButton
-                          onClick={() =>
-                            copiarParaClipboard(RForm.getValues("ementa"))
-                          }
-                          disabled={isLoading}
-                        >
-                          <ContentCopy fontSize="small" />
-                          <Typography variant="body2">Copiar</Typography>
-                        </IconButton>
-                      </span>
-                    </Tooltip>
-                  </Box>
+                    },
+                    inputLabel: { shrink: true },
+                  }}
+                />
+                <Box
+                  display="flex"
+                  justifyContent="flex-end"
+                  height="56px"
+                  alignItems="center"
+                  mt={1}
+                >
+                  <Tooltip title="Copiar">
+                    <span>
+                      <IconButton
+                        onClick={() =>
+                          copiarParaClipboard(RForm.getValues("ementa"))
+                        }
+                        disabled={isLoading}
+                      >
+                        <ContentCopy fontSize="small" />
+                        <Typography variant="body2">Copiar</Typography>
+                      </IconButton>
+                    </span>
+                  </Tooltip>
                 </Box>
               </Grid>
             </Grid>

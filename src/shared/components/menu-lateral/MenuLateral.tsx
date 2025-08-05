@@ -132,15 +132,6 @@ export const MenuLateral = ({ children }: IMenuLateralProps) => {
           <Divider />
           <Box>
             <List component="nav">
-              {/* About */}
-              <ListItemButton onClick={handleOpenAbout}>
-                <ListItemIcon>
-                  <Icon>
-                    <Info />
-                  </Icon>
-                </ListItemIcon>
-                <ListItemText primary="Sobre" />
-              </ListItemButton>
               {/* Alternar tema */}
               <ListItemButton onClick={toggleTheme}>
                 <ListItemIcon>
@@ -149,6 +140,15 @@ export const MenuLateral = ({ children }: IMenuLateralProps) => {
                   </Icon>
                 </ListItemIcon>
                 <ListItemText primary="Alternar tema" />
+              </ListItemButton>
+              {/* About */}
+              <ListItemButton onClick={handleOpenAbout}>
+                <ListItemIcon>
+                  <Icon>
+                    <Info />
+                  </Icon>
+                </ListItemIcon>
+                <ListItemText primary="Sobre" />
               </ListItemButton>
               {/* Sair */}
               <ListItemButton onClick={logout}>
@@ -176,8 +176,9 @@ export const MenuLateral = ({ children }: IMenuLateralProps) => {
           </DialogContentText>
           <DialogContentText sx={{ mt: 2 }}>
             Esta aplicação foi desenvolvida para oferecer uma interface amigável
-            e funcional para o gerenciamento de processos judiciais, com foco na
-            experiência do usuário e desempenho.
+            e funcional para a análise de processos e geração de minutas de
+            sentenças e decisões, com foco na experiência do usuário e
+            desempenho.
           </DialogContentText>
         </DialogContent>
         <DialogActions>
