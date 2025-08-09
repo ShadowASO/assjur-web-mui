@@ -27,6 +27,7 @@ import { useMatch, useNavigate, useResolvedPath } from "react-router-dom";
 import { useAppThemeContext } from "../../contexts/ThemeProvider";
 import { DarkMode, Logout, Info } from "@mui/icons-material";
 import { useAuth } from "../../contexts/AuthProvider";
+import { useSystem } from "../../contexts/SystemProvider";
 
 interface IListItemLinkProps {
   to: string;
@@ -68,6 +69,8 @@ export const MenuLateral = ({ children }: IMenuLateralProps) => {
   const { isDrawerOpen, toggleDrawerOpen, drawerOptions } = useDrawerContext();
   const { toggleTheme } = useAppThemeContext();
   const { logout, userLogged } = useAuth();
+  const { version: versionAPI } = useSystem();
+  const versionAPP = "1.0.2";
 
   // Estado para controlar a abertura do modal About
   const [openAbout, setOpenAbout] = useState(false);
@@ -166,13 +169,16 @@ export const MenuLateral = ({ children }: IMenuLateralProps) => {
 
       {/* Modal Sobre */}
       <Dialog open={openAbout} onClose={handleCloseAbout}>
-        <DialogTitle>Sobre esta aplicação</DialogTitle>
+        <DialogTitle>Assistente Jurídico IA</DialogTitle>
         <DialogContent dividers>
           <DialogContentText>
             <strong>Autor:</strong> Aldenor Oliveira
           </DialogContentText>
           <DialogContentText>
-            <strong>Versão:</strong> 1.0.1
+            <strong>Versão:</strong> {versionAPP}
+          </DialogContentText>
+          <DialogContentText>
+            <strong>Versão API:</strong> {versionAPI}
           </DialogContentText>
           <DialogContentText sx={{ mt: 2 }}>
             Esta aplicação foi desenvolvida para oferecer uma interface amigável

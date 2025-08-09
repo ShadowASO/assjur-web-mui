@@ -26,6 +26,7 @@ import {
   type IMessageResponseItem,
   type IResponseOpenaiApi,
 } from "../../shared/services/query/QueryResponse";
+import { useQueryGPT } from "../../shared/services/query/Query";
 
 export const ChatIA = () => {
   const theme = useTheme();
@@ -36,6 +37,7 @@ export const ChatIA = () => {
   const [isLoading, setIsLoading] = useState(false);
 
   const { addMessage, addOutput, messagesRef } = useMessageReponse();
+  const { getOutputMessageOpenAi } = useQueryGPT();
 
   const Api = useApi();
 
@@ -65,15 +67,19 @@ export const ChatIA = () => {
       //console.log(payload);
 
       const response = await Api.post("/query/chat", payload);
+      //console.log(response);
 
       if (response.ok && response.data) {
         const data = response.data as IResponseOpenaiApi;
 
-        const output = data?.output?.[0];
+        // const out: IOutputResponseItem | undefined = (
+        //   data.output as IOutputResponseItem[]
+        // ).find((o) => o?.type === "message");
+        const out = getOutputMessageOpenAi(data.output);
 
-        if (output) {
+        if (out) {
           //console.log(data.id);
-          addOutput(output);
+          addOutput(out);
           setPrevId(data.id);
         } else {
           addMessage("", "assistant", "Erro ao processar a resposta da API.");

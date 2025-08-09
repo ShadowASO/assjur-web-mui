@@ -39,6 +39,7 @@
 // }
 
 import { useRef } from "react";
+import type { IOutputResponseItem } from "./QueryResponse";
 
 // interface Prompt {
 // 	type: string;
@@ -147,6 +148,17 @@ export function useQueryGPT() {
       )
       .join("");
   }
+  //Retorna o primeiro registro de output que tem como type "message". Essa verificação se tornou necessária
+  //a partir dos modelos GPT-5, pois o registro[0] refere ao "reasoning".
+  function getOutputMessageOpenAi(
+    out: IOutputResponseItem[]
+  ): IOutputResponseItem | undefined {
+    const output: IOutputResponseItem | undefined = (
+      out as IOutputResponseItem[]
+    ).find((o) => o?.type === "message");
+
+    return output;
+  }
 
   return {
     //messages,
@@ -155,5 +167,6 @@ export function useQueryGPT() {
     getMessages,
     clearMessages,
     getMessagesAsString,
+    getOutputMessageOpenAi,
   };
 }

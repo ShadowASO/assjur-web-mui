@@ -224,6 +224,16 @@ export const AnalisesMain = () => {
     }
   };
 
+  //Retorna o primeiro registro de output que tem como type "message"
+  const getMessageOpenAi = (
+    out: IOutputResponseItem[]
+  ): IOutputResponseItem | undefined => {
+    const output: IOutputResponseItem | undefined = (
+      out as IOutputResponseItem[]
+    ).find((o) => o?.type === "message");
+
+    return output;
+  };
   // Enviar prompt para IA
   const handleSendPrompt = async () => {
     if (!prompt.trim()) {
@@ -248,9 +258,12 @@ export const AnalisesMain = () => {
       const response = await Api.post("/contexto/query/rag", payload);
       if (response.ok && response.data) {
         const data = response.data as IResponseOpenaiApi;
-        const output = data?.output?.[0];
-        if (output) {
-          funcToolFormataResposta(output);
+        //const output = data?.output?.[0];
+
+        const out = getMessageOpenAi(data?.output);
+
+        if (out) {
+          funcToolFormataResposta(out);
         } else {
           setDialogo("");
         }
