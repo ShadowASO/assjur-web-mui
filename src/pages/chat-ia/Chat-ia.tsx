@@ -72,9 +72,6 @@ export const ChatIA = () => {
       if (response.ok && response.data) {
         const data = response.data as IResponseOpenaiApi;
 
-        // const out: IOutputResponseItem | undefined = (
-        //   data.output as IOutputResponseItem[]
-        // ).find((o) => o?.type === "message");
         const out = getOutputMessageOpenAi(data.output);
 
         if (out) {

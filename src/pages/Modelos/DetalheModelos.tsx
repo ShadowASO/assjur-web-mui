@@ -1,16 +1,16 @@
 /**
  * File: DetalheModelos.tsx
  * Criação:  14/06/2025
+ * Alterações: 10/08/2025
  * Janela para cadastro de modelos de documentos
- *
  */
 
-import { useNavigate, useParams } from "react-router-dom";
+//import { useNavigate, useParams } from "react-router-dom";
 import { PageBaseLayout } from "../../shared/layouts";
 import { BarraDetalhes } from "../../shared/components/BarraDetalhes";
 import { useEffect, useState } from "react";
 import { useFlash } from "../../shared/contexts/FlashProvider";
-import { useForm } from "react-hook-form";
+import { Controller, useForm } from "react-hook-form";
 import {
   Box,
   Grid,
@@ -22,7 +22,6 @@ import {
   Tooltip,
   Typography,
 } from "@mui/material";
-
 import * as yup from "yup";
 import { setFormErrors } from "../../shared/forms/rhf/utilitarios";
 import {
@@ -33,11 +32,13 @@ import {
 } from "../../shared/services/api/fetch/apiTools";
 import { ContentCopy } from "@mui/icons-material";
 import { itemsNatureza } from "../../shared/constants/itemsModelos";
+import { TiptapEditor } from "../../shared/components/TiptapEditor";
+import { useNavigate, useParams, useLocation } from "react-router-dom";
 
 interface IFormData {
   natureza: string;
-  ementa: string;
-  inteiro_teor: string;
+  ementa: string; // armazenado como TEXTO
+  inteiro_teor: string; // armazenado como TEXTO
 }
 
 const formValidationSchema: yup.ObjectSchema<IFormData> = yup.object({
@@ -50,58 +51,76 @@ export const DetalheModelos = () => {
   const { id: idReg = "nova" } = useParams<"id">();
   const navigate = useNavigate();
   const { showFlashMessage } = useFlash();
-
   const [isLoading, setIsLoading] = useState(false);
-  const RForm = useForm<IFormData>();
-  const { watch, setValue } = RForm;
+
+  const RForm = useForm<IFormData>({
+    defaultValues: { natureza: "", ementa: "", inteiro_teor: "" },
+  });
+  const { watch, setValue, control } = RForm;
   const natureza = watch("natureza");
+
+  const location = useLocation();
+
+  const goBackToList = () => {
+    // Se há histórico, volta exatamente para a URL anterior (preserva ?q=&n=&sid= e scroll via sessionStorage)
+    if (window.history.length > 1) {
+      navigate(-1);
+      return;
+    }
+
+    // Fallback: tenta usar um 'fromSearch' opcional vindo via state
+    const fromSearch =
+      (location.state as { fromSearch?: string } | undefined)?.fromSearch ?? "";
+    navigate(`/modelos${fromSearch}`, { replace: true });
+  };
 
   useEffect(() => {
     (async () => {
       if (idReg !== "nova") {
-        setIsLoading(true);
-        console.log(idReg);
-        const rsp = await selectModelo(idReg);
-        //console.log(rsp);
-        setIsLoading(false);
-        if (rsp instanceof Error) {
-          showFlashMessage(rsp.message, "error");
-          navigate("/modelos");
-        } else {
-          if (rsp) {
-            //console.log(rsp);
-            RForm.reset(rsp);
-          } else {
-            RForm.reset({
-              natureza: "Selecione a natureza",
-              ementa: "",
-              inteiro_teor: "",
-            });
+        try {
+          setIsLoading(true);
+          const rsp = await selectModelo(idReg);
+          if (rsp instanceof Error) {
+            showFlashMessage(rsp.message, "error");
+            navigate("/modelos");
+            return;
           }
+          if (rsp) {
+            RForm.reset({
+              natureza: rsp.natureza ?? "",
+              ementa: rsp.ementa ?? "",
+              inteiro_teor: rsp.inteiro_teor ?? "",
+            });
+          } else {
+            RForm.reset({ natureza: "", ementa: "", inteiro_teor: "" });
+          }
+        } finally {
+          setIsLoading(false);
         }
       } else {
-        console.log(idReg);
-        RForm.reset({
-          natureza: "Selecione a natureza",
-          ementa: "",
-          inteiro_teor: "",
-        });
+        RForm.reset({ natureza: "", ementa: "", inteiro_teor: "" });
       }
     })();
-  }, [idReg]);
+  }, [idReg, navigate, showFlashMessage, RForm]);
 
-  const copiarParaClipboard = (texto: string) => {
-    navigator.clipboard.writeText(texto);
-    showFlashMessage(
-      "Texto copiado para a área de transferência!",
-      "success",
-      3
-    );
+  const copiarParaClipboard = async (texto: string) => {
+    try {
+      if (!texto) return;
+      await navigator.clipboard.writeText(texto);
+      showFlashMessage(
+        "Texto copiado para a área de transferência!",
+        "success",
+        3
+      );
+    } catch {
+      showFlashMessage("Não foi possível copiar o texto.", "error", 3);
+    }
   };
 
   const handleSaveFechar = async (data: IFormData) => {
     await handleSave(data);
-    navigate("/modelos");
+    //navigate("/modelos");
+    goBackToList(); // antes: navigate("/modelos")
   };
 
   const handleSave = async (data: IFormData) => {
@@ -109,9 +128,6 @@ export const DetalheModelos = () => {
       const valida = await formValidationSchema.validate(data, {
         abortEarly: false,
       });
-
-      //console.log(valida);
-
       setIsLoading(true);
       if (idReg === "nova") {
         const rsp = await insertModelos(
@@ -122,7 +138,6 @@ export const DetalheModelos = () => {
         if (rsp instanceof Error) {
           showFlashMessage(rsp.message, "error");
         } else {
-          console.log(rsp);
           showFlashMessage("Registro salvo com sucesso", "success");
           navigate(`/modelos/detalhes/${rsp?.id}`);
         }
@@ -151,15 +166,22 @@ export const DetalheModelos = () => {
       setIsLoading(false);
     }
   };
-  //DELETE
+
   const handleDelete = async (id: string) => {
+    if (id === "nova") return;
     if (confirm("Deseja realmente excluir o modelo?")) {
-      const rsp = await deleteModelos(id);
-      if (rsp) {
-        showFlashMessage("Registro excluído com sucesso", "success");
-        navigate("/modelos");
-      } else {
-        showFlashMessage("Erro na exclusão do registro", "error");
+      setIsLoading(true);
+      try {
+        const rsp = await deleteModelos(id);
+        if (rsp) {
+          showFlashMessage("Registro excluído com sucesso", "success");
+          //navigate("/modelos");
+          goBackToList(); // antes: navigate("/modelos")
+        } else {
+          showFlashMessage("Erro na exclusão do registro", "error");
+        }
+      } finally {
+        setIsLoading(false);
       }
     }
   };
@@ -177,21 +199,21 @@ export const DetalheModelos = () => {
           onClickButtonSalvarFechar={RForm.handleSubmit(handleSaveFechar)}
           onClickButtonApagar={() => handleDelete(idReg)}
           onClickButtonNovo={() => navigate("/modelos/detalhes/nova")}
-          onClickButtonVoltar={() => navigate("/modelos")}
+          //onClickButtonVoltar={() => navigate("/modelos")}
+          onClickButtonVoltar={goBackToList}
         />
       }
     >
-      <form onSubmit={RForm.handleSubmit(handleSave)}>
-        {/* <Box margin={1} component={Paper} variant="outlined"> */}
+      <form onSubmit={RForm.handleSubmit(handleSave)} autoComplete="off">
         <Grid container spacing={2} padding={1}>
           {isLoading && (
-            <Grid size={{ xs: 12, sm: 12, md: 12, lg: 12, xl: 12 }}>
+            <Grid size={{ xs: 12 }}>
               <LinearProgress />
             </Grid>
           )}
 
-          {/* COL-01: Esquerda - comboboxe + ementa */}
-          <Grid size={{ xs: 7, sm: 6, md: 5, lg: 4, xl: 4 }}>
+          {/* COL-01: Esquerda - Natureza + Ementa */}
+          <Grid size={{ xs: 12, sm: 6, md: 5, lg: 4, xl: 4 }}>
             <Grid
               container
               direction="column"
@@ -200,17 +222,20 @@ export const DetalheModelos = () => {
               sx={{ mt: 1, height: "calc(100vh - 300px)", display: "flex" }}
               variant="outlined"
             >
-              {/* Item da Natureza - campo fixo */}
+              {/* Natureza */}
               <Grid>
                 <TextField
                   select
                   label="Natureza"
                   fullWidth
-                  value={natureza ?? "Selecione a natureza"}
+                  value={natureza ?? ""}
                   onChange={(e) => setValue("natureza", e.target.value)}
                   disabled={isLoading}
                   sx={{ mt: 1 }}
                 >
+                  <MenuItem value="" disabled>
+                    Selecione a natureza
+                  </MenuItem>
                   {itemsNatureza.map((item) => (
                     <MenuItem key={item.key} value={item.description}>
                       {item.description}
@@ -219,48 +244,30 @@ export const DetalheModelos = () => {
                 </TextField>
               </Grid>
 
-              {/* Item do campo Ementa - deve ocupar o restante do espaço */}
+              {/* Ementa (WYSIWYG) */}
               <Grid
                 sx={{
                   flexGrow: 1,
                   display: "flex",
                   flexDirection: "column",
                   mt: 1,
-
-                  minHeight: 0, // importante para scroll funcionar
+                  minHeight: 0,
                 }}
               >
-                <TextField
-                  label="Ementa"
-                  multiline
-                  minRows={10} // controle a altura mínima aqui
-                  maxRows={20} // opcional para limitar altura máxima
-                  fullWidth
-                  {...RForm.register("ementa")}
-                  disabled={isLoading}
-                  sx={{
-                    flexGrow: 1,
-                    "& textarea": {
-                      height: "100% !important",
-                      // minHeight: "200px",
-                      overflow: "auto",
-                      textAlign: "justify",
-                      hyphens: "auto",
-                    },
-                    "& .MuiInputBase-root": {
-                      height: "100%",
-                      alignItems: "start",
-                    },
-                  }}
-                  slotProps={{
-                    input: {
-                      style: {
-                        padding: "24px",
-                      },
-                    },
-                    inputLabel: { shrink: true },
-                  }}
+                <Controller
+                  name="ementa"
+                  control={control}
+                  render={({ field }) => (
+                    <TiptapEditor
+                      label="Ementa"
+                      value={field.value ?? ""}
+                      onChange={field.onChange}
+                      disabled={isLoading}
+                      height="100%"
+                    />
+                  )}
                 />
+
                 <Box
                   display="flex"
                   justifyContent="flex-end"
@@ -268,16 +275,19 @@ export const DetalheModelos = () => {
                   alignItems="center"
                   mt={1}
                 >
-                  <Tooltip title="Copiar">
+                  <Tooltip title="Copiar ementa">
                     <span>
                       <IconButton
                         onClick={() =>
                           copiarParaClipboard(RForm.getValues("ementa"))
                         }
-                        disabled={isLoading}
+                        disabled={isLoading || !RForm.getValues("ementa")}
+                        aria-label="Copiar ementa"
                       >
                         <ContentCopy fontSize="small" />
-                        <Typography variant="body2">Copiar</Typography>
+                        <Typography variant="body2" ml={0.5}>
+                          Copiar
+                        </Typography>
                       </IconButton>
                     </span>
                   </Tooltip>
@@ -286,73 +296,62 @@ export const DetalheModelos = () => {
             </Grid>
           </Grid>
 
-          {/* Coluna esparçadora */}
-          <Grid size={{ xs: 0, sm: 0, md: 0, lg: 1, xl: 1 }} />
+          {/* Espaçador responsivo */}
+          <Grid size={{ xs: 12, sm: 0, md: 1, lg: 1, xl: 1 }} />
 
-          {/* Coluna direita: conteúdo do prompt */}
+          {/* COL-02: Direita - Conteúdo (WYSIWYG) */}
           <Grid size={{ xs: 12, sm: 12, md: 6, lg: 7, xl: 7 }}>
-            <Box
+            <Paper
+              variant="outlined"
               sx={{
                 height: "calc(100vh - 300px)",
-                overflow: "auto",
-                padding: 0,
+                display: "flex",
+                flexDirection: "column",
+                p: 2,
                 pt: 1,
+                overflow: "hidden",
               }}
             >
-              <TextField
-                component={Paper}
-                variant="outlined"
-                label="Conteúdo"
-                multiline
-                fullWidth
-                minRows={10}
-                {...RForm.register("inteiro_teor")}
-                disabled={isLoading}
-                sx={{
-                  height: "100%",
-                  "& textarea": {
-                    height: "100% !important",
-                    textAlign: "justify",
-                    hyphens: "auto",
-                  },
-                  "& .MuiInputBase-root": {
-                    height: "100%",
-                    alignItems: "start",
-                  },
-                }}
-                slotProps={{
-                  input: {
-                    style: {
-                      padding: "24px", // ajuste conforme desejado
-                    },
-                  },
-                  inputLabel: { shrink: true },
-                }}
+              <Controller
+                name="inteiro_teor"
+                control={control}
+                render={({ field }) => (
+                  <TiptapEditor
+                    label="Conteúdo"
+                    value={field.value ?? ""}
+                    onChange={field.onChange}
+                    disabled={isLoading}
+                    height="100%"
+                  />
+                )}
               />
-            </Box>
+            </Paper>
+
             <Box
               display="flex"
               justifyContent="flex-end"
               height="56px"
               alignItems="center"
             >
-              <Tooltip title="Copiar prompt">
+              <Tooltip title="Copiar conteúdo">
                 <span>
                   <IconButton
                     onClick={() =>
                       copiarParaClipboard(RForm.getValues("inteiro_teor"))
                     }
-                    disabled={isLoading}
+                    disabled={isLoading || !RForm.getValues("inteiro_teor")}
+                    aria-label="Copiar conteúdo"
                   >
                     <ContentCopy fontSize="small" />
-                    <Typography variant="body2">Copiar</Typography>
+                    <Typography variant="body2" ml={0.5}>
+                      Copiar
+                    </Typography>
                   </IconButton>
                 </span>
               </Tooltip>
             </Box>
           </Grid>
         </Grid>
-        {/* </Box> */}
       </form>
     </PageBaseLayout>
   );

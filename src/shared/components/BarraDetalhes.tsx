@@ -1,3 +1,10 @@
+/**
+ * File: BarraDetalhes.tsx
+ * Criação:  14/06/2025
+ * Alterações: 10/08/2025
+ * Componente que exibe uma barra de ações CRUD para as janelas de cadastro
+ */
+
 import { Add, ArrowBack, Delete, Save } from "@mui/icons-material";
 import {
   Box,
@@ -26,13 +33,11 @@ interface IBarraDetalhesProps {
 
 export const BarraDetalhes = ({
   labelButtonNovo = "Novo",
-
   showButtonNovo = true,
   showButtonVoltar = true,
   showButtonApagar = true,
   showButtonSalvar = true,
   showButtonSalvarFechar = false,
-
   onClickButtonNovo,
   onClickButtonVoltar,
   onClickButtonApagar,
@@ -40,6 +45,24 @@ export const BarraDetalhes = ({
   onClickButtonSalvarFechar,
 }: IBarraDetalhesProps) => {
   const theme = useTheme();
+
+  const buttonStyleContained = {
+    fontWeight: "bold",
+    px: 2,
+    "& .MuiSvgIcon-root": { color: "white" },
+  };
+
+  // const buttonStyleOutlined = {
+  //   borderWidth: 2,
+  //   fontWeight: "bold",
+  //   color: theme.palette.text.primary,
+  //   borderColor: theme.palette.text.primary,
+  //   "&:hover": {
+  //     borderColor: theme.palette.primary.main,
+  //     backgroundColor: theme.palette.action.hover,
+  //   },
+  // };
+
   return (
     <Box
       height={theme.spacing(5)}
@@ -51,108 +74,77 @@ export const BarraDetalhes = ({
       alignItems="center"
       component={Paper}
     >
-      {/* Botão */}
-      {
-        <Box flex={1} display={"flex"} justifyContent={"flex-start"} gap={0.5}>
-          {showButtonSalvar && (
-            <Button
-              color="primary"
-              disableElevation
-              variant="contained"
-              startIcon={<Save />}
-              onClick={onClickButtonSalvar}
+      <Box flex={1} display={"flex"} justifyContent={"flex-start"} gap={0.5}>
+        {showButtonSalvar && (
+          <Button
+            color="primary"
+            disableElevation
+            variant="contained"
+            startIcon={<Save />}
+            onClick={onClickButtonSalvar}
+          >
+            <Typography
+              variant="button"
+              whiteSpace={"nowrap"}
+              textOverflow={"ellipsis"}
+              overflow={"hidden"}
             >
-              <Typography
-                variant="button"
-                whiteSpace={"nowrap"}
-                textOverflow={"ellipsis"}
-                overflow={"hidden"}
-              >
-                Salvar
-              </Typography>
-            </Button>
-          )}
+              Salvar
+            </Typography>
+          </Button>
+        )}
 
-          {showButtonSalvarFechar && (
-            <Button
-              color="primary"
-              disableElevation
-              variant="outlined"
-              startIcon={<Save />}
-              onClick={onClickButtonSalvarFechar}
-            >
-              <Typography
-                variant="button"
-                whiteSpace={"nowrap"}
-                textOverflow={"ellipsis"}
-                overflow={"hidden"}
-              >
-                Salvar e fechar
-              </Typography>
-            </Button>
-          )}
+        {showButtonSalvarFechar && (
+          <Button
+            color="primary"
+            disableElevation
+            variant="contained"
+            startIcon={<Save />}
+            onClick={onClickButtonSalvarFechar}
+          >
+            Salvar e fechar
+          </Button>
+        )}
 
-          {showButtonApagar && (
-            <Button
-              color="primary"
-              disableElevation
-              variant="outlined"
-              startIcon={<Delete />}
-              onClick={onClickButtonApagar}
-            >
-              <Typography
-                variant="button"
-                whiteSpace={"nowrap"}
-                textOverflow={"ellipsis"}
-                overflow={"hidden"}
-              >
-                Apagar
-              </Typography>
-            </Button>
-          )}
+        {showButtonApagar && (
+          <Button
+            color="error"
+            disableElevation
+            variant="contained"
+            startIcon={<Delete />}
+            onClick={onClickButtonApagar}
+            sx={buttonStyleContained}
+          >
+            Apagar
+          </Button>
+        )}
 
-          {showButtonNovo && (
-            <Button
-              color="primary"
-              disableElevation
-              variant="outlined"
-              startIcon={<Add />}
-              onClick={onClickButtonNovo}
-            >
-              <Typography
-                variant="button"
-                whiteSpace={"nowrap"}
-                textOverflow={"ellipsis"}
-                overflow={"hidden"}
-              >
-                {labelButtonNovo}
-              </Typography>
-            </Button>
-          )}
+        {showButtonNovo && (
+          <Button
+            color="primary"
+            disableElevation
+            variant="contained"
+            startIcon={<Add />}
+            onClick={onClickButtonNovo}
+          >
+            {labelButtonNovo}
+          </Button>
+        )}
 
-          {/* <Divider variant="middle" orientation="vertical" /> */}
-          <Divider orientation="vertical" flexItem sx={{ mx: 1 }} />
+        <Divider orientation="vertical" flexItem sx={{ mx: 1 }} />
 
-          {showButtonVoltar && (
-            <Button
-              color="primary"
-              disableElevation
-              variant="outlined"
-              startIcon={<ArrowBack />}
-              onClick={onClickButtonVoltar}
-            >
-              <Typography
-                variant="button"
-                whiteSpace={"nowrap"}
-                textOverflow={"ellipsis"}
-                overflow={"hidden"}
-              >
-                Voltar
-              </Typography>
-            </Button>
-          )}
-        </Box>
-      }
+        {showButtonVoltar && (
+          <Button
+            color="inherit"
+            disableElevation
+            variant="contained"
+            startIcon={<ArrowBack />}
+            onClick={onClickButtonVoltar}
+          >
+            Voltar
+          </Button>
+        )}
+      </Box>
     </Box>
   );
 };

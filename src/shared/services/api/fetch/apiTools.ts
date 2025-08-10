@@ -1,10 +1,7 @@
 /**
- *  tools.jsx
- *
- * Rotinas genéricas e de uso global ficam concentradas neste módulo.
- *
- *
- * */
+ * tools.ts
+ * Refatorado: helpers genéricos, erros padronizados e retornos consistentes
+ */
 
 import { BASE_API_URL, getApiObjeto } from "./ApiCliente";
 import type { StandardBodyResponse } from "./ApiCliente";
@@ -19,611 +16,444 @@ import type {
 import { TokenStorage } from "./TokenStorage";
 import type { MetadadosProcessoCnj } from "../../../types/cnjTypes";
 
-/**
- * Obtém a instância global da Api
- */
+// ======================= Infra de API =======================
+
 const api = getApiObjeto();
 
-/**
- * Formato das respostas das chamadas à API
- */
-interface IResponseDataRows<T = unknown> {
-  row?: T;
-  rows?: T[];
-  message?: string;
+export class ApiError extends Error {
+  public readonly code?: number; // use "code" em vez de "status"
+  public readonly endpoint?: string;
+
+  constructor(message: string, code?: number, endpoint?: string) {
+    super(message);
+    this.name = "ApiError";
+    this.code = code;
+    this.endpoint = endpoint;
+  }
 }
 
-interface IResponseDataDocs<T = unknown> {
-  doc?: T;
-  docs?: T[];
-  message?: string;
+type OkResponse<T> = StandardBodyResponse & { ok: true; data: T };
+//type ErrResponse = StandardBodyResponse & { ok: false };
+
+function ensureOk<T>(
+  rsp: StandardBodyResponse,
+  endpoint: string
+): asserts rsp is StandardBodyResponse & { ok: true; data: T } {
+  if (rsp?.ok === true) return;
+
+  const code = rsp?.error?.code ?? 0;
+  const msg = rsp?.error?.message || `Falha na chamada à API (${endpoint}).`;
+
+  throw new ApiError(msg, code, endpoint);
 }
-/**
- * Tratamento centralizado das respostas da API
- * @param rspApi
- * @returns
- */
-function parseApiResponseDataRows<T>(rspApi: StandardBodyResponse): T[] | null {
-  if (rspApi.ok && rspApi.data) {
-    const data = rspApi.data as IResponseDataRows<T>;
-    if (data.rows) {
-      return data.rows;
-    }
-  }
-  return null;
+
+type RowsPayload<T> = { rows?: T[]; row?: T | null; message?: string };
+type DocsPayload<T> = { docs?: T[]; doc?: T | null; message?: string };
+
+function getRows<T>(rsp: StandardBodyResponse, endpoint: string): T[] {
+  ensureOk<RowsPayload<T>>(rsp, endpoint);
+  const data = rsp.data as RowsPayload<T>;
+  return Array.isArray(data?.rows) ? data.rows! : [];
 }
-function parseApiResponseDataRow<T>(rspApi: StandardBodyResponse): T | null {
-  if (rspApi.ok && rspApi.data) {
-    const data = rspApi.data as IResponseDataRows<T>;
-    if (data.row) {
-      return data.row;
-    }
-  }
-  return null;
+
+function getRow<T>(rsp: StandardBodyResponse, endpoint: string): T | null {
+  ensureOk<RowsPayload<T>>(rsp, endpoint);
+  const data = rsp.data as RowsPayload<T>;
+  return (data?.row ?? null) as T | null;
 }
+
+function getDocs<T>(rsp: StandardBodyResponse, endpoint: string): T[] {
+  ensureOk<DocsPayload<T>>(rsp, endpoint);
+  const data = rsp.data as DocsPayload<T>;
+  return Array.isArray(data?.docs) ? data.docs! : [];
+}
+
+function getDoc<T>(rsp: StandardBodyResponse, endpoint: string): T | null {
+  ensureOk<DocsPayload<T>>(rsp, endpoint);
+  const data = rsp.data as DocsPayload<T>;
+  return (data?.doc ?? null) as T | null;
+}
+
+// Opcional: suporte a AbortController/timeout em buscas
+interface CallOptions {
+  signal?: AbortSignal;
+}
+
+async function apiGet<T>(url: string, opts?: CallOptions) {
+  const rsp = await api.get(url, undefined, { signal: opts?.signal });
+  ensureOk<T>(rsp, url);
+  return rsp as OkResponse<T>;
+}
+
+async function apiPost<T>(url: string, body?: unknown, opts?: CallOptions) {
+  const rsp = await api.post(url, body, { signal: opts?.signal });
+  ensureOk<T>(rsp, url);
+  return rsp as OkResponse<T>;
+}
+async function apiPut<T>(url: string, body?: unknown, opts?: CallOptions) {
+  const rsp = await api.put(url, body, { signal: opts?.signal });
+  ensureOk<T>(rsp, url);
+  return rsp as OkResponse<T>;
+}
+async function apiDelete<T>(url: string, opts?: CallOptions) {
+  const rsp = await api.delete(url, { signal: opts?.signal });
+  ensureOk<T>(rsp, url);
+  return rsp as OkResponse<T>;
+}
+
+// ======================= CNJ =======================
+
 interface IResponseMetadadosCNJ {
-  metadados: MetadadosProcessoCnj;
+  metadados?: MetadadosProcessoCnj;
   message?: string;
 }
-/**
- * Confirma se o processo informado existe e devolve os metadados do CNJ
- * @param strProcesso
- * @returns
- */
-export const searchMetadadosCNJ = async (
-  strProcesso: string
-): Promise<MetadadosProcessoCnj | null> => {
+
+/** Confirma se o processo existe e devolve metadados do CNJ */
+export async function searchMetadadosCNJ(
+  strProcesso: string,
+  opts?: CallOptions
+): Promise<MetadadosProcessoCnj | null> {
   try {
-    const bodyObj = { numeroProcesso: strProcesso };
+    const body = { numeroProcesso: strProcesso };
+    const rsp = await apiPost<IResponseMetadadosCNJ>(
+      "/cnj/processo",
+      body,
+      opts
+    );
+    const meta = rsp.data.metadados;
 
-    const rsp = await api.post("/cnj/processo", bodyObj);
-    if (rsp.ok) {
-      const data = rsp.data as IResponseMetadadosCNJ;
-
-      if (data) {
-        const metaDados = data.metadados as MetadadosProcessoCnj;
-
-        if (metaDados.hits.total.value !== 0) {
-          /** Mensagem de debug */
-          console.log("Processo confirmado no CNJ: ", strProcesso);
-          return metaDados;
-        }
-      }
+    // defensivo: optional chaining
+    const total = meta?.hits?.total?.value ?? 0;
+    if (total > 0 && meta) {
+      console.debug("Processo confirmado no CNJ:", strProcesso);
+      return meta;
     }
     return null;
-  } catch (error) {
-    console.error("Erro na busca do processo no CNJ!", error);
-    throw new Error("Erro na busca do processo no CNJ!");
+  } catch (err) {
+    console.error("Erro na busca do processo no CNJ!", err);
+    throw new ApiError(
+      "Erro na busca do processo no CNJ!",
+      undefined,
+      "/cnj/processo"
+    );
   }
-};
+}
+
+// ======================= Tokens =======================
+
 export interface DataTokenUsage {
   prompt_tokens: number;
   completion_tokens: number;
   total_tokens: number;
 }
-export const getConsumoTokens = async (): Promise<DataTokenUsage> => {
+
+export async function getConsumoTokens(
+  opts?: CallOptions
+): Promise<DataTokenUsage> {
   try {
-    const rspApi = await api.get("/sessions/uso");
-    const data = rspApi.data as DataTokenUsage;
-    return data;
-  } catch (error) {
-    console.error("Erro ao acessar consumo de tokens:", error);
-    throw new Error("Erro ao acessar consumo de tokens.");
-  }
-};
-
-export const uploadFileToServer = async (idContexto: number, file: File) => {
-  if (file) {
-    const formData = new FormData();
-    formData.append("file", file);
-    formData.append("idContexto", idContexto.toString());
-    formData.append("filename_ori", file.name);
-
-    try {
-      /** O formato de arquivo é muito importante, pois só funciona com o
-       * formato 'multipart/form-data'
-       */
-      await fetch(BASE_API_URL + "/contexto/documentos/upload", {
-        method: "POST",
-        headers: {
-          Authorization: "Bearer " + TokenStorage.accessToken,
-        },
-        body: formData,
-      });
-    } catch (error) {
-      console.error(error);
-    }
-  }
-};
-
-export const refreshUploadFiles = async (
-  newContexto: string
-): Promise<UploadFilesRow[] | null> => {
-  if (newContexto === "") {
-    throw new Error("ID do contexto ausente.");
-  }
-
-  try {
-    const rspApi = await api.get(`/contexto/documentos/upload/${newContexto}`);
-
-    const rows = parseApiResponseDataRows<UploadFilesRow>(rspApi);
-    if (rows) {
-      return rows;
-    }
-    return null;
-  } catch (error) {
-    console.error("Erro ao acessar a API:", error);
-    throw new Error("Erro ao acessar a API.");
-  }
-};
-
-export const deleteUploadFileById = async (IdReg: number): Promise<boolean> => {
-  try {
-    const rspApi = await api.delete(
-      `/contexto/documentos/upload/${String(IdReg)}`
-    );
-
-    if (rspApi.ok) {
-      return true;
-    } else {
-      throw new Error(`Erro ao deletar registro: ID ${IdReg}`);
-    }
-  } catch (error) {
-    throw new Error(
-      (error as { message?: string }).message || "Erro ao deletar registros."
+    const rsp = await apiGet<DataTokenUsage>("/sessions/uso", opts);
+    return rsp.data;
+  } catch (err) {
+    console.error("Erro ao acessar consumo de tokens:", err);
+    throw new ApiError(
+      "Erro ao acessar consumo de tokens.",
+      undefined,
+      "/sessions/uso"
     );
   }
-};
+}
 
-export const extracDocumentWithOCR = async (
+// ======================= Upload / OCR =======================
+
+export async function uploadFileToServer(
+  idContexto: number,
+  file: File
+): Promise<boolean> {
+  if (!file) return false;
+
+  const formData = new FormData();
+  formData.append("file", file);
+  formData.append("idContexto", String(idContexto));
+  formData.append("filename_ori", file.name);
+
+  try {
+    const rsp = await fetch(`${BASE_API_URL}/contexto/documentos/upload`, {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${TokenStorage.accessToken ?? ""}`,
+        // NÃO defina Content-Type com FormData
+      },
+      body: formData,
+    });
+
+    if (!rsp.ok) {
+      const msg = await safeReadText(rsp);
+      throw new ApiError(
+        msg || "Falha no upload do arquivo.",
+        rsp.status,
+        "/contexto/documentos/upload"
+      );
+    }
+    return true;
+  } catch (err) {
+    console.error("Erro no upload do arquivo:", err);
+    throw err instanceof ApiError
+      ? err
+      : new ApiError(
+          "Erro no upload do arquivo.",
+          undefined,
+          "/contexto/documentos/upload"
+        );
+  }
+}
+
+async function safeReadText(rsp: Response) {
+  try {
+    return await rsp.text();
+  } catch {
+    return "";
+  }
+}
+
+export async function refreshUploadFiles(
+  idContexto: string,
+  opts?: CallOptions
+): Promise<UploadFilesRow[]> {
+  if (!idContexto) throw new ApiError("ID do contexto ausente.");
+  const rsp = await apiGet<RowsPayload<UploadFilesRow>>(
+    `/contexto/documentos/upload/${idContexto}`,
+    opts
+  );
+  return getRows<UploadFilesRow>(rsp, "/contexto/documentos/upload/:id");
+}
+
+export async function deleteUploadFileById(id: number): Promise<boolean> {
+  await apiDelete<unknown>(`/contexto/documentos/upload/${id}`);
+  return true;
+}
+
+export async function extractDocumentWithOCR( // (renomeado)
   idCtxt: number,
   idDoc: number
-): Promise<boolean> => {
-  const objBody: {
-    IdContexto: number;
-    IdFile: number;
-  }[] = [];
+): Promise<boolean> {
+  const body = [{ IdContexto: idCtxt, IdFile: idDoc }];
+  await apiPost<unknown>("/contexto/documentos", body);
+  return true;
+}
 
-  const obj = {
-    IdContexto: idCtxt,
-    IdFile: idDoc,
-  };
-
-  objBody.push(obj);
-  try {
-    await api.post("/contexto/documentos", objBody);
-    return true;
-  } catch (error) {
-    console.error("Erro ao extrair documento com OCR: " + error);
-    throw new Error("Erro ao extrair documento com OCR: ");
-  }
-};
-
-export const extracWithOCRByContexto = async (
+export async function extractWithOCRByContexto( // (renomeado)
   idContexto: number
-): Promise<boolean> => {
-  try {
-    const rspApi = await api.post(`/contexto/documentos/${String(idContexto)}`);
-    //console.log(rspApi);
-    if (rspApi.ok) {
-      return true;
-    }
-  } catch (error) {
-    console.error("Erro ao extrair documento com OCR: " + error);
-    throw new Error("Erro ao extrair documento com OCR: ");
-  }
-  return false;
-};
-/**
- * Juntada de todos os docuemntos da tabela Autos_temp na tabela Autos
- * @param idContexto
- * @returns
- */
-export const SanearByContexto = async (
+): Promise<boolean> {
+  await apiPost<unknown>(`/contexto/documentos/${idContexto}`);
+  return true;
+}
+
+export async function consolidarAutosByContexto( // (renomeado)
   idContexto: number
-): Promise<boolean> => {
-  try {
-    const rspApi = await api.post(
-      `/contexto/documentos/saneador/${String(idContexto)}`
-    );
-    //console.log(rspApi);
-    if (rspApi.ok) {
-      return true;
-    }
-  } catch (error) {
-    console.error("Erro ao extrair documento com OCR: " + error);
-    throw new Error("Erro ao extrair documento com OCR: ");
-  }
-  return false;
-};
+): Promise<boolean> {
+  await apiPost<unknown>(`/contexto/documentos/saneador/${idContexto}`);
+  return true;
+}
 
-export const refreshOcrByContexto = async (
-  idContexto: number
-): Promise<DocsOcrRow[] | null> => {
-  if (idContexto === 0) {
-    throw new Error("ID do registro ausente.");
-  }
-  try {
-    const rspApi = await api.get(
-      `/contexto/documentos/all/${String(idContexto)}`
-    );
+export async function refreshOcrByContexto(
+  idContexto: number,
+  opts?: CallOptions
+): Promise<DocsOcrRow[]> {
+  if (!idContexto) throw new ApiError("ID do registro ausente.");
+  const rsp = await apiGet<RowsPayload<DocsOcrRow>>(
+    `/contexto/documentos/all/${idContexto}`,
+    opts
+  );
+  return getRows<DocsOcrRow>(rsp, "/contexto/documentos/all/:id");
+}
 
-    const rows = parseApiResponseDataRows<DocsOcrRow>(rspApi);
-    if (rows) {
-      return rows;
-    }
-    return null;
-  } catch (error) {
-    console.error("Erro ao acessar a API:", error);
-    throw new Error("Erro ao acessar a API.");
-  }
-};
+export async function deleteOcrdocByIdDoc(idDoc: string): Promise<boolean> {
+  await apiDelete<unknown>(`/contexto/documentos/${idDoc}`);
+  return true;
+}
 
-export const deleteOcrdocByIdDoc = async (IdDoc: string): Promise<boolean> => {
-  try {
-    const rspApi = await api.delete(`/contexto/documentos/${String(IdDoc)}`);
-
-    if (rspApi.ok) {
-      return true;
-    } else {
-      throw new Error(`Erro ao deletar registro: ID ${IdDoc}`);
-    }
-  } catch (error) {
-    throw new Error(
-      (error as { message?: string }).message || "Erro ao deletar registros."
-    );
-  }
-};
-
-export const selectAutosTemp = async (
+export async function selectAutosTemp(
   idDoc: number
-): Promise<DocsOcrRow | null> => {
-  if (idDoc === 0) {
-    throw new Error("ID do registro ausente.");
-  }
-  try {
-    const rspApi = await api.get(`/contexto/documentos/${String(idDoc)}`);
-    const row = parseApiResponseDataRow<DocsOcrRow>(rspApi);
-    if (row) {
-      return row;
-    }
-    return null;
-  } catch (error) {
-    console.error("Erro ao acessar a API:", error);
-    throw new Error("Erro ao acessar a API.");
-  }
-};
-/**
- * Juntada dos documentos de forma individualizada
- * @param fileAutuar
- * @returns
- */
+): Promise<DocsOcrRow | null> {
+  if (!idDoc) throw new ApiError("ID do registro ausente.");
+  const rsp = await apiGet<RowsPayload<DocsOcrRow>>(
+    `/contexto/documentos/${idDoc}`
+  );
+  return getRow<DocsOcrRow>(rsp, "/contexto/documentos/:id");
+}
+
+// ======================= Autuação =======================
+
 export interface DataAutuaDocumento {
   extractedFiles: string[];
   extractedErros: string[];
   message: string;
 }
-export const autuarDocumentos = async (
-  fileAutuar: {
+
+export async function autuarDocumentos(
+  body: {
     IdContexto: number;
     IdDoc: string;
   }[]
-): Promise<DataAutuaDocumento | null> => {
-  try {
-    if (fileAutuar.length > 0) {
-      const rspApi = await api.post("/contexto/documentos/autua", fileAutuar);
-      const data = rspApi.data as DataAutuaDocumento;
-      return data;
-    } else {
-      return null;
-    }
-  } catch (error) {
-    console.error("Erro ao autuar o documento:", error);
-    throw new Error("Erro ao autuar o documentos.");
-  }
-};
+): Promise<DataAutuaDocumento | null> {
+  if (body.length === 0) return null;
+  const rsp = await apiPost<DataAutuaDocumento>(
+    "/contexto/documentos/autua",
+    body
+  );
+  return rsp.data ?? null;
+}
 
-export const refreshAutos = async (idContexto: number) => {
-  const regs: AutosRow[] = [];
-  if (idContexto === 0) {
-    return regs;
-  }
-  try {
-    const rspApi = await api.get(`/contexto/autos/all/${String(idContexto)}`);
-    //console.log(rspApi);
+// ======================= Autos =======================
 
-    return parseApiResponseDataRows<AutosRow>(rspApi);
-  } catch (error) {
-    // Lida com erros da chamada à API
-    console.error("Erro ao acessar a API:", error);
-    throw error;
-  }
-};
-/**
- * Seleciona uma peça dos autos pelo id
- * @param idDoc
- * @returns
- */
-export const selectAutos = async (idDoc: number): Promise<AutosRow | null> => {
-  if (idDoc === 0) {
-    throw new Error("ID do registro ausente.");
-  }
-  try {
-    const rspApi = await api.get(`/contexto/autos/${String(idDoc)}`);
+export async function refreshAutos(idContexto: number): Promise<AutosRow[]> {
+  if (!idContexto) return [];
+  const rsp = await apiGet<RowsPayload<AutosRow>>(
+    `/contexto/autos/all/${idContexto}`
+  );
+  return getRows<AutosRow>(rsp, "/contexto/autos/all/:id");
+}
 
-    const row = parseApiResponseDataRow<AutosRow>(rspApi);
-    if (row) {
-      return row;
-    }
-    return null;
-  } catch (error) {
-    console.error("Erro ao acessar a API:", error);
-    throw new Error("Erro ao acessar a API.");
-  }
-};
+export async function selectAutos(idDoc: number): Promise<AutosRow | null> {
+  if (!idDoc) throw new ApiError("ID do registro ausente.");
+  const rsp = await apiGet<RowsPayload<AutosRow>>(`/contexto/autos/${idDoc}`);
+  return getRow<AutosRow>(rsp, "/contexto/autos/:id");
+}
 
-export const insertDocumentoAutos = async (
+export async function insertDocumentoAutos(
   IdCtxt: number,
   IdNatu: number,
   IdPje: string,
   Doc: string,
   DocJson: string
-): Promise<AutosRow | null> => {
-  try {
-    const doc = {
-      id_ctxt: IdCtxt,
-      id_natu: IdNatu,
-      id_pje: IdPje,
-      doc: Doc,
-      doc_json: DocJson,
-    };
-    const rspApi = await api.post(`/contexto/autos`, doc);
+): Promise<AutosRow | null> {
+  const body = {
+    id_ctxt: IdCtxt,
+    id_natu: IdNatu,
+    id_pje: IdPje,
+    doc: Doc,
+    doc_json: DocJson,
+  };
+  const rsp = await apiPost<RowsPayload<AutosRow>>("/contexto/autos", body);
+  return getRow<AutosRow>(rsp, "/contexto/autos");
+}
 
-    const row = parseApiResponseDataRow<AutosRow>(rspApi);
-    if (row) {
-      return row;
-    }
-    return null;
-  } catch (error) {
-    console.error("Erro ao acessar a API:", error);
-    throw new Error("Erro ao acessar a API.");
-  }
-};
+export async function deleteAutos(id: string): Promise<boolean> {
+  await apiDelete<unknown>(`/contexto/autos/${id}`);
+  return true;
+}
 
-/**
- * Deleta uma peça dos autos pelo idDoc
- * @param idDoc
- * @returns
- */
-export const deleteAutos = async (
-  id: string
-): Promise<StandardBodyResponse | null> => {
-  if (id.length === 0) {
-    return null;
-  }
-  try {
-    const rspApi = await api.delete(`/contexto/autos/${id}`);
+// ======================= Contexto =======================
 
-    if (rspApi.ok) {
-      return rspApi;
-    }
-  } catch (error) {
-    // Lida com erros da chamada à API
-    console.error("erro ao acessa a API:", error);
-  }
-  return null;
-};
-/**
- * Cria um novo contexto
- * @param nrProcesso
- * @param juizo
- * @param classe
- * @param assunto
- * @returns
- */
-export const insertContexto = async (
-  //metadadosCnj: MetadadosProcessoCnj
+export async function insertContexto(
   nrProcesso: string,
   juizo: string,
   classe: string,
   assunto: string
-): Promise<ContextoRow | null> => {
-  try {
-    const rspApi = await api.post("/contexto", {
-      NrProc: nrProcesso,
-      Juizo: juizo,
-      Classe: classe,
-      Assunto: assunto,
-    });
+): Promise<ContextoRow | null> {
+  const rsp = await apiPost<RowsPayload<ContextoRow>>("/contexto", {
+    NrProc: nrProcesso,
+    Juizo: juizo,
+    Classe: classe,
+    Assunto: assunto,
+  });
+  return getRow<ContextoRow>(rsp, "/contexto");
+}
 
-    const row = parseApiResponseDataRow<ContextoRow>(rspApi);
-    if (row) {
-      return row;
-    }
-    return null;
-  } catch (error) {
-    console.error("Erro ao buscar metadados no CNJ", error);
-    throw new Error("Erro ao buscar metadados no CNJ");
-  }
-};
-
-export const getContexto = async (
+export async function getContexto(
   strProcesso: string
-): Promise<ContextoRow | null> => {
-  try {
-    const rspApi = await api.get(`/contexto/processo/${strProcesso}`);
+): Promise<ContextoRow | null> {
+  const rsp = await apiGet<RowsPayload<ContextoRow>>(
+    `/contexto/processo/${strProcesso}`
+  );
+  return getRow<ContextoRow>(rsp, "/contexto/processo/:nr");
+}
 
-    const row = parseApiResponseDataRow<ContextoRow>(rspApi);
-    if (row) {
-      return row;
-    }
-    return null;
-  } catch (error) {
-    console.error("Erro ao acessar a API:", error);
-    throw new Error("Erro ao acessar a API.");
-  }
-};
-/**
- * Faz a busca dos contextos que possuam um número de processo semelhante ao indicado
- * @param strProcesso
- * @returns
- */
-export const searchContexto = async (
-  strProcesso: string
-): Promise<ContextoRow[] | null> => {
-  try {
-    const bodyObj = {
-      search_processo: strProcesso,
-    };
+export async function searchContexto(
+  strProcesso: string,
+  opts?: CallOptions
+): Promise<ContextoRow[]> {
+  const rsp = await apiPost<RowsPayload<ContextoRow>>(
+    "/contexto/processo/search",
+    { search_processo: strProcesso },
+    opts
+  );
+  return getRows<ContextoRow>(rsp, "/contexto/processo/search");
+}
 
-    const rspApi = await api.post("/contexto/processo/search", bodyObj);
-
-    const rows = parseApiResponseDataRows<ContextoRow>(rspApi);
-
-    if (rows) {
-      return rows;
-    }
-    return null;
-  } catch (error) {
-    console.error("Erro ao acessar a API:", error);
-    throw new Error("Erro ao acessar a API.");
-  }
-};
-
-export const getContextoById = async (
+export async function getContextoById(
   idCtxt: string
-): Promise<ContextoRow | null> => {
+): Promise<ContextoRow | null> {
+  const rsp = await apiGet<RowsPayload<ContextoRow>>(`/contexto/${idCtxt}`);
+  return getRow<ContextoRow>(rsp, "/contexto/:id");
+}
+
+export async function getContextosAll(): Promise<ContextoRow[] | null> {
+  const rsp = await apiGet<RowsPayload<ContextoRow>>(`/contexto`);
+  return getRows<ContextoRow>(rsp, "/contexto");
+}
+
+export async function getContextoTokensUso(
+  idCtxt: number
+): Promise<ContextoRow | null> {
+  const rsp = await apiGet<RowsPayload<ContextoRow>>(`/tokens/${idCtxt}`);
+  return getRow<ContextoRow>(rsp, "/tokens/:id");
+}
+
+export async function deleteContexto(idCtxt: string): Promise<boolean> {
   try {
-    const rspApi = await api.get(`/contexto/${idCtxt}`);
-
-    const row = parseApiResponseDataRow<ContextoRow>(rspApi);
-    if (row) {
-      return row;
-    }
-    return null;
-  } catch (error) {
-    console.error("Erro ao acessar a API:", error);
-    throw new Error("Erro ao acessar a API.");
+    await apiDelete<unknown>(`/contexto/${idCtxt}`);
+    return true;
+  } catch (err) {
+    console.error("Erro ao deletar contexto:", err);
+    throw new ApiError(
+      "Exclusão rejeitada! Exclua primeiro os documentos autuados!",
+      undefined,
+      "/contexto/:id"
+    );
   }
-};
+}
 
-export const refreshContextos = async (): Promise<ContextoRow[] | null> => {
-  try {
-    const rspApi = await api.get("/contexto");
+// ======================= Prompts =======================
 
-    const rows = parseApiResponseDataRows<ContextoRow>(rspApi);
-    if (rows) {
-      return rows;
-    }
-    return null;
-  } catch (error) {
-    console.error("Erro ao acessar a API:", error);
-    throw new Error("Erro ao acessar a API.");
-  }
-};
-/**
- * Aparentemente a API não foi implementada ainda
- 
- */
-export const deleteContexto = async (IdDoc: string): Promise<boolean> => {
-  try {
-    const rspApi = await api.delete(`/contexto/${IdDoc}`, {});
+export async function refreshPrompts(): Promise<PromptsRow[]> {
+  const rsp = await apiGet<RowsPayload<PromptsRow>>("/tabelas/prompts");
+  return getRows<PromptsRow>(rsp, "/tabelas/prompts");
+}
 
-    if (rspApi.ok) {
-      return rspApi.ok;
-    } else {
-      console.error(`Contexto Id: ${rspApi.error?.message} não foi deletado!`);
-      throw new Error(
-        "Exclusão rejeitada! Exclua primeiro os documentos autuados!"
-      );
-    }
-  } catch (error) {
-    console.error("Erro ao deletar o registro: " + error);
-    throw new Error("Erro ao deletar o registro:.");
-  }
-  return false;
-};
+export async function selectPrompt(
+  idPrompt: number
+): Promise<PromptsRow | null> {
+  const rsp = await apiGet<RowsPayload<PromptsRow>>(
+    `/tabelas/prompts/${idPrompt}`
+  );
+  return getRow<PromptsRow>(rsp, "/tabelas/prompts/:id");
+}
 
-//PromptRow
-export const updatePrompt = async (
+export async function updatePrompt(
   idPrompt: number,
   nmDesc: string,
   txtPrompt: string
-): Promise<PromptsRow | null> => {
-  const prompt = {
-    id_prompt: idPrompt,
-    nm_desc: nmDesc,
-    txt_prompt: txtPrompt,
-  };
-  try {
-    const rspApi = await api.put("/tabelas/prompts", prompt);
+): Promise<PromptsRow | null> {
+  const body = { id_prompt: idPrompt, nm_desc: nmDesc, txt_prompt: txtPrompt };
+  const rsp = await apiPut<RowsPayload<PromptsRow>>("/tabelas/prompts", body);
+  return getRow<PromptsRow>(rsp, "/tabelas/prompts");
+}
 
-    const row = parseApiResponseDataRow<PromptsRow>(rspApi);
-    if (row) {
-      return row;
-    }
-    return null;
-  } catch (error) {
-    console.error("Erro ao alterar o prompt: " + error);
-  }
-  throw new Error("Erro não identificado.");
-};
+export async function deletePrompt(idPrompt: number): Promise<boolean> {
+  await apiDelete<unknown>(`/tabelas/prompts/${idPrompt}`);
+  return true;
+}
 
-export const deletePrompt = async (idPrompt: number): Promise<boolean> => {
-  try {
-    const rspApi = await api.delete(`/tabelas/prompts/${String(idPrompt)}`);
-    return rspApi.ok ? rspApi.ok : false;
-  } catch (error) {
-    console.error("Erro ao deletar o prompt: " + error);
-    throw new Error("Erro ao deletar o registro: ");
-  }
-};
-
-export const refreshPrompts = async (): Promise<PromptsRow[] | null> => {
-  try {
-    const rspApi = await api.get("/tabelas/prompts");
-
-    const rows = parseApiResponseDataRows<PromptsRow>(rspApi);
-    if (rows) {
-      return rows;
-    }
-    return null;
-  } catch (error) {
-    // Lida com erros da chamada à API
-    console.error("Error accessing the API:", error);
-    throw new Error("Failed to fetch prompts from the API");
-  }
-  throw new Error("Erro não identificado.");
-};
-
-export const selectPrompt = async (
-  idPrompt: number
-): Promise<PromptsRow | null> => {
-  try {
-    const rspApi = await api.get(`/tabelas/prompts/${String(idPrompt)}`);
-
-    const row = parseApiResponseDataRow<PromptsRow>(rspApi);
-    if (row) {
-      return row;
-    }
-    return null;
-  } catch (error) {
-    // Lida com erros da chamada à API
-    console.error("Error accessing the API:", error);
-    throw new Error("Failed to fetch prompts from the API");
-  }
-  throw new Error("Erro não identificado.");
-};
-//PromptRow
-export const insertPrompt = async (
+export async function insertPrompt(
   idNat: number,
   idDoc: number,
   idClasse: number,
   idAssunto: number,
   nmDesc: string,
   txtPrompt: string
-): Promise<PromptsRow | null> => {
-  const prompt = {
+): Promise<PromptsRow | null> {
+  const body = {
     id_nat: idNat,
     id_doc: idDoc,
     id_classe: idClasse,
@@ -631,165 +461,80 @@ export const insertPrompt = async (
     nm_desc: nmDesc,
     txt_prompt: txtPrompt,
   };
-  try {
-    const rspApi = await api.post("/tabelas/prompts", prompt);
+  const rsp = await apiPost<RowsPayload<PromptsRow>>("/tabelas/prompts", body);
+  return getRow<PromptsRow>(rsp, "/tabelas/prompts");
+}
 
-    if (rspApi.ok) {
-      const data = rspApi.data as IResponseDataRows<PromptsRow>;
-      return data.row || null;
-    }
-  } catch (error) {
-    console.error("Erro ao inserir o prompt: " + error);
-    throw new Error("Erro ao inserir o registro: ");
-  }
-  return null;
-};
-// // ** Modelos rows
-interface ResponseModelosInsert {
+// ======================= Modelos =======================
+
+export interface ResponseModelosInsert {
   id: string;
   message: string;
 }
-export const insertModelos = async (
-  Natureza: string,
-  Ementa: string,
-  Inteiro_teor: string
-): Promise<ResponseModelosInsert | null> => {
-  const modelos = {
-    natureza: Natureza,
-    ementa: Ementa,
-    inteiro_teor: Inteiro_teor,
-  };
-  try {
-    const rspApi = await api.post("/tabelas/modelos", modelos);
 
-    if (rspApi.ok && rspApi.data) {
-      const data = rspApi.data as ResponseModelosInsert;
-      //console.log(data);
-      return data;
-    }
-  } catch (error) {
-    console.error("Erro ao inserir o modelo: " + error);
-  }
-  return null;
-};
+export async function insertModelos(
+  natureza: string,
+  ementa: string,
+  inteiro_teor: string
+): Promise<ResponseModelosInsert | null> {
+  const body = { natureza, ementa, inteiro_teor };
+  const rsp = await apiPost<ResponseModelosInsert>("/tabelas/modelos", body);
+  return rsp.data ?? null;
+}
 
-export const updateModelos = async (
-  Id: string,
-  Natureza: string,
-  Ementa: string,
-  Inteiro_teor: string
-): Promise<ModelosRow | null> => {
-  const modelos = {
-    natureza: Natureza,
-    ementa: Ementa,
-    inteiro_teor: Inteiro_teor,
-  };
-  try {
-    const rspApi = await api.put(`/tabelas/modelos/${Id}`, modelos);
+export async function updateModelos(
+  id: string,
+  natureza: string,
+  ementa: string,
+  inteiro_teor: string
+): Promise<ModelosRow | null> {
+  const body = { natureza, ementa, inteiro_teor };
+  const rsp = await apiPut<DocsPayload<ModelosRow>>(
+    `/tabelas/modelos/${id}`,
+    body
+  );
+  return getDoc<ModelosRow>(rsp, "/tabelas/modelos/:id");
+}
 
-    if (rspApi.ok) {
-      const data = rspApi.data as IResponseDataDocs<ModelosRow>;
-      return data.doc || null;
-    }
-  } catch (error) {
-    console.error("Erro ao alterar o modelo: " + error);
-  }
-  return null;
-};
-
-export const searchModelos = async (
+export async function searchModelos(
   consulta: string,
-  natureza: string
-): Promise<ModelosRow[] | null> => {
-  try {
-    const bodyObj = {
-      Index_name: "ml-modelos-msmarco",
-      Natureza: natureza,
-      Search_texto: consulta,
-    };
+  natureza: string,
+  opts?: CallOptions
+): Promise<ModelosRow[]> {
+  const body = {
+    Index_name: "ml-modelos-msmarco",
+    Natureza: natureza,
+    Search_texto: consulta,
+  };
+  const rsp = await apiPost<DocsPayload<ModelosRow>>(
+    "/tabelas/modelos/search",
+    body,
+    opts
+  );
+  return getDocs<ModelosRow>(rsp, "/tabelas/modelos/search");
+}
 
-    const rspApi = await api.post("/tabelas/modelos/search", bodyObj);
+export async function deleteModelos(id: string): Promise<boolean> {
+  await apiDelete<unknown>(`/tabelas/modelos/${id}`);
+  return true;
+}
 
-    if (rspApi.ok) {
-      const data = rspApi.data as IResponseDataDocs<ModelosRow>;
+export async function selectModelo(id: string): Promise<ModelosRow | null> {
+  const rsp = await apiGet<DocsPayload<ModelosRow>>(`/tabelas/modelos/${id}`);
+  return getDoc<ModelosRow>(rsp, "/tabelas/modelos/:id");
+}
 
-      if (data.docs && data.docs.length > 0) {
-        return data.docs;
-      } else {
-        return null;
-      }
-    }
-    return null;
-  } catch (error) {
-    console.error("Erro ao buscar modelos:", error);
-    // Lança o erro para ser tratado por quem chamou
-    throw error instanceof Error
-      ? error
-      : new Error("Erro inesperado ao buscar modelos");
-  }
-};
+// ======================= Utilitários =======================
 
-export const deleteModelos = async (IdDoc: string): Promise<boolean> => {
-  try {
-    const rspApi = await api.delete(`/tabelas/modelos/${IdDoc}`, {});
-
-    if (rspApi.ok) {
-      return rspApi.ok;
-    } else {
-      console.error(`Modelo Id: ${IdDoc} não foi deletado!`);
-      throw new Error("Erro ao deletar registro.");
-    }
-  } catch (error) {
-    console.error("Erro ao deletar o modelo: " + error);
-    throw new Error(
-      (error as { message: string }).message || "Erro ao deletar registros."
-    );
-  }
-  return false;
-};
-/**
- * DEvolve um documento pelo id
- * @param idDoc
- * @returns
- */
-export const selectModelo = async (
-  idDoc: string
-): Promise<ModelosRow | null> => {
-  try {
-    const rspApi = await api.get(`/tabelas/modelos/${idDoc}`);
-    if (rspApi.ok && rspApi.data) {
-      const data = rspApi.data as IResponseDataDocs<ModelosRow>;
-      return data.doc || null;
-    }
-  } catch (error) {
-    // Lida com erros da chamada à API
-    console.error("Error accessing the API:", error);
-    throw new Error("Failed to fetch prompts from the API");
-  }
-  return null;
-};
-
-/**
- *
- * @param contexto Formata o número de contexto como segue: 99999
- * @returns
- */
-export function formatContexto(contexto: number) {
+/** 99999 -> "099999" */
+export function formatContexto(contexto: number): string {
   return String(contexto).padStart(5, "0");
 }
-/**
- * Formata o número do processo: 9999999-99.9999.9.99.9999
- * @param numero
- * @returns
- */
-export function formatNumeroProcesso(numero: string) {
-  // Garante que a string tenha no máximo 20 caracteres
-  let numeroStr = String(numero).slice(-20);
 
-  // Preenche com zeros à esquerda se tiver menos de 20 caracteres
-  numeroStr = numeroStr.padStart(20, "0");
-
-  // Aplica a formatação
+/** Formata CNJ: 9999999-99.9999.9.99.9999 */
+export function formatNumeroProcesso(numero: string): string {
+  const digits = (numero ?? "").replace(/\D/g, ""); // limpa tudo que não é dígito
+  const numeroStr = digits.slice(-20).padStart(20, "0");
   return `${numeroStr.slice(0, 7)}-${numeroStr.slice(7, 9)}.${numeroStr.slice(
     9,
     13

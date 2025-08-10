@@ -12,7 +12,8 @@ import { useEffect, useState } from "react";
 import {
   deleteContexto,
   formatNumeroProcesso,
-  refreshContextos,
+  getContextosAll,
+  //refreshContextos,
   searchContexto,
 } from "../../shared/services/api/fetch/apiTools";
 import { useDebounce } from "../../shared/hooks/UseDebounce";
@@ -59,7 +60,7 @@ export const ListaProcessos = () => {
   const handleReloadContextos = async () => {
     try {
       setLoading(true);
-      const rsp = await refreshContextos();
+      const rsp = await getContextosAll();
       if (rsp) {
         setRows(rsp);
         setTotalPage(rsp.length);
@@ -133,7 +134,7 @@ export const ListaProcessos = () => {
     setLoading(true);
     debounce(async () => {
       try {
-        const rsp = await refreshContextos();
+        const rsp = await getContextosAll();
         setLoading(false);
 
         if (rsp) {

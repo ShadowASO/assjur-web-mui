@@ -10,6 +10,7 @@ interface RequestOptions {
   query?: Record<string, string>;
   body?: unknown;
   headers?: Record<string, string>;
+  signal?: AbortSignal; // <— novo
 }
 
 interface ErrorDetail {
@@ -86,6 +87,8 @@ export class ApiCliente {
     } else {
       body = { data: null, ok: internalResponse.ok };
     }
+    // ✅ garanta que ok exista sempre, mesmo que o backend não mande
+    if (typeof body.ok !== "boolean") body.ok = internalResponse.ok;
     return body;
   }
 
@@ -104,6 +107,7 @@ export class ApiCliente {
           ...options.headers,
         },
         body: options.body ? JSON.stringify(options.body) : null,
+        signal: options.signal, // <— novo
       });
       //console.log(response);
 

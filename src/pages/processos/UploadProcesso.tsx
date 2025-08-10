@@ -30,7 +30,8 @@ import {
   autuarDocumentos,
   deleteOcrdocByIdDoc,
   deleteUploadFileById,
-  extracDocumentWithOCR,
+  extractDocumentWithOCR,
+  //extracDocumentWithOCR,
   formatNumeroProcesso,
   getContextoById,
   // SanearByContexto,
@@ -117,7 +118,7 @@ export const UploadProcesso = () => {
   const handleExtrairTexto = async (fileId: number) => {
     try {
       setLoading(true);
-      const ok = await extracDocumentWithOCR(Number(idCtxt), fileId);
+      const ok = await extractDocumentWithOCR(Number(idCtxt), fileId);
       setLoading(false);
 
       if (ok) {

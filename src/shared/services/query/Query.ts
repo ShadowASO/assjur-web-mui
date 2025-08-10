@@ -41,11 +41,6 @@
 import { useRef } from "react";
 import type { IOutputResponseItem } from "./QueryResponse";
 
-// interface Prompt {
-// 	type: string;
-// 	text: string;
-// }
-
 /**
  * *************************************************************************
  * Classe que encapsula a manipulação das mensagens a serem enviadas pela API
@@ -117,15 +112,11 @@ export interface IRespostaOpenai {
 }
 
 export function useQueryGPT() {
-  //const [messages, setMessages] = useState<IMessageOpenai[]>([]);
   const messagesRef = useRef<IMessageOpenai[]>([]); // sempre atualizado
 
   function addMessage(role: TRoleType, text: string) {
     const newMessage = { role, content: text };
-    // setMessages((prev) => {
-    //   const updated = [...prev, newMessage];
-    //   return updated;
-    // });
+
     messagesRef.current = [...messagesRef.current, newMessage];
   }
 

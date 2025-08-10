@@ -23,6 +23,8 @@ import {
   InputAdornment,
   Checkbox,
   Button,
+  Stack,
+  Chip,
 } from "@mui/material";
 import { useFlash } from "../../shared/contexts/FlashProvider";
 import { useEffect, useRef, useState } from "react";
@@ -69,6 +71,10 @@ export const AnalisesMain = () => {
   const [prompt, setPrompt] = useState("");
   const [prevId, setPrevId] = useState("");
   const [refreshPecas, setRefreshPecas] = useState(0);
+  //Uso de tokens
+  const [ptUso, setPtUso] = useState(0);
+  const [ctUso, setCtUso] = useState(0);
+  const [ttUso, setTtUso] = useState(0);
 
   // Seleção independente para cada tabela
   const [selectedIdsAutos, setSelectedIdsAutos] = useState<string[]>([]);
@@ -109,17 +115,24 @@ export const AnalisesMain = () => {
     })();
   }, [idCtxt, refreshPecas, showFlashMessage]);
 
-  // Carregar número processo
+  // Carregar número processo + tokens
   useEffect(() => {
     (async () => {
       try {
         setLoading(true);
         if (!idCtxt) {
           setProcesso("");
+          setPtUso(0);
+          setCtUso(0);
+          setTtUso(0);
           return;
         }
-        const response = await getContextoById(idCtxt);
-        setProcesso(response?.nr_proc ?? "");
+        const rsp = await getContextoById(idCtxt);
+        if (rsp) {
+          setPtUso(rsp.prompt_tokens ?? 0);
+          setCtUso(rsp.completion_tokens ?? 0); // <== corrigido
+        }
+        setProcesso(rsp?.nr_proc ?? "");
       } catch (error) {
         console.error(error);
         showFlashMessage("Erro ao listar o número do processo!", "error");
@@ -128,6 +141,11 @@ export const AnalisesMain = () => {
       }
     })();
   }, [idCtxt, showFlashMessage]);
+
+  // Mantém o total sempre coerente
+  useEffect(() => {
+    setTtUso((ptUso ?? 0) + (ctUso ?? 0));
+  }, [ptUso, ctUso]);
 
   // Scroll automático para mensagens
   const messages = getMessages();
@@ -567,29 +585,65 @@ export const AnalisesMain = () => {
             </Paper>
 
             {/* BOTÕES */}
-            <Box display="flex" justifyContent="flex-end" mb={1} mr={2}>
-              <Tooltip title="Copiar">
-                <IconButton
-                  size="medium"
-                  onClick={() => handlerCopiarParaClipboard(dialogo)}
-                >
-                  <ContentCopy fontSize="medium" />
-                  <Typography variant="body2">Copiar</Typography>
-                </IconButton>
-              </Tooltip>
-              <Tooltip title="Limpar conversa">
-                <span>
+            {/* TOKENS + BOTÕES (em linha) */}
+            <Box
+              display="flex"
+              alignItems="center"
+              justifyContent="space-between"
+              gap={2}
+              mb={1}
+              mr={2}
+            >
+              {/* Tokens à esquerda, em linha */}
+              <Stack
+                direction="row"
+                spacing={1}
+                alignItems="center"
+                flexWrap="wrap"
+              >
+                <Chip label={`Prompt: ${ptUso}`} size="small" />
+                <Chip label={`Resposta: ${ctUso}`} size="small" />
+                <Chip
+                  label={`Total: ${ttUso}`}
+                  size="small"
+                  sx={{
+                    backgroundColor: theme.palette.primary.main,
+                    color: theme.palette.primary.contrastText,
+                    fontWeight: "bold",
+                  }}
+                />
+              </Stack>
+
+              {/* Botões à direita */}
+              <Box display="flex" alignItems="center" gap={1}>
+                <Tooltip title="Copiar">
                   <IconButton
                     size="medium"
-                    onClick={handlerCleanChat}
-                    edge="end"
-                    disabled={isLoading}
+                    onClick={() => handlerCopiarParaClipboard(dialogo)}
                   >
-                    <Delete fontSize="medium" />
-                    <Typography variant="body2">Limpar</Typography>
+                    <ContentCopy fontSize="medium" />
+                    <Typography variant="body2" ml={0.5}>
+                      Copiar
+                    </Typography>
                   </IconButton>
-                </span>
-              </Tooltip>
+                </Tooltip>
+
+                <Tooltip title="Limpar conversa">
+                  <span>
+                    <IconButton
+                      size="medium"
+                      onClick={handlerCleanChat}
+                      edge="end"
+                      disabled={isLoading}
+                    >
+                      <Delete fontSize="medium" />
+                      <Typography variant="body2" ml={0.5}>
+                        Limpar
+                      </Typography>
+                    </IconButton>
+                  </span>
+                </Tooltip>
+              </Box>
             </Box>
 
             {/* PROMPT */}
