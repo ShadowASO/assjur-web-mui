@@ -31,10 +31,8 @@ import {
   deleteOcrdocByIdDoc,
   deleteUploadFileById,
   extractDocumentWithOCR,
-  //extracDocumentWithOCR,
   formatNumeroProcesso,
   getContextoById,
-  // SanearByContexto,
   uploadFileToServer,
 } from "../../shared/services/api/fetch/apiTools";
 import { ListaDocumentos } from "./ListaDocumentos";
@@ -46,6 +44,7 @@ import {
   PostAdd,
 } from "@mui/icons-material";
 import { useFlash } from "../../shared/contexts/FlashProvider";
+import { useDrawerContext } from "../../shared/contexts/DrawerProvider";
 
 export const UploadProcesso = () => {
   const { id: idCtxt } = useParams();
@@ -61,6 +60,11 @@ export const UploadProcesso = () => {
   const [refreshKeyOCR, setRefreshKeyOCR] = useState(0);
   const { showFlashMessage } = useFlash();
   const [isLoading, setLoading] = useState(false);
+  const { setTituloJanela } = useDrawerContext();
+
+  setTituloJanela(
+    `Formação do Contexto - Processo ${formatNumeroProcesso(processo)}`
+  );
 
   useEffect(() => {
     (async () => {
@@ -276,10 +280,6 @@ export const UploadProcesso = () => {
 
   return (
     <Box p={2}>
-      <Typography variant="h5" gutterBottom>
-        Formação do Contexto: Processo {formatNumeroProcesso(processo)}
-      </Typography>
-
       <Grid container spacing={2}>
         {/* COL-01 - Seleção dos arquivos a transferir */}
         <Grid size={{ xs: 11, sm: 10, md: 7, lg: 4, xl: 4 }}>
@@ -306,7 +306,6 @@ export const UploadProcesso = () => {
           </Paper>
 
           <Paper sx={{ p: 2, mb: 2, maxHeight: 720, overflow: "hidden" }}>
-            {/* <Typography variant="subtitle1">Peças Vinculadas</Typography> */}
             <ListaPecas
               processoId={idCtxt!}
               onView={() => {}}

@@ -267,16 +267,12 @@ export const ListaModelos = () => {
             onScroll={handleScroll}
           >
             <Table stickyHeader size="small" sx={{ tableLayout: "fixed" }}>
-              <colgroup>
-                <col style={{ width: 120 }} /> {/* Ações */}
-                <col style={{ width: 140 }} /> {/* Natureza */}
-                <col /> {/* Ementa (expande) */}
-              </colgroup>
-
               <TableHead>
                 <TableRow>
-                  <TableCell width={120}>Ações</TableCell>
-                  <TableCell>Natureza</TableCell>
+                  <TableCell sx={{ width: 120 }}>Ações</TableCell>
+                  <TableCell sx={{ width: 140, whiteSpace: "nowrap" }}>
+                    Natureza
+                  </TableCell>
                   <TableCell>Ementa</TableCell>
                 </TableRow>
               </TableHead>

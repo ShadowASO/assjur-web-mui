@@ -64,7 +64,7 @@ export default function SystemProvider({ children }: SystemProviderProps) {
     };
 
     fetchVersion();
-  }, []);
+  }, [setVersion]);
 
   return (
     <SystemContext.Provider

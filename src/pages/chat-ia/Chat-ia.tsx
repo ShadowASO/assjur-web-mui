@@ -27,6 +27,7 @@ import {
   type IResponseOpenaiApi,
 } from "../../shared/services/query/QueryResponse";
 import { useQueryGPT } from "../../shared/services/query/Query";
+import { useDrawerContext } from "../../shared/contexts/DrawerProvider";
 
 export const ChatIA = () => {
   const theme = useTheme();
@@ -38,8 +39,14 @@ export const ChatIA = () => {
 
   const { addMessage, addOutput, messagesRef } = useMessageReponse();
   const { getOutputMessageOpenAi } = useQueryGPT();
+  const { setTituloJanela } = useDrawerContext();
 
   const Api = useApi();
+
+  // setTituloJanela(`Janela de Chat`);
+  useEffect(() => {
+    setTituloJanela(`Janela de Chat`);
+  }, [setTituloJanela]);
 
   const handleSendPrompt = async () => {
     //Se o campo de prompt estiver vazio, faz nada
@@ -99,7 +106,7 @@ export const ChatIA = () => {
 
   return (
     <Box
-      height="100vh"
+      height="calc(100vh - 100px)"
       display="flex"
       flexDirection="column"
       //bgcolor={theme.palette.background.paper}
@@ -117,7 +124,7 @@ export const ChatIA = () => {
             gap={2}
             sx={{
               borderBottom: `1px solid ${theme.palette.divider}`,
-              height: "calc(100vh - 200px)",
+              height: "calc(100vh - 280px)",
               overflowY: "auto",
               p: 1,
               display: "flex",
@@ -253,14 +260,6 @@ export const ChatIA = () => {
               inputLabel: { shrink: true },
             }}
           />
-          {/* <Button
-              type="submit"
-              variant="contained"
-              disabled={isLoading}
-              sx={{ width: "200px" }}
-            >
-              {isLoading ? <CircularProgress size={24} /> : "Enviar"}
-            </Button> */}
         </Grid>
       </Grid>
     </Box>

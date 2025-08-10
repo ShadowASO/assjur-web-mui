@@ -5,7 +5,6 @@
  * Janela para cadastro de modelos de documentos
  */
 
-//import { useNavigate, useParams } from "react-router-dom";
 import { PageBaseLayout } from "../../shared/layouts";
 import { BarraDetalhes } from "../../shared/components/BarraDetalhes";
 import { useEffect, useState } from "react";
@@ -199,7 +198,6 @@ export const DetalheModelos = () => {
           onClickButtonSalvarFechar={RForm.handleSubmit(handleSaveFechar)}
           onClickButtonApagar={() => handleDelete(idReg)}
           onClickButtonNovo={() => navigate("/modelos/detalhes/nova")}
-          //onClickButtonVoltar={() => navigate("/modelos")}
           onClickButtonVoltar={goBackToList}
         />
       }
@@ -219,7 +217,12 @@ export const DetalheModelos = () => {
               direction="column"
               component={Paper}
               padding={2}
-              sx={{ mt: 1, height: "calc(100vh - 300px)", display: "flex" }}
+              sx={{
+                height: "calc(100vh - 278px)",
+                display: "flex",
+                p: 2,
+                pt: 1,
+              }}
               variant="outlined"
             >
               {/* Natureza */}

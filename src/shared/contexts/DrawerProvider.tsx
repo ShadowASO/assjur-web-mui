@@ -18,6 +18,8 @@ interface IDrawerContextData {
   toggleDrawerOpen: () => void;
   drawerOptions: IDrawerOption[];
   setDrawerOptions: (newDrawerOptions: IDrawerOption[]) => void;
+  tituloJanela: string;
+  setTituloJanela: (janName: string) => void;
 }
 
 /**
@@ -44,16 +46,13 @@ interface DrawerProviderProps {
 export const DrawerProvider = ({ children }: DrawerProviderProps) => {
   const [isDrawerOpen, setDrawerOpen] = useState<boolean>(false);
   const [drawerOptions, setDrawerOptions] = useState<IDrawerOption[]>([]);
+  const [tituloJanela, setTituloJanela] = useState("Assessor Jurídico IA");
 
   const toggleDrawerOpen = () => setDrawerOpen((old) => (old ? false : true));
 
   const handleSetDrawerOptions = (newDrawerOptions: IDrawerOption[]) => {
     setDrawerOptions(newDrawerOptions);
   };
-
-  // useEffect(() => {
-  //   console.log(isDrawerOpen);
-  // }, [isDrawerOpen]);
 
   return (
     <DrawerContext.Provider
@@ -62,6 +61,8 @@ export const DrawerProvider = ({ children }: DrawerProviderProps) => {
         drawerOptions,
         toggleDrawerOpen,
         setDrawerOptions: handleSetDrawerOptions,
+        tituloJanela,
+        setTituloJanela,
       }}
     >
       {children}

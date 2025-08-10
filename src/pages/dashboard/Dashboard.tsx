@@ -7,7 +7,6 @@
 
 import { useState } from "react";
 import { PageBaseLayout } from "../../shared/layouts/PageBaseLayout";
-import { BarraListagem } from "../../shared/components/BarraListagem";
 import { Box, Card, Grid, Typography } from "@mui/material";
 import CardContent from "@mui/material/CardContent";
 import { CardConsumoTokens } from "./CardConsumoTokens";
@@ -19,12 +18,7 @@ export const Dashboard = () => {
   const [totalCountPessoas] = useState(0);
 
   return (
-    <PageBaseLayout
-      title=" Assessor Jurídico - IA"
-      toolBar={
-        <BarraListagem showButton={false} showField={false}></BarraListagem>
-      }
-    >
+    <PageBaseLayout title=" Assessor Jurídico - IA">
       <Grid container spacing={1} padding={1} margin={1}>
         <Grid size={{ xs: 5, sm: 4, md: 3, lg: 3, xl: 3 }}>
           <CardConsumoTokens></CardConsumoTokens>

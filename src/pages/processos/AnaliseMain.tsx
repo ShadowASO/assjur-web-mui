@@ -58,6 +58,7 @@ import {
   type RespostaRAG,
 } from "../../shared/constants/respostaRag";
 import React from "react";
+import { useDrawerContext } from "../../shared/contexts/DrawerProvider";
 
 export const AnalisesMain = () => {
   const { id: idCtxt } = useParams();
@@ -87,6 +88,8 @@ export const AnalisesMain = () => {
   const theme = useTheme();
   const Api = useApi();
 
+  const { setTituloJanela } = useDrawerContext();
+
   // Filtra autos e rag separados
   const autosFiltrados = autos.filter(
     (reg) =>
@@ -97,6 +100,10 @@ export const AnalisesMain = () => {
     (reg) =>
       reg.id_natu === NATU_DOC_IA_ANALISE ||
       reg.id_natu === NATU_DOC_IA_SENTENCA
+  );
+  //Exibe o título da janela na barra superior
+  setTituloJanela(
+    `Análise Jurídica - Processo ${formatNumeroProcesso(processo)}`
   );
 
   // Carregar autos
@@ -119,6 +126,7 @@ export const AnalisesMain = () => {
   useEffect(() => {
     (async () => {
       try {
+        //toggleDrawerOpen();
         setLoading(true);
         if (!idCtxt) {
           setProcesso("");
@@ -140,6 +148,7 @@ export const AnalisesMain = () => {
         setLoading(false);
       }
     })();
+    //return () => toggleDrawerOpen();
   }, [idCtxt, showFlashMessage]);
 
   // Mantém o total sempre coerente
@@ -160,13 +169,13 @@ export const AnalisesMain = () => {
   };
 
   // Handlers para RAG
-  const handleSelectAllRag = (checked: boolean) => {
-    if (checked) {
-      setSelectedIdsRag(ragFiltrados.map((reg) => reg.id));
-    } else {
-      setSelectedIdsRag([]);
-    }
-  };
+  // const handleSelectAllRag = (checked: boolean) => {
+  //   if (checked) {
+  //     setSelectedIdsRag(ragFiltrados.map((reg) => reg.id));
+  //   } else {
+  //     setSelectedIdsRag([]);
+  //   }
+  // };
   const handleSelectRowRag = (id: string, checked: boolean) => {
     setSelectedIdsRag((prev) =>
       checked ? [...prev, id] : prev.filter((sid) => sid !== id)
@@ -395,21 +404,11 @@ export const AnalisesMain = () => {
   return (
     <Box
       p={0}
-      height="100vh"
+      height="100%"
       display="flex"
       flexDirection="column"
       bgcolor={theme.palette.background.paper}
     >
-      <Typography
-        variant="h5"
-        gutterBottom
-        ml={2}
-        mt={2}
-        sx={{ boxSizing: "border-box" }}
-      >
-        Análise Jurídica: Processo {formatNumeroProcesso(processo)}
-      </Typography>
-
       <Grid container spacing={1} padding={1} margin={1}>
         {/* COL-01: AUTOS + RespostaRAG */}
         <Grid
@@ -417,7 +416,7 @@ export const AnalisesMain = () => {
           sx={{
             display: "flex",
             flexDirection: "column",
-            height: "calc(100vh - 120px)",
+            height: "calc(100vh - 188px)",
             p: 2,
           }}
           component={Paper}
@@ -494,31 +493,19 @@ export const AnalisesMain = () => {
                 pt: 1,
               }}
             >
-              <Typography variant="h6" fontWeight="bold" mb={1}>
+              {/* <Typography variant="h6" fontWeight="bold" mb={1}>
                 Respostas IA
-              </Typography>
+              </Typography> */}
               {ragFiltrados.length > 0 ? (
                 <TableContainer sx={{ maxHeight: "100%" }}>
                   <Table stickyHeader size="small" tabIndex={0}>
                     <TableHead>
                       <TableRow>
-                        <TableCell padding="checkbox">
-                          <Checkbox
-                            checked={
-                              selectedIdsRag.length > 0 &&
-                              selectedIdsRag.length === ragFiltrados.length
-                            }
-                            indeterminate={
-                              selectedIdsRag.length > 0 &&
-                              selectedIdsRag.length < ragFiltrados.length
-                            }
-                            onChange={(e) =>
-                              handleSelectAllRag(e.target.checked)
-                            }
-                            disabled={isLoading}
-                          />
+                        <TableCell colSpan={2} sx={{ p: 1 }}>
+                          <Typography variant="h6" fontWeight="bold" mb={1}>
+                            Minutas
+                          </Typography>
                         </TableCell>
-                        <TableCell>Tipo de Resposta</TableCell>
                       </TableRow>
                     </TableHead>
                     <TableBody>
@@ -558,7 +545,7 @@ export const AnalisesMain = () => {
           <Paper
             elevation={3}
             sx={{
-              height: "calc(100vh - 120px)",
+              height: "calc(100vh - 220px)",
               p: 2,
               display: "flex",
               flexDirection: "column",
@@ -723,7 +710,7 @@ export const AnalisesMain = () => {
           <Paper
             elevation={3}
             sx={{
-              height: "calc(100vh - 120px)",
+              height: "calc(100vh - 220px)",
               p: 2,
               display: "flex",
               flexDirection: "column",
