@@ -102,9 +102,11 @@ export const AnalisesMain = () => {
       reg.id_natu === NATU_DOC_IA_SENTENCA
   );
   //Exibe o título da janela na barra superior
-  setTituloJanela(
-    `Análise Jurídica - Processo ${formatNumeroProcesso(processo)}`
-  );
+  useEffect(() => {
+    setTituloJanela(
+      `Análise Jurídica - Processo ${formatNumeroProcesso(processo)}`
+    );
+  }, [processo, setTituloJanela]);
 
   // Carregar autos
   useEffect(() => {
