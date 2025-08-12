@@ -1,13 +1,13 @@
 /**
  * File: DetalheModelos.tsx
  * Criação:  14/06/2025
- * Alterações: 10/08/2025
- * Janela para cadastro de modelos de documentos
+ * Alterações: 12/08/2025
+ * Janela para cadastro de modelos de documentos (com modos view/edit/create)
  */
 
 import { PageBaseLayout } from "../../shared/layouts";
 import { BarraDetalhes } from "../../shared/components/BarraDetalhes";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useFlash } from "../../shared/contexts/FlashProvider";
 import { Controller, useForm } from "react-hook-form";
 import {
@@ -49,58 +49,80 @@ const formValidationSchema: yup.ObjectSchema<IFormData> = yup.object({
 export const DetalheModelos = () => {
   const { id: idReg = "nova" } = useParams<"id">();
   const navigate = useNavigate();
+  const location = useLocation();
   const { showFlashMessage } = useFlash();
-  const [isLoading, setIsLoading] = useState(false);
 
+  const [isLoading, setIsLoading] = useState(false); // carregamento/IO em geral
+  const [isSaving, setIsSaving] = useState(false); // flag de salvar (trava botões)
+  const [mode, setMode] = useState<"view" | "edit" | "create">(
+    idReg === "nova" ? "create" : "view"
+  );
+
+  // form
   const RForm = useForm<IFormData>({
     defaultValues: { natureza: "", ementa: "", inteiro_teor: "" },
   });
-  const { watch, setValue, control } = RForm;
+  const { watch, setValue, control, formState, reset, getValues } = RForm;
   const natureza = watch("natureza");
 
-  const location = useLocation();
+  // snapshot do que foi carregado/salvo por último (para cancelar edições)
+  const originalRef = useRef<IFormData>({
+    natureza: "",
+    ementa: "",
+    inteiro_teor: "",
+  });
 
   const goBackToList = () => {
-    // Se há histórico, volta exatamente para a URL anterior (preserva ?q=&n=&sid= e scroll via sessionStorage)
     if (window.history.length > 1) {
       navigate(-1);
       return;
     }
-
-    // Fallback: tenta usar um 'fromSearch' opcional vindo via state
     const fromSearch =
       (location.state as { fromSearch?: string } | undefined)?.fromSearch ?? "";
     navigate(`/modelos${fromSearch}`, { replace: true });
   };
 
+  // Carrega dados quando entra no detalhe ou cria novo
   useEffect(() => {
+    let active = true;
     (async () => {
+      setMode(idReg === "nova" ? "create" : "view");
       if (idReg !== "nova") {
         try {
           setIsLoading(true);
           const rsp = await selectModelo(idReg);
           if (rsp instanceof Error) {
+            if (!active) return;
             showFlashMessage(rsp.message, "error");
             navigate("/modelos");
             return;
           }
-          if (rsp) {
-            RForm.reset({
-              natureza: rsp.natureza ?? "",
-              ementa: rsp.ementa ?? "",
-              inteiro_teor: rsp.inteiro_teor ?? "",
-            });
-          } else {
-            RForm.reset({ natureza: "", ementa: "", inteiro_teor: "" });
-          }
+          const dados: IFormData = {
+            natureza: rsp?.natureza ?? "",
+            ementa: rsp?.ementa ?? "",
+            inteiro_teor: rsp?.inteiro_teor ?? "",
+          };
+          if (!active) return;
+          originalRef.current = dados;
+          reset(dados, { keepDirty: false, keepTouched: false });
         } finally {
           setIsLoading(false);
         }
       } else {
-        RForm.reset({ natureza: "", ementa: "", inteiro_teor: "" });
+        const vazios: IFormData = {
+          natureza: "",
+          ementa: "",
+          inteiro_teor: "",
+        };
+        originalRef.current = vazios;
+        reset(vazios, { keepDirty: false, keepTouched: false });
       }
     })();
-  }, [idReg, navigate, showFlashMessage, RForm]);
+    return () => {
+      active = false;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [idReg, navigate, showFlashMessage, reset]);
 
   const copiarParaClipboard = async (texto: string) => {
     try {
@@ -117,17 +139,18 @@ export const DetalheModelos = () => {
   };
 
   const handleSaveFechar = async (data: IFormData) => {
-    await handleSave(data);
-    //navigate("/modelos");
-    goBackToList(); // antes: navigate("/modelos")
+    const ok = await handleSave(data);
+    if (ok) goBackToList();
   };
 
-  const handleSave = async (data: IFormData) => {
+  // retorna boolean indicando sucesso (para decidir navegação/fechar)
+  const handleSave = async (data: IFormData): Promise<boolean> => {
     try {
       const valida = await formValidationSchema.validate(data, {
         abortEarly: false,
       });
-      setIsLoading(true);
+      setIsSaving(true);
+
       if (idReg === "nova") {
         const rsp = await insertModelos(
           valida.natureza,
@@ -136,10 +159,15 @@ export const DetalheModelos = () => {
         );
         if (rsp instanceof Error) {
           showFlashMessage(rsp.message, "error");
-        } else {
-          showFlashMessage("Registro salvo com sucesso", "success");
-          navigate(`/modelos/detalhes/${rsp?.id}`);
+          return false;
         }
+        showFlashMessage("Registro salvo com sucesso", "success");
+        // snapshot e navega para o novo id em modo "view"
+        originalRef.current = { ...valida };
+        reset(valida, { keepDirty: false, keepTouched: false });
+        navigate(`/modelos/detalhes/${rsp?.id}`);
+        setMode("view");
+        return true;
       } else {
         const rsp = await updateModelos(
           idReg,
@@ -149,9 +177,14 @@ export const DetalheModelos = () => {
         );
         if (rsp instanceof Error) {
           showFlashMessage(rsp.message, "error");
-        } else {
-          showFlashMessage("Registro alterado com sucesso", "success");
+          return false;
         }
+        showFlashMessage("Registro alterado com sucesso", "success");
+        // snapshot atualizado
+        originalRef.current = { ...valida };
+        reset(valida, { keepDirty: false, keepTouched: false });
+        setMode("view");
+        return true;
       }
     } catch (err) {
       if (err instanceof yup.ValidationError) {
@@ -161,8 +194,9 @@ export const DetalheModelos = () => {
           "error"
         );
       }
+      return false;
     } finally {
-      setIsLoading(false);
+      setIsSaving(false);
     }
   };
 
@@ -174,8 +208,7 @@ export const DetalheModelos = () => {
         const rsp = await deleteModelos(id);
         if (rsp) {
           showFlashMessage("Registro excluído com sucesso", "success");
-          //navigate("/modelos");
-          goBackToList(); // antes: navigate("/modelos")
+          goBackToList();
         } else {
           showFlashMessage("Erro na exclusão do registro", "error");
         }
@@ -185,15 +218,38 @@ export const DetalheModelos = () => {
     }
   };
 
+  const enterEdit = () => setMode("edit");
+
+  const cancelEdit = () => {
+    // restaura snapshot e volta para visualização
+    reset(originalRef.current, { keepDirty: false, keepTouched: false });
+    setMode("view");
+  };
+
+  const confirmDiscard = (proceed: () => void) => {
+    if (window.confirm("Descartar alterações não salvas?")) proceed();
+  };
+
+  const disabledNatureza = isLoading || mode !== "create";
+  const editorsDisabled = isLoading || mode === "view";
+
   return (
     <PageBaseLayout
       title={idReg === "nova" ? "Novo Modelo" : "Detalhe do Modelo"}
       toolBar={
         <BarraDetalhes
+          // modo explícito (a barra ajusta quais botões exibir)
+          mode={mode}
+          onEnterEdit={enterEdit}
+          onCancelEdit={cancelEdit}
+          isDirty={formState.isDirty}
+          saving={isSaving}
+          confirmDiscard={confirmDiscard}
+          // ações
           labelButtonNovo="Novo"
-          showButtonNovo={idReg !== "nova"}
+          showButtonNovo={mode === "view" && idReg !== "nova"}
+          showButtonApagar={mode === "view" && idReg !== "nova"}
           showButtonSalvarFechar
-          showButtonApagar={idReg !== "nova"}
           onClickButtonSalvar={RForm.handleSubmit(handleSave)}
           onClickButtonSalvarFechar={RForm.handleSubmit(handleSaveFechar)}
           onClickButtonApagar={() => handleDelete(idReg)}
@@ -225,15 +281,17 @@ export const DetalheModelos = () => {
               }}
               variant="outlined"
             >
-              {/* Natureza */}
+              {/* Combobox da Natureza */}
               <Grid>
                 <TextField
                   select
                   label="Natureza"
                   fullWidth
                   value={natureza ?? ""}
-                  onChange={(e) => setValue("natureza", e.target.value)}
-                  disabled={isLoading}
+                  onChange={(e) =>
+                    setValue("natureza", e.target.value, { shouldDirty: true })
+                  }
+                  disabled={disabledNatureza}
                   sx={{ mt: 1 }}
                 >
                   <MenuItem value="" disabled>
@@ -264,8 +322,10 @@ export const DetalheModelos = () => {
                     <TiptapEditor
                       label="Ementa"
                       value={field.value ?? ""}
-                      onChange={field.onChange}
-                      disabled={isLoading}
+                      onChange={(val) => {
+                        field.onChange(val);
+                      }}
+                      disabled={editorsDisabled}
                       height="100%"
                     />
                   )}
@@ -281,10 +341,8 @@ export const DetalheModelos = () => {
                   <Tooltip title="Copiar ementa">
                     <span>
                       <IconButton
-                        onClick={() =>
-                          copiarParaClipboard(RForm.getValues("ementa"))
-                        }
-                        disabled={isLoading || !RForm.getValues("ementa")}
+                        onClick={() => copiarParaClipboard(getValues("ementa"))}
+                        disabled={isLoading || !getValues("ementa")}
                         aria-label="Copiar ementa"
                       >
                         <ContentCopy fontSize="small" />
@@ -322,8 +380,10 @@ export const DetalheModelos = () => {
                   <TiptapEditor
                     label="Conteúdo"
                     value={field.value ?? ""}
-                    onChange={field.onChange}
-                    disabled={isLoading}
+                    onChange={(val) => {
+                      field.onChange(val);
+                    }}
+                    disabled={editorsDisabled}
                     height="100%"
                   />
                 )}
@@ -340,9 +400,9 @@ export const DetalheModelos = () => {
                 <span>
                   <IconButton
                     onClick={() =>
-                      copiarParaClipboard(RForm.getValues("inteiro_teor"))
+                      copiarParaClipboard(getValues("inteiro_teor"))
                     }
-                    disabled={isLoading || !RForm.getValues("inteiro_teor")}
+                    disabled={isLoading || !getValues("inteiro_teor")}
                     aria-label="Copiar conteúdo"
                   >
                     <ContentCopy fontSize="small" />

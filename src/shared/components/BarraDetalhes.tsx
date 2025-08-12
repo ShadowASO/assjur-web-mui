@@ -1,11 +1,5 @@
-/**
- * File: BarraDetalhes.tsx
- * Criação:  14/06/2025
- * Alterações: 10/08/2025
- * Componente que exibe uma barra de ações CRUD para as janelas de cadastro
- */
-
-import { Add, ArrowBack, Delete, Save } from "@mui/icons-material";
+// BarraDetalhes.tsx
+import { Add, ArrowBack, Delete, Save, Edit, Close } from "@mui/icons-material";
 import {
   Box,
   Button,
@@ -15,20 +9,29 @@ import {
   useTheme,
 } from "@mui/material";
 
-interface IBarraDetalhesProps {
-  labelButtonNovo?: string;
+type BarraMode = "view" | "edit" | "create";
 
+interface IBarraDetalhesProps {
+  // existentes
+  labelButtonNovo?: string;
   showButtonNovo?: boolean;
   showButtonVoltar?: boolean;
   showButtonApagar?: boolean;
   showButtonSalvar?: boolean;
   showButtonSalvarFechar?: boolean;
-
   onClickButtonNovo?: () => void;
   onClickButtonVoltar?: () => void;
   onClickButtonApagar?: () => void;
   onClickButtonSalvar?: () => void;
   onClickButtonSalvarFechar?: () => void;
+
+  // novos (modo explícito)
+  mode?: BarraMode; // "view" | "edit" | "create"
+  onEnterEdit?: () => void; // chamado ao clicar "Editar"
+  onCancelEdit?: () => void; // chamado ao clicar "Cancelar"
+  isDirty?: boolean; // tem alterações pendentes?
+  confirmDiscard?: (cb: () => void) => void; // confirma descarte (opcional)
+  saving?: boolean; // desabilita botões durante save
 }
 
 export const BarraDetalhes = ({
@@ -43,25 +46,28 @@ export const BarraDetalhes = ({
   onClickButtonApagar,
   onClickButtonSalvar,
   onClickButtonSalvarFechar,
+
+  mode = "view",
+  onEnterEdit,
+  onCancelEdit,
+  isDirty = false,
+  confirmDiscard,
+  saving = false,
 }: IBarraDetalhesProps) => {
   const theme = useTheme();
 
-  const buttonStyleContained = {
-    fontWeight: "bold",
-    px: 2,
-    "& .MuiSvgIcon-root": { color: "white" },
+  const handleCancel = () => {
+    if (!onCancelEdit) return;
+    const proceed = () => onCancelEdit();
+    if (isDirty && confirmDiscard) {
+      confirmDiscard(proceed);
+    } else {
+      proceed();
+    }
   };
 
-  // const buttonStyleOutlined = {
-  //   borderWidth: 2,
-  //   fontWeight: "bold",
-  //   color: theme.palette.text.primary,
-  //   borderColor: theme.palette.text.primary,
-  //   "&:hover": {
-  //     borderColor: theme.palette.primary.main,
-  //     backgroundColor: theme.palette.action.hover,
-  //   },
-  // };
+  const isView = mode === "view";
+  const isEditing = mode === "edit" || mode === "create";
 
   return (
     <Box
@@ -74,52 +80,51 @@ export const BarraDetalhes = ({
       alignItems="center"
       component={Paper}
     >
-      <Box flex={1} display={"flex"} justifyContent={"flex-start"} gap={0.5}>
-        {showButtonSalvar && (
+      <Box flex={1} display="flex" justifyContent="flex-start" gap={0.5}>
+        {/* Modo edição/criação: mostrar ações de salvar */}
+        {isEditing && showButtonSalvar && (
           <Button
             color="primary"
             disableElevation
             variant="contained"
             startIcon={<Save />}
             onClick={onClickButtonSalvar}
+            disabled={saving}
           >
-            <Typography
-              variant="button"
-              whiteSpace={"nowrap"}
-              textOverflow={"ellipsis"}
-              overflow={"hidden"}
-            >
+            <Typography variant="button" noWrap>
               Salvar
             </Typography>
           </Button>
         )}
 
-        {showButtonSalvarFechar && (
+        {isEditing && showButtonSalvarFechar && (
           <Button
             color="primary"
             disableElevation
             variant="contained"
             startIcon={<Save />}
             onClick={onClickButtonSalvarFechar}
+            disabled={saving}
           >
             Salvar e fechar
           </Button>
         )}
 
-        {showButtonApagar && (
+        {/* Modo visualização: oferecer "Editar" */}
+        {isView && (
           <Button
-            color="error"
+            color="primary"
             disableElevation
             variant="contained"
-            startIcon={<Delete />}
-            onClick={onClickButtonApagar}
-            sx={buttonStyleContained}
+            startIcon={<Edit />}
+            onClick={onEnterEdit}
           >
-            Apagar
+            Editar
           </Button>
         )}
 
-        {showButtonNovo && (
+        {/* Sempre que fizer sentido, manter Novo/Apagar em view; em edit geralmente escondemos */}
+        {isView && showButtonNovo && (
           <Button
             color="primary"
             disableElevation
@@ -131,9 +136,22 @@ export const BarraDetalhes = ({
           </Button>
         )}
 
+        {isView && showButtonApagar && (
+          <Button
+            color="error"
+            disableElevation
+            variant="contained"
+            startIcon={<Delete />}
+            onClick={onClickButtonApagar}
+          >
+            Apagar
+          </Button>
+        )}
+
         <Divider orientation="vertical" flexItem sx={{ mx: 1 }} />
 
-        {showButtonVoltar && (
+        {/* Voltar em view; Cancelar em edit */}
+        {isView && showButtonVoltar && (
           <Button
             color="inherit"
             disableElevation
@@ -142,6 +160,19 @@ export const BarraDetalhes = ({
             onClick={onClickButtonVoltar}
           >
             Voltar
+          </Button>
+        )}
+
+        {isEditing && (
+          <Button
+            color="inherit"
+            disableElevation
+            variant="contained"
+            startIcon={<Close />}
+            onClick={handleCancel}
+            disabled={saving}
+          >
+            Cancelar
           </Button>
         )}
       </Box>

@@ -1,7 +1,13 @@
+/**
+ * File: DetalhePrompt.tsx
+ * Criação:  14/06/2025
+ * Alterações: 12/08/2025
+ * Janela para cadastro de prompts (com modos view/edit/create)
+ */
 import { useNavigate, useParams } from "react-router-dom";
 import { PageBaseLayout } from "../../shared/layouts";
 import { BarraDetalhes } from "../../shared/components/BarraDetalhes";
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useFlash } from "../../shared/contexts/FlashProvider";
 import { Controller, useForm } from "react-hook-form";
 import * as yup from "yup";
@@ -54,44 +60,90 @@ export const DetalhePrompt = () => {
   const { id: idReg = "novo" } = useParams<"id">();
   const navigate = useNavigate();
   const { showFlashMessage } = useFlash();
-  const [isLoading, setIsLoading] = useState(false);
 
-  const RForm = useForm<IFormPrompt>();
+  const [isLoading, setIsLoading] = useState(false); // load geral
+  const [isSaving, setIsSaving] = useState(false); // flag de salvar
+  const [mode, setMode] = useState<"view" | "edit" | "create">(
+    idReg === "novo" ? "create" : "view"
+  );
 
+  const RForm = useForm<IFormPrompt>({
+    defaultValues: {
+      nm_desc: "",
+      txt_prompt: "",
+      id_nat: 0,
+      id_doc: 0,
+      id_classe: 0,
+      id_assunto: 0,
+    },
+  });
+
+  const { control, register, reset, formState, getValues } = RForm;
+
+  // snapshot do último estado persistido (para cancelar edições)
+  const originalRef = useRef<IFormPrompt>({
+    nm_desc: "",
+    txt_prompt: "",
+    id_nat: 0,
+    id_doc: 0,
+    id_classe: 0,
+    id_assunto: 0,
+  });
+
+  // carregar registro
   useEffect(() => {
+    let active = true;
     (async () => {
+      setMode(idReg === "novo" ? "create" : "view");
+
       if (idReg !== "novo") {
-        setIsLoading(true);
-        const rsp = await selectPrompt(Number(idReg));
-        //console.log(rsp);
-        setIsLoading(false);
-        if (rsp) {
-          RForm.reset(rsp);
-          //console.log(RForm);
-        } else {
-          RForm.reset({
-            nm_desc: "",
-            txt_prompt: "",
-            id_nat: 0,
-            id_doc: 0,
-            id_classe: 0,
-            id_assunto: 0,
-          });
+        try {
+          setIsLoading(true);
+          const rsp = await selectPrompt(Number(idReg));
+          if (!active) return;
+          if (rsp instanceof Error || !rsp) {
+            showFlashMessage(
+              rsp instanceof Error ? rsp.message : "Registro não encontrado",
+              "error"
+            );
+            navigate("/prompts");
+            return;
+          }
+          const dados: IFormPrompt = {
+            nm_desc: rsp.nm_desc ?? "",
+            txt_prompt: rsp.txt_prompt ?? "",
+            id_nat: rsp.id_nat ?? 0,
+            id_doc: rsp.id_doc ?? 0,
+            id_classe: rsp.id_classe ?? 0,
+            id_assunto: rsp.id_assunto ?? 0,
+          };
+          originalRef.current = dados;
+          reset(dados, { keepDirty: false, keepTouched: false });
+        } finally {
+          setIsLoading(false);
         }
       } else {
-        RForm.reset({
+        const vazios: IFormPrompt = {
           nm_desc: "",
           txt_prompt: "",
           id_nat: 0,
           id_doc: 0,
           id_classe: 0,
           id_assunto: 0,
-        });
+        };
+        originalRef.current = vazios;
+        reset(vazios, { keepDirty: false, keepTouched: false });
       }
     })();
-  }, [idReg]);
+
+    return () => {
+      active = false;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [idReg, reset]);
 
   const copiarParaClipboard = (texto: string) => {
+    if (!texto) return;
     navigator.clipboard.writeText(texto);
     showFlashMessage(
       "Texto copiado para a área de transferência!",
@@ -100,63 +152,79 @@ export const DetalhePrompt = () => {
     );
   };
 
-  const handleSave = async (data: IFormPrompt) => {
-    try {
-      const valida = await formValidationSchema.validate(data, {
-        abortEarly: false,
-      });
+  // Salvar e manter na tela
+  const handleSave = useCallback(
+    async (data: IFormPrompt): Promise<boolean> => {
+      try {
+        const valida = await formValidationSchema.validate(data, {
+          abortEarly: false,
+        });
+        setIsSaving(true);
 
-      setIsLoading(true);
-      //console.log(idReg);
-
-      if (idReg === "novo") {
-        const rsp = await insertPrompt(
-          valida.id_nat,
-          valida.id_doc,
-          valida.id_classe,
-          valida.id_assunto,
-          valida.nm_desc,
-          valida.txt_prompt
-        );
-        //console.log(valida);
-        if (rsp instanceof Error) {
-          showFlashMessage(rsp.message, "error");
-        } else {
+        if (idReg === "novo") {
+          const rsp = await insertPrompt(
+            valida.id_nat,
+            valida.id_doc,
+            valida.id_classe,
+            valida.id_assunto,
+            valida.nm_desc,
+            valida.txt_prompt
+          );
+          if (rsp instanceof Error) {
+            showFlashMessage(rsp.message, "error");
+            return false;
+          }
           showFlashMessage("Registro salvo com sucesso", "success");
+          originalRef.current = { ...valida };
+          reset(valida, { keepDirty: false, keepTouched: false });
           navigate(`/prompts/detalhes/${rsp?.id_prompt}`);
-        }
-      } else {
-        //console.log(idReg);
-        const rsp = await updatePrompt(
-          Number(idReg),
-          valida.nm_desc,
-          valida.txt_prompt
-        );
-        if (rsp instanceof Error) {
-          showFlashMessage(rsp.message, "error");
+          setMode("view");
+          return true;
         } else {
+          const rsp = await updatePrompt(
+            Number(idReg),
+            valida.nm_desc,
+            valida.txt_prompt
+          );
+          if (rsp instanceof Error) {
+            showFlashMessage(rsp.message, "error");
+            return false;
+          }
           showFlashMessage("Registro atualizado com sucesso", "success");
+          originalRef.current = { ...originalRef.current, ...valida };
+          reset(
+            { ...originalRef.current },
+            { keepDirty: false, keepTouched: false }
+          );
+          setMode("view");
+          return true;
         }
+      } catch (err) {
+        if (err instanceof yup.ValidationError) {
+          setFormErrors(RForm, err);
+          showFlashMessage(
+            "Preencha corretamente os campos obrigatórios",
+            "error"
+          );
+        }
+        return false;
+      } finally {
+        setIsSaving(false);
       }
-    } catch (err) {
-      if (err instanceof yup.ValidationError) {
-        setFormErrors(RForm, err);
-        showFlashMessage(
-          "Preencha corretamente os campos obrigatórios",
-          "error"
-        );
-      }
-    } finally {
-      setIsLoading(false);
-    }
-  };
+    },
+    [idReg, navigate, reset, showFlashMessage, RForm, setMode]
+  );
 
-  const handleSaveFechar = async (data: IFormPrompt) => {
-    await handleSave(data);
-    navigate("/prompts");
-  };
+  const handleSaveFechar = useCallback(
+    async (data: IFormPrompt) => {
+      const ok = await handleSave(data);
+      if (ok) navigate("/prompts");
+    },
+    [handleSave, navigate]
+  );
 
   const handleDelete = async (id: string) => {
+    if (id === "novo") return;
     if (confirm("Deseja realmente excluir o prompt?")) {
       const rsp = await deletePrompt(Number(id));
       if (!rsp) {
@@ -168,15 +236,62 @@ export const DetalhePrompt = () => {
     }
   };
 
+  // modos
+  const enterEdit = () => setMode("edit");
+  const cancelEdit = () => {
+    reset(originalRef.current, { keepDirty: false, keepTouched: false });
+    setMode("view");
+  };
+  const confirmDiscard = (proceed: () => void) => {
+    if (window.confirm("Descartar alterações não salvas?")) proceed();
+  };
+
+  const fieldsDisabled = isLoading || mode === "view";
+
+  // atalhos: Ctrl+S (salvar) e Ctrl+Shift+S (salvar e fechar) quando em edição/criação
+  const handleKeySave = useCallback(
+    (e: KeyboardEvent) => {
+      if (mode === "view" || isSaving) return;
+      const isMac = navigator.platform.toUpperCase().includes("MAC");
+      const mod = isMac ? e.metaKey : e.ctrlKey;
+
+      if (mod && e.key.toLowerCase() === "s") {
+        e.preventDefault();
+        if (e.shiftKey) {
+          RForm.handleSubmit(handleSaveFechar)();
+        } else {
+          RForm.handleSubmit(handleSave)();
+        }
+      }
+    },
+    [mode, isSaving, RForm, handleSave, handleSaveFechar]
+  );
+
+  useEffect(() => {
+    window.addEventListener("keydown", handleKeySave);
+    return () => window.removeEventListener("keydown", handleKeySave);
+  }, [handleKeySave]);
+
+  // ... no topo do componente
+  //const fieldsDisabled = isLoading || mode === "view";
+  const selectsDisabled = isLoading || mode !== "create"; // <-- só libera em "create"
+
   return (
     <PageBaseLayout
       title={idReg === "novo" ? "Novo Prompt" : "Detalhe do Prompt"}
       toolBar={
         <BarraDetalhes
+          mode={mode}
+          onEnterEdit={enterEdit}
+          onCancelEdit={cancelEdit}
+          isDirty={formState.isDirty}
+          saving={isSaving}
+          confirmDiscard={confirmDiscard}
+          // ações padrão
           labelButtonNovo="Novo"
-          showButtonNovo={idReg !== "novo"}
+          showButtonNovo={mode === "view" && idReg !== "novo"}
+          showButtonApagar={mode === "view" && idReg !== "novo"}
           showButtonSalvarFechar
-          showButtonApagar={idReg !== "novo"}
           onClickButtonSalvar={RForm.handleSubmit(handleSave)}
           onClickButtonSalvarFechar={RForm.handleSubmit(handleSaveFechar)}
           onClickButtonApagar={() => handleDelete(idReg)}
@@ -185,11 +300,10 @@ export const DetalhePrompt = () => {
         />
       }
     >
-      <form onSubmit={RForm.handleSubmit(handleSave)}>
-        {/* <Box margin={1} component={Paper} variant="outlined"> */}
+      <form onSubmit={RForm.handleSubmit(handleSave)} autoComplete="off">
         <Grid container spacing={2} margin={1}>
           {isLoading && (
-            <Grid size={{ xs: 12, sm: 12, md: 12, lg: 12, xl: 12 }}>
+            <Grid size={{ xs: 12 }}>
               <LinearProgress />
             </Grid>
           )}
@@ -208,25 +322,23 @@ export const DetalhePrompt = () => {
                 <TextField
                   label="Descrição"
                   fullWidth
-                  {...RForm.register("nm_desc")}
-                  disabled={isLoading}
-                  sx={{ mt: 1 }} // Ajuste fino aqui
-                  slotProps={{
-                    inputLabel: { shrink: true },
-                  }}
+                  {...register("nm_desc")}
+                  disabled={fieldsDisabled}
+                  sx={{ mt: 1 }}
+                  slotProps={{ inputLabel: { shrink: true } }}
                 />
               </Grid>
 
               <Grid>
                 <Controller
                   name="id_nat"
-                  control={RForm.control}
+                  control={control}
                   render={({ field }) => (
                     <TextField
                       select
                       label="Natureza da análise"
                       fullWidth
-                      disabled={isLoading}
+                      disabled={selectsDisabled}
                       {...field}
                       value={field.value ?? 0}
                     >
@@ -243,13 +355,13 @@ export const DetalhePrompt = () => {
               <Grid>
                 <Controller
                   name="id_doc"
-                  control={RForm.control}
+                  control={control}
                   render={({ field }) => (
                     <TextField
                       select
                       label="Documento"
                       fullWidth
-                      disabled={isLoading}
+                      disabled={selectsDisabled}
                       {...field}
                       value={field.value ?? 0}
                     >
@@ -266,13 +378,13 @@ export const DetalhePrompt = () => {
               <Grid>
                 <Controller
                   name="id_classe"
-                  control={RForm.control}
+                  control={control}
                   render={({ field }) => (
                     <TextField
                       select
                       label="Classe"
                       fullWidth
-                      disabled={isLoading}
+                      disabled={selectsDisabled}
                       {...field}
                       value={field.value ?? 0}
                     >
@@ -289,13 +401,13 @@ export const DetalhePrompt = () => {
               <Grid>
                 <Controller
                   name="id_assunto"
-                  control={RForm.control}
+                  control={control}
                   render={({ field }) => (
                     <TextField
                       select
                       label="Assunto"
                       fullWidth
-                      disabled={isLoading}
+                      disabled={selectsDisabled}
                       {...field}
                       value={field.value ?? 0}
                     >
@@ -311,7 +423,7 @@ export const DetalhePrompt = () => {
             </Grid>
           </Grid>
 
-          {/* Coluna esparçadora */}
+          {/* Coluna espaçadora */}
           <Grid size={{ xs: 0, sm: 0, md: 1, lg: 1, xl: 2 }} />
 
           {/* Coluna direita: conteúdo do prompt */}
@@ -330,8 +442,8 @@ export const DetalhePrompt = () => {
                 multiline
                 fullWidth
                 minRows={10}
-                {...RForm.register("txt_prompt")}
-                disabled={isLoading}
+                {...register("txt_prompt")}
+                disabled={fieldsDisabled}
                 sx={{
                   "& textarea": {
                     textAlign: "justify",
@@ -339,16 +451,13 @@ export const DetalhePrompt = () => {
                   },
                 }}
                 slotProps={{
-                  input: {
-                    style: {
-                      padding: "24px",
-                    },
-                  },
+                  input: { style: { padding: "24px" } },
                   inputLabel: { shrink: true },
                 }}
               />
             </Box>
-            {/* Boão de copiar para área de transferência */}
+
+            {/* Botão de copiar */}
             <Box
               display="flex"
               justifyContent="flex-end"
@@ -358,20 +467,19 @@ export const DetalhePrompt = () => {
               <Tooltip title="Copiar">
                 <span>
                   <IconButton
-                    onClick={() =>
-                      copiarParaClipboard(RForm.getValues("txt_prompt"))
-                    }
-                    disabled={isLoading}
+                    onClick={() => copiarParaClipboard(getValues("txt_prompt"))}
+                    disabled={isLoading || !getValues("txt_prompt")}
                   >
                     <ContentCopy fontSize="small" />
-                    <Typography variant="body2">Copiar</Typography>
+                    <Typography variant="body2" ml={0.5}>
+                      Copiar
+                    </Typography>
                   </IconButton>
                 </span>
               </Tooltip>
             </Box>
           </Grid>
         </Grid>
-        {/* </Box> */}
       </form>
     </PageBaseLayout>
   );

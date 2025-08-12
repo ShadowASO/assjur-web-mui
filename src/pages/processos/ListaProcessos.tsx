@@ -13,7 +13,6 @@ import {
   deleteContexto,
   formatNumeroProcesso,
   getContextosAll,
-  //refreshContextos,
   searchContexto,
 } from "../../shared/services/api/fetch/apiTools";
 import { useDebounce } from "../../shared/hooks/UseDebounce";
@@ -150,7 +149,7 @@ export const ListaProcessos = () => {
         setLoading(false);
       }
     });
-  }, [busca, pagina, debounce]);
+  }, [busca, pagina, debounce, showFlashMessage]);
 
   return (
     <PageBaseLayout
@@ -159,7 +158,7 @@ export const ListaProcessos = () => {
         <BarraListagem
           buttonLabel="Novo"
           fieldValue={searchTexto}
-          onButtonClick={handleNovoContexto} // Corrigido: executando a função
+          onButtonClick={handleNovoContexto}
           onFieldChange={(txt) => setSearchTexto(txt)}
         />
       }

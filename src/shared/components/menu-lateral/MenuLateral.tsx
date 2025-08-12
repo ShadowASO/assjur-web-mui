@@ -19,6 +19,7 @@ import {
   AppBar,
   Toolbar,
   IconButton,
+  Tooltip,
   type SvgIconProps,
 } from "@mui/material";
 
@@ -27,7 +28,13 @@ import React, { useMemo, useState } from "react";
 import { useDrawerContext } from "../../contexts/DrawerProvider";
 import { useMatch, useNavigate, useResolvedPath } from "react-router-dom";
 import { useAppThemeContext } from "../../contexts/ThemeProvider";
-import { DarkMode, Logout, Info, Menu as MenuIcon } from "@mui/icons-material";
+import {
+  ArrowBack,
+  DarkMode,
+  Logout,
+  Info,
+  Menu as MenuIcon,
+} from "@mui/icons-material";
 import { useAuth } from "../../contexts/AuthProvider";
 import { useSystem } from "../../contexts/SystemProvider";
 
@@ -123,11 +130,11 @@ export const MenuLateral = ({ children }: IMenuLateralProps) => {
   const { logout, userLogged } = useAuth();
   const { version: versionAPI } = useSystem();
 
-  //Versão da API do Sistema
+  // Título no AppBar
   const { tituloJanela } = useDrawerContext();
-  //Versão do Sistema do APP
-  const versionAPP = "1.0.2";
-  //******************* */
+
+  // Versão do APP
+  const versionAPP = "1.1.1";
 
   const [openAbout, setOpenAbout] = useState(false);
 
@@ -137,6 +144,21 @@ export const MenuLateral = ({ children }: IMenuLateralProps) => {
   const variant = smDown ? "temporary" : "persistent";
   const handleOpenAbout = () => setOpenAbout(true);
   const handleCloseAbout = () => setOpenAbout(false);
+
+  const navigate = useNavigate();
+
+  // Rotas que DEVEM exibir o botão Voltar (no canto direito)
+  const isAnalise = !!useMatch("/processos/analises/:id");
+  const isUpload = !!useMatch("/processos/upload/:id");
+  const showBack = isAnalise || isUpload;
+
+  const handleBack = () => {
+    // (opcional) fecha o drawer no mobile antes de voltar
+    if (smDown && isDrawerOpen) toggleDrawerOpen();
+
+    if (window.history.length > 1) navigate(-1);
+    else navigate("/processos"); // fallback quando não há histórico
+  };
 
   return (
     <>
@@ -188,7 +210,15 @@ export const MenuLateral = ({ children }: IMenuLateralProps) => {
                   key={opt.path}
                   icon={opt.icon}
                   label={opt.label}
-                  onClick={smDown ? toggleDrawerOpen : undefined} // fecha no mobile após navegar
+                  onClick={() => {
+                    // Fecha no mobile
+                    if (smDown) toggleDrawerOpen();
+
+                    // Fecha também no desktop se for "processos"
+                    if (opt.path === "/processos" && isDrawerOpen) {
+                      toggleDrawerOpen();
+                    }
+                  }}
                 />
               ))}
             </List>
@@ -224,7 +254,7 @@ export const MenuLateral = ({ children }: IMenuLateralProps) => {
         </Box>
       </Drawer>
 
-      {/* APP BAR (com botão para abrir/fechar o menu) */}
+      {/* APP BAR */}
       <AppBar
         position="fixed"
         elevation={0}
@@ -246,6 +276,7 @@ export const MenuLateral = ({ children }: IMenuLateralProps) => {
         }}
       >
         <Toolbar>
+          {/* ESQUERDA: botão do menu permanece */}
           <IconButton
             color="inherit"
             aria-label="Abrir/fechar menu lateral"
@@ -256,12 +287,29 @@ export const MenuLateral = ({ children }: IMenuLateralProps) => {
             <MenuIcon />
           </IconButton>
 
+          {/* Título */}
           <Typography variant="h6" noWrap component="div">
-            {/* Assistente Jurídico IA */}
             {tituloJanela}
           </Typography>
 
+          {/* Empurra conteúdo para a direita */}
           <Box sx={{ flex: 1 }} />
+
+          {/* DIREITA: botão Voltar (condicional) */}
+          {showBack && (
+            <Tooltip title="Voltar">
+              <span>
+                <IconButton
+                  color="inherit"
+                  aria-label="Voltar"
+                  edge="end"
+                  onClick={handleBack}
+                >
+                  <ArrowBack />
+                </IconButton>
+              </span>
+            </Tooltip>
+          )}
         </Toolbar>
       </AppBar>
 
