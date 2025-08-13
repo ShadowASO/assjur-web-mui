@@ -34,9 +34,13 @@ import {
 } from "@mui/material";
 import { Environment } from "../../shared/enviroments";
 import { MoreVert } from "@mui/icons-material";
-import { useFlash } from "../../shared/contexts/FlashProvider";
+import {
+  TIME_FLASH_ALERTA_SEC,
+  useFlash,
+} from "../../shared/contexts/FlashProvider";
 import type { ContextoRow } from "../../shared/types/tabelas";
 import { CriarContexto } from "./CriarContexto";
+import { describeApiError } from "../../shared/services/api/erros/errosApi";
 
 export const ListaProcessos = () => {
   const [searchParams, setSearchParams] = useSearchParams();
@@ -134,7 +138,6 @@ export const ListaProcessos = () => {
     debounce(async () => {
       try {
         const rsp = await getContextosAll();
-        setLoading(false);
 
         if (rsp) {
           setRows(rsp);
@@ -143,13 +146,19 @@ export const ListaProcessos = () => {
           setRows([]);
         }
       } catch (error) {
-        console.log(error);
-        showFlashMessage("Erro ao listar contextos!", "error");
+        const { userMsg, techMsg } = describeApiError(error);
+        // Loga sempre os detalhes técnicos
+        console.error("Erro ao buscar prompts ::", techMsg);
+        showFlashMessage(userMsg, "error", TIME_FLASH_ALERTA_SEC * 5, {
+          title: "Erro",
+          details: techMsg, // aparece no botão (i)
+          // persist: true,    // opcional: não fecha automaticamente
+        });
       } finally {
         setLoading(false);
       }
     });
-  }, [busca, pagina, debounce, showFlashMessage]);
+  }, [busca, pagina, debounce]);
 
   return (
     <PageBaseLayout

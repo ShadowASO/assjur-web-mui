@@ -9,29 +9,91 @@
  * nado tempo.
  */
 
-import { useFlash } from "../contexts/FlashProvider";
-import { Alert, Snackbar } from "@mui/material";
+/**
+ * File: FlashAlerta.tsx
+ * Revisão: 12/08/2025
+ */
+
+import { useState } from "react";
+import { useFlash, TIME_FLASH_ALERTA_SEC } from "../contexts/FlashProvider";
+import { Alert, Snackbar, Collapse, IconButton } from "@mui/material";
 import AlertTitle from "@mui/material/AlertTitle";
+import InfoOutlinedIcon from "@mui/icons-material/InfoOutlined";
+import CloseIcon from "@mui/icons-material/Close";
 
 export default function FlashAlerta() {
-  const { flashMessage, isShow, setShow, duration } = useFlash();
+  const { flashMessage, isShow, closeFlash } = useFlash();
+  const [showDetails, setShowDetails] = useState(false);
 
-  if (!flashMessage || !isShow) return null;
+  if (!flashMessage) return null;
+
+  const {
+    id,
+    type,
+    message,
+    title,
+    details,
+    durationSec = TIME_FLASH_ALERTA_SEC,
+    persist,
+  } = flashMessage;
+
+  const autoHideDuration = persist
+    ? undefined
+    : Math.max(500, durationSec * 1000);
+
+  const handleClose = (_e?: unknown, reason?: string) => {
+    if (reason === "clickaway") return; // evita fechar ao clicar fora
+    setShowDetails(false);
+    closeFlash();
+  };
 
   return (
     <Snackbar
+      key={id}
       open={isShow}
-      autoHideDuration={duration * 1000}
-      onClose={() => setShow(false)}
+      autoHideDuration={autoHideDuration}
+      onClose={handleClose}
       anchorOrigin={{ vertical: "bottom", horizontal: "center" }}
     >
       <Alert
-        severity={flashMessage.type}
+        severity={type}
         sx={{ width: "100%" }}
-        onClose={() => setShow(false)}
+        onClose={handleClose}
+        action={
+          <>
+            {details && (
+              <IconButton
+                aria-label="Ver detalhes"
+                size="small"
+                onClick={() => setShowDetails((s) => !s)}
+              >
+                <InfoOutlinedIcon fontSize="inherit" />
+              </IconButton>
+            )}
+            <IconButton aria-label="Fechar" size="small" onClick={handleClose}>
+              <CloseIcon fontSize="inherit" />
+            </IconButton>
+          </>
+        }
       >
-        <AlertTitle>{flashMessage.type.toUpperCase()}</AlertTitle>
-        {flashMessage.message}
+        {title ? <AlertTitle>{title}</AlertTitle> : null}
+        {message}
+        {details && (
+          <Collapse in={showDetails} unmountOnExit>
+            <pre
+              style={{
+                whiteSpace: "pre-wrap",
+                margin: 0,
+                marginTop: 8,
+                fontFamily: "monospace",
+                fontSize: 12,
+                opacity: 0.9,
+              }}
+            >
+              {details}
+            </pre>
+          </Collapse>
+        )}
       </Alert>
     </Snackbar>
   );

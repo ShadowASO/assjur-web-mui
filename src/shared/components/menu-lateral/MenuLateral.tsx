@@ -134,7 +134,7 @@ export const MenuLateral = ({ children }: IMenuLateralProps) => {
   const { tituloJanela } = useDrawerContext();
 
   // Versão do APP
-  const versionAPP = "1.1.1";
+  const versionAPP = "1.1.2";
 
   const [openAbout, setOpenAbout] = useState(false);
 

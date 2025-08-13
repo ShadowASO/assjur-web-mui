@@ -121,8 +121,7 @@ export const DetalheModelos = () => {
     return () => {
       active = false;
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [idReg, navigate, showFlashMessage, reset]);
+  }, [idReg, navigate, reset]);
 
   const copiarParaClipboard = async (texto: string) => {
     try {

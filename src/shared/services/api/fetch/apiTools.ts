@@ -15,25 +15,13 @@ import type {
 } from "./../../../types/tabelas";
 import { TokenStorage } from "./TokenStorage";
 import type { MetadadosProcessoCnj } from "../../../types/cnjTypes";
+import { ApiError } from "../erros/errosApi";
 
 // ======================= Infra de API =======================
 
 const api = getApiObjeto();
 
-export class ApiError extends Error {
-  public readonly code?: number; // use "code" em vez de "status"
-  public readonly endpoint?: string;
-
-  constructor(message: string, code?: number, endpoint?: string) {
-    super(message);
-    this.name = "ApiError";
-    this.code = code;
-    this.endpoint = endpoint;
-  }
-}
-
 type OkResponse<T> = StandardBodyResponse & { ok: true; data: T };
-//type ErrResponse = StandardBodyResponse & { ok: false };
 
 function ensureOk<T>(
   rsp: StandardBodyResponse,

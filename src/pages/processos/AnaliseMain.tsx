@@ -202,7 +202,7 @@ export const AnalisesMain = () => {
         setLoading(false);
       }
     })();
-  }, [idCtxt, refreshPecas, showFlashMessage]);
+  }, [idCtxt, refreshPecas]);
 
   // processo + tokens
   useEffect(() => {
@@ -229,7 +229,7 @@ export const AnalisesMain = () => {
         setLoading(false);
       }
     })();
-  }, [idCtxt, showFlashMessage]);
+  }, [idCtxt]);
 
   useEffect(() => {
     setTtUso((ptUso ?? 0) + (ctUso ?? 0));
@@ -386,7 +386,7 @@ export const AnalisesMain = () => {
         setLoading(false);
       }
     },
-    [idCtxt, showFlashMessage]
+    [idCtxt]
   );
 
   // OpenAI helpers
@@ -430,7 +430,7 @@ export const AnalisesMain = () => {
         setLoading(false);
       }
     },
-    [idCtxt, showFlashMessage]
+    [idCtxt]
   );
 
   const funcToolFormataResposta = useCallback(
@@ -660,11 +660,19 @@ export const AnalisesMain = () => {
             disableGutters
             sx={{ flex: 1, minHeight: 0 }}
           >
-            <AccordionSummary expandIcon={<ExpandMoreIcon />}>
-              <Box display="flex" alignItems="center" gap={1}>
+            <AccordionSummary
+              expandIcon={<ExpandMoreIcon />}
+              aria-controls="minutas-content"
+              id="minutas-header"
+            >
+              <Box display="flex" alignItems="center" gap={1} width="100%">
                 <Typography variant="h6" fontWeight="bold">
                   Minutas
                 </Typography>
+
+                {/* empurra o ícone para a direita (opcional) */}
+                <Box sx={{ flex: 1 }} />
+
                 <Tooltip
                   title={
                     selectedIdsRag.length
@@ -672,8 +680,16 @@ export const AnalisesMain = () => {
                       : "Selecione itens para excluir"
                   }
                 >
-                  <span>
+                  {/* Use <span> para evitar nested <button> e manter Tooltip quando disabled */}
+                  <span
+                    onClick={(e) => {
+                      // evita abrir/fechar o accordion ao clicar no ícone
+                      e.stopPropagation();
+                      e.preventDefault();
+                    }}
+                  >
                     <IconButton
+                      component="span" // <-- rende como <span>, não <button>
                       size="small"
                       color="error"
                       onClick={() => setConfirmOpen("rag")}

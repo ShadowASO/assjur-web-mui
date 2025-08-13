@@ -27,9 +27,13 @@ import {
 } from "@mui/material";
 import { Environment } from "../../shared/enviroments";
 import { ContentCopy, Delete, Edit } from "@mui/icons-material";
-import { useFlash } from "../../shared/contexts/FlashProvider";
+import {
+  TIME_FLASH_ALERTA_SEC,
+  useFlash,
+} from "../../shared/contexts/FlashProvider";
 import type { PromptsRow } from "../../shared/types/tabelas";
 import ReactMarkdown from "react-markdown";
+import { describeApiError } from "../../shared/services/api/erros/errosApi";
 
 export const ListaPrompts = () => {
   const [searchParams, setSearchParams] = useSearchParams();
@@ -38,7 +42,7 @@ export const ListaPrompts = () => {
 
   const [rows, setRows] = useState<PromptsRow[]>([]);
   const [totalPage, setTotalPage] = useState(0);
-  const [isLoading, setIsLoading] = useState(false);
+  const [isLoading, setLoading] = useState(false);
   const [selectedContent, setSelectedContent] = useState<string>("");
 
   const busca = searchParams.get("busca") || "";
@@ -46,17 +50,37 @@ export const ListaPrompts = () => {
   const { showFlashMessage } = useFlash();
 
   useEffect(() => {
-    setIsLoading(true);
+    setLoading(true);
 
     debounce(async () => {
-      const rsp = await refreshPrompts();
-      setIsLoading(false);
-      if (rsp) {
-        setTotalPage(rsp.length);
-        setRows(rsp);
-      } else {
-        setTotalPage(0);
-        setRows([]);
+      try {
+        const rsp = await refreshPrompts();
+
+        if (rsp && rsp.length > 0) {
+          setTotalPage(rsp.length);
+          setRows(rsp);
+        } else {
+          setTotalPage(0);
+          setRows([]);
+          showFlashMessage(
+            "Nenhum registro retornado",
+            "warning",
+            TIME_FLASH_ALERTA_SEC * 2
+          );
+        }
+      } catch (error) {
+        const { userMsg, techMsg } = describeApiError(error);
+
+        // Loga sempre os detalhes técnicos
+        console.error("Erro ao buscar prompts ::", techMsg);
+
+        showFlashMessage(userMsg, "error", TIME_FLASH_ALERTA_SEC * 5, {
+          title: "Erro",
+          details: techMsg, // aparece no botão (i)
+          // persist: true,    // opcional: não fecha automaticamente
+        });
+      } finally {
+        setLoading(false);
       }
     });
   }, [busca, pagina, debounce]);

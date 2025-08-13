@@ -62,9 +62,12 @@ export const UploadProcesso = () => {
   const [isLoading, setLoading] = useState(false);
   const { setTituloJanela } = useDrawerContext();
 
-  setTituloJanela(
-    `Formação do Contexto - Processo ${formatNumeroProcesso(processo)}`
-  );
+  // título
+  useEffect(() => {
+    setTituloJanela(
+      `Formação do Contexto - Processo ${formatNumeroProcesso(processo)}`
+    );
+  }, [processo, setTituloJanela]);
 
   useEffect(() => {
     (async () => {

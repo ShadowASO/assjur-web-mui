@@ -12,63 +12,114 @@
            TIME_FLASH_ALERTA_SEC
          );
  */
-import { createContext, useContext, useState } from "react";
 
-import type { ReactNode } from "react";
-interface FlashMessage {
-  message: string;
-  type: "success" | "warning" | "info" | "error";
-  duration: number;
+/**
+ * File: FlashProvider.tsx  (corrige nome do arquivo)
+ * Criação: 13-05-2025
+ * Revisão: 12-08-2025
+ */
+
+import {
+  createContext,
+  useCallback,
+  useContext,
+  useMemo,
+  useRef,
+  useState,
+  type ReactNode,
+} from "react";
+
+export const TIME_FLASH_ALERTA_SEC = 3;
+
+type FlashType = "success" | "warning" | "info" | "error";
+
+export interface FlashMessage {
+  id: number;
+  message: ReactNode | string;
+  type: FlashType;
+  /** Título opcional exibido em negrito no Alert */
+  title?: string;
+  /** Detalhes técnicos (ex.: stack, JSON de erro) exibidos em seção colapsável */
+  details?: string;
+  /** Duração em segundos (por mensagem). Se ausente, usa TIME_FLASH_ALERTA_SEC */
+  durationSec?: number;
+  /** Se true, não fecha automaticamente */
+  persist?: boolean;
 }
 
 interface FlashContextType {
+  /**
+   * API legada (mantida): showFlashMessage(message, type, durationSec?, options?)
+   * options: { title?, details?, persist? }
+   */
   showFlashMessage: (
-    message: string,
-    type: FlashMessage["type"],
-    duration?: number
+    message: string | ReactNode,
+    type: FlashType,
+    durationSec?: number,
+    options?: Pick<FlashMessage, "title" | "details" | "persist">
   ) => void;
+
+  /**
+   * API por objeto (nova): showFlash({ message, type, ... })
+   */
+  showFlash: (msg: Omit<FlashMessage, "id">) => void;
+
+  /** Fecha o alerta atual */
+  closeFlash: () => void;
+
   flashMessage: FlashMessage | null;
   isShow: boolean;
-  setShow: (log: boolean) => void;
-  duration: number;
-  setDuration: (n: number) => void;
 }
 
 const FlashContext = createContext<FlashContextType | undefined>(undefined);
-
-export const TIME_FLASH_ALERTA_SEC = 3;
 
 interface FlashProviderProps {
   children: ReactNode;
 }
 
 export default function FlashProvider({ children }: FlashProviderProps) {
-  const [flashMessage, setMessage] = useState<FlashMessage | null>(null);
-  const [isShow, setShow] = useState<boolean>(false);
-  const [duration, setDuration] = useState(3);
+  const [flashMessage, setFlashMessage] = useState<FlashMessage | null>(null);
+  const [isShow, setIsShow] = useState(false);
+  const idRef = useRef(0);
 
-  const showFlashMessage = (
-    message: string,
-    type: FlashMessage["type"],
-    duration = TIME_FLASH_ALERTA_SEC
-  ) => {
-    setMessage({ message, type, duration });
-    setShow(true);
-  };
+  const closeFlash = useCallback(() => setIsShow(false), []);
+
+  const showFlash = useCallback((msg: Omit<FlashMessage, "id">) => {
+    const id = ++idRef.current;
+    setFlashMessage({ ...msg, id });
+    setIsShow(true);
+  }, []);
+
+  const showFlashMessage = useCallback(
+    (
+      message: string | ReactNode,
+      type: FlashType,
+      durationSec: number = TIME_FLASH_ALERTA_SEC,
+      options?: Pick<FlashMessage, "title" | "details" | "persist">
+    ) => {
+      showFlash({
+        message,
+        type,
+        durationSec,
+        ...options,
+      });
+    },
+    [showFlash]
+  );
+
+  const value = useMemo(
+    () => ({
+      showFlashMessage,
+      showFlash,
+      closeFlash,
+      flashMessage,
+      isShow,
+    }),
+    [showFlashMessage, showFlash, closeFlash, flashMessage, isShow]
+  );
 
   return (
-    <FlashContext.Provider
-      value={{
-        showFlashMessage,
-        flashMessage,
-        isShow,
-        setShow,
-        duration,
-        setDuration,
-      }}
-    >
-      {children}
-    </FlashContext.Provider>
+    <FlashContext.Provider value={value}>{children}</FlashContext.Provider>
   );
 }
 
