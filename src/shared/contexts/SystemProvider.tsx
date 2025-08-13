@@ -15,8 +15,10 @@ import { getApiObjeto } from "../services/api/fetch/ApiCliente";
 
 // Define a interface do tipo que o contexto fornecerá
 type SystemContextType = {
-  version: string;
-  setVersion: (ver: string) => void;
+  versionApp: string;
+  setVersionApp: (ver: string) => void;
+  versionApi: string;
+  setVersionApi: (ver: string) => void;
   contexto: number;
   setContexto: (id: number) => void;
   isAuth: boolean;
@@ -25,8 +27,10 @@ type SystemContextType = {
 
 // Criação do contexto com tipo genérico e inicialização com undefined
 const SystemContext = createContext<SystemContextType>({
-  version: "",
-  setVersion: () => {},
+  versionApp: "",
+  setVersionApp: () => {},
+  versionApi: "",
+  setVersionApi: () => {},
   contexto: 0,
   setContexto: () => {},
   isAuth: false,
@@ -45,7 +49,8 @@ type VersionAPI = {
 export default function SystemProvider({ children }: SystemProviderProps) {
   const [contexto, setContexto] = useState(0);
   const [isAuth, setAuth] = useState(false);
-  const [version, setVersion] = useState("");
+  const [versionApi, setVersionApi] = useState("1.1.2");
+  const [versionApp, setVersionApp] = useState("1.1.2");
   const Api = getApiObjeto(); //Obtém a instância global da API
 
   useEffect(() => {
@@ -54,7 +59,7 @@ export default function SystemProvider({ children }: SystemProviderProps) {
         const rsp = await Api.get("/sys/version");
         if (rsp.ok) {
           const data = rsp.data as VersionAPI;
-          setVersion(data.version);
+          setVersionApi(data.version);
         } else {
           console.error("Versão não encontrada");
         }
@@ -64,11 +69,20 @@ export default function SystemProvider({ children }: SystemProviderProps) {
     };
 
     fetchVersion();
-  }, [setVersion]);
+  }, [versionApi]);
 
   return (
     <SystemContext.Provider
-      value={{ isAuth, setAuth, contexto, setContexto, version, setVersion }}
+      value={{
+        isAuth,
+        setAuth,
+        contexto,
+        setContexto,
+        setVersionApi,
+        versionApi,
+        setVersionApp,
+        versionApp,
+      }}
     >
       {children}
     </SystemContext.Provider>

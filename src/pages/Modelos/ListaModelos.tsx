@@ -32,9 +32,13 @@ import {
 } from "@mui/material";
 
 import { ContentCopy, Delete, Edit } from "@mui/icons-material";
-import { useFlash } from "../../shared/contexts/FlashProvider";
+import {
+  TIME_FLASH_ALERTA_SEC,
+  useFlash,
+} from "../../shared/contexts/FlashProvider";
 import type { ModelosRow } from "../../shared/types/tabelas";
 import { itemsNatureza } from "../../shared/constants/itemsModelos";
+import { describeApiError } from "../../shared/services/api/erros/errosApi";
 
 const SESSION_KEY = "ListaModelos.state";
 const SCROLL_KEY = "ListaModelos.scrollTop";
@@ -147,12 +151,18 @@ export const ListaModelos = () => {
           setSelectedContent("");
         }
       } catch (error) {
-        console.error(error);
+        //console.error(error);
         if (isActive) {
           setRows([]);
           setSelectedId(null);
           setSelectedContent("");
         }
+        const { userMsg, techMsg } = describeApiError(error);
+        console.error("Erro de API:", techMsg);
+        showFlashMessage(userMsg, "error", TIME_FLASH_ALERTA_SEC * 5, {
+          title: "Erro",
+          details: techMsg, // aparece no botão (i)
+        });
       } finally {
         if (isActive) setLoading(false);
       }
@@ -216,8 +226,12 @@ export const ListaModelos = () => {
           showFlashMessage("Erro ao excluir o registro", "error");
         }
       } catch (error) {
-        console.log(error);
-        showFlashMessage("Erro ao excluir o registro", "error");
+        const { userMsg, techMsg } = describeApiError(error);
+        console.error("Erro de API:", techMsg);
+        showFlashMessage(userMsg, "error", TIME_FLASH_ALERTA_SEC * 5, {
+          title: "Erro",
+          details: techMsg, // aparece no botão (i)
+        });
       } finally {
         setLoading(false);
       }

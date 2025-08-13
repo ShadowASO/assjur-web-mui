@@ -23,12 +23,18 @@ import {
   getConsumoTokens,
   type DataTokenUsage,
 } from "../../shared/services/api/fetch/apiTools";
+import { describeApiError } from "../../shared/services/api/erros/errosApi";
+import {
+  TIME_FLASH_ALERTA_SEC,
+  useFlash,
+} from "../../shared/contexts/FlashProvider";
 
 export const CardConsumoTokens = () => {
   const [consumoTokens, setConsumoTokens] = useState<DataTokenUsage | null>(
     null
   );
   const [isLoading, setIsLoading] = useState(true);
+  const { showFlashMessage } = useFlash();
 
   useEffect(() => {
     const fetchConsumo = async () => {
@@ -41,7 +47,12 @@ export const CardConsumoTokens = () => {
         }
       } catch (error) {
         setConsumoTokens(null);
-        console.error("Erro ao buscar consumo de tokens:", error);
+        const { userMsg, techMsg } = describeApiError(error);
+        console.error("Erro de API:", techMsg);
+        showFlashMessage(userMsg, "error", TIME_FLASH_ALERTA_SEC * 5, {
+          title: "Erro",
+          details: techMsg, // aparece no botão (i)
+        });
       } finally {
         setIsLoading(false);
       }

@@ -1,11 +1,8 @@
 /**
  * File: UploadProcesso.tsx
  * Criação:  14/06/2025
- * Janela para formação do contexto processual, permitindo ao usuário
- * selecionar arquivos pdf, enviá-los para o servidor(upload), extrair
- * o texto com o uso de OCR e fazer a juntada do documentos aos autos,
- * com prévia análise pela IA.
- *
+ * Revisão:  13/08/2025
+ * Janela para formação do contexto processual.
  */
 
 import { useParams } from "react-router-dom";
@@ -21,10 +18,12 @@ import {
   Snackbar,
   TextField,
   Typography,
+  Stack,
+  Tooltip,
 } from "@mui/material";
 import { SelectPecas } from "./SelectPecas";
 import { ListaPecas } from "./ListaPecas";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 import {
   autuarDocumentos,
@@ -36,31 +35,54 @@ import {
   uploadFileToServer,
 } from "../../shared/services/api/fetch/apiTools";
 import { ListaDocumentos } from "./ListaDocumentos";
+import { Close, ContentCopy, Delete, PostAdd } from "@mui/icons-material";
 import {
-  Close,
-  ContentCopy,
-  Delete,
-  // DocumentScanner,
-  PostAdd,
-} from "@mui/icons-material";
-import { useFlash } from "../../shared/contexts/FlashProvider";
+  TIME_FLASH_ALERTA_SEC,
+  useFlash,
+} from "../../shared/contexts/FlashProvider";
 import { useDrawerContext } from "../../shared/contexts/DrawerProvider";
+import { describeApiError } from "../../shared/services/api/erros/errosApi";
+
+type AutuarResponse = {
+  extractedErros?: string[];
+  extractedFiles?: string[];
+};
 
 export const UploadProcesso = () => {
   const { id: idCtxt } = useParams();
+  const idCtxtNum = Number(idCtxt);
   const [processo, setProcesso] = useState("");
   const [dialogOpen, setDialogOpen] = useState(false);
   const [textoOCR, setTextoOCR] = useState("");
   const [idPJE, setIdPJE] = useState("");
   const [idDoc, setIdDoc] = useState("");
+
   const [snackbarOpen, setSnackbarOpen] = useState(false);
   const [snackbarError, setSnackbarError] = useState(false);
-  //Refresh das interfaces filhas
+
+  // Refresh das listas
   const [refreshKeyPecas, setRefreshKeyPecas] = useState(0);
   const [refreshKeyOCR, setRefreshKeyOCR] = useState(0);
+
   const { showFlashMessage } = useFlash();
   const [isLoading, setLoading] = useState(false);
   const { setTituloJanela } = useDrawerContext();
+  const closeBtnRef = useRef<HTMLButtonElement | null>(null);
+
+  // IDs em processamento (evita duplo clique / repetição)
+  const [autuandoIds, setAutuandoIds] = useState<Record<string, boolean>>({});
+
+  // Travas e cache anti-duplicidade
+  const mountedRef = useRef(true);
+  const callLockRef = useRef(false); // trava síncrona para lote
+  const recentlyProcessedIdsRef = useRef<Set<string>>(new Set()); // cache sessão
+
+  useEffect(() => {
+    mountedRef.current = true;
+    return () => {
+      mountedRef.current = false;
+    };
+  }, []);
 
   // título
   useEffect(() => {
@@ -69,217 +91,302 @@ export const UploadProcesso = () => {
     );
   }, [processo, setTituloJanela]);
 
+  // foco inicial no botão fechar do dialog
   useEffect(() => {
+    if (dialogOpen) {
+      const t = window.setTimeout(() => closeBtnRef.current?.focus(), 0);
+      return () => window.clearTimeout(t);
+    }
+  }, [dialogOpen]);
+
+  // carrega dados do contexto
+  useEffect(() => {
+    let cancelled = false;
     (async () => {
       try {
         setLoading(true);
         if (!idCtxt) {
-          setProcesso("");
+          if (!cancelled && mountedRef.current) setProcesso("");
           return;
         }
         const rsp = await getContextoById(idCtxt);
-
-        setLoading(false);
-        if (rsp) {
-          //console.log(rsp);
-          setProcesso(rsp.nr_proc);
-        } else {
-          setProcesso("");
+        if (!cancelled && mountedRef.current) {
+          setProcesso(rsp?.nr_proc ?? "");
         }
       } catch (error) {
-        console.log(error);
-        showFlashMessage("Erro ao listar o número do processo!", "error");
+        const { userMsg, techMsg } = describeApiError(error);
+        console.error("Erro de API:", techMsg);
+        showFlashMessage(userMsg, "error", TIME_FLASH_ALERTA_SEC * 5, {
+          title: "Erro",
+          details: techMsg,
+        });
       } finally {
-        setLoading(false);
+        if (!cancelled && mountedRef.current) setLoading(false);
       }
     })();
-  }, [idCtxt]);
+    return () => {
+      cancelled = true;
+    };
+  }, [idCtxt, showFlashMessage]);
 
-  const handleUpload = async (file: File) => {
-    await uploadFileToServer(Number(idCtxt), file);
-    setRefreshKeyPecas((prev) => prev + 1); // Força refresh da lista de peças
-  };
+  function markAutuando(ids: string[], value: boolean) {
+    setAutuandoIds((prev) => {
+      const next = { ...prev };
+      ids.forEach((id) => (next[id] = value));
+      return next;
+    });
+  }
 
-  // const handleJuntadaByContexto = async () => {
-  //   try {
-  //     setLoading(true);
-  //     const ok = await SanearByContexto(Number(idCtxt));
-  //     setLoading(false);
-
-  //     if (ok) {
-  //       setRefreshKeyOCR((prev) => prev + 1); // Força refresh da lista OCR
-  //       setRefreshKeyPecas((prev) => prev + 1); // Força refresh da lista de peças
-  //       showFlashMessage("OCR realizado com sucesso!", "success");
-  //     } else {
-  //       console.log("houve um erro na transferência do arquivo!");
-  //       showFlashMessage("Erro ao realizar OCR!", "error");
-  //     }
-  //   } catch (error) {
-  //     console.log(error);
-  //     showFlashMessage("Erro ao realizar OCR!", "error");
-  //   } finally {
-  //     setLoading(false);
-  //   }
-  // };
-
-  const handleExtrairTexto = async (fileId: number) => {
+  // Upload
+  async function handleUpload(file: File) {
     try {
       setLoading(true);
-      const ok = await extractDocumentWithOCR(Number(idCtxt), fileId);
-      setLoading(false);
-
-      if (ok) {
-        setRefreshKeyOCR((prev) => prev + 1); // Força refresh da lista OCR
-        setRefreshKeyPecas((prev) => prev + 1); // Força refresh da lista de peças
-        showFlashMessage("OCR realizado com sucesso!", "success");
-      } else {
-        console.log("houve um erro na transferência do arquivo!");
-        showFlashMessage("Erro ao realizar OCR!", "error");
+      await uploadFileToServer(idCtxtNum, file);
+      if (mountedRef.current) {
+        setRefreshKeyPecas((prev) => prev + 1);
+        showFlashMessage("Arquivo enviado com sucesso!", "success");
       }
     } catch (error) {
-      console.log(error);
-      showFlashMessage("Erro ao realizar OCR!", "error");
+      const { userMsg, techMsg } = describeApiError(error);
+      console.error("Erro de API:", techMsg);
+      showFlashMessage(userMsg, "error", TIME_FLASH_ALERTA_SEC * 5, {
+        title: "Erro no upload",
+        details: techMsg,
+      });
     } finally {
-      setLoading(false);
+      if (mountedRef.current) setLoading(false);
     }
-  };
-  //Deleta o registro extraído com OCR
-  const handleDeleteOCR = async (fileId: string) => {
+  }
+
+  // OCR
+  async function handleExtrairTexto(fileId: number) {
+    try {
+      setLoading(true);
+      const ok = await extractDocumentWithOCR(idCtxtNum, fileId);
+      if (mountedRef.current) {
+        if (ok) {
+          setRefreshKeyOCR((p) => p + 1);
+          setRefreshKeyPecas((p) => p + 1);
+          showFlashMessage("OCR realizado com sucesso!", "success");
+        } else {
+          showFlashMessage("Erro ao realizar OCR!", "error");
+        }
+      }
+    } catch (error) {
+      const { userMsg, techMsg } = describeApiError(error);
+      console.error("Erro de API:", techMsg);
+      showFlashMessage(userMsg, "error", TIME_FLASH_ALERTA_SEC * 5, {
+        title: "Erro",
+        details: techMsg,
+      });
+    } finally {
+      if (mountedRef.current) setLoading(false);
+    }
+  }
+
+  // Deleta o registro extraído com OCR
+  async function handleDeleteOCR(fileId: string) {
     try {
       setLoading(true);
       const ok = await deleteOcrdocByIdDoc(fileId);
-      setLoading(false);
-      if (ok) {
-        setRefreshKeyOCR((prev) => prev + 1); // Força refresh da lista OCR
-        showFlashMessage("Texto OCR excluído com sucesso!", "success");
+      if (mountedRef.current) {
+        if (ok) {
+          setRefreshKeyOCR((prev) => prev + 1);
+          showFlashMessage("Texto OCR excluído com sucesso!", "success");
+        }
       }
-    } catch (err) {
-      console.error("Erro ao deletar:", err);
-      showFlashMessage("Erro ao reqalizar a exclusão do OCR!", "error");
+    } catch (error) {
+      const { userMsg, techMsg } = describeApiError(error);
+      console.error("Erro de API:", techMsg);
+      showFlashMessage(userMsg, "error", TIME_FLASH_ALERTA_SEC * 5, {
+        title: "Erro",
+        details: techMsg,
+      });
     } finally {
-      setLoading(false);
+      if (mountedRef.current) setLoading(false);
     }
-  };
+  }
 
-  //Deleta o arquivo PDF
-  const handleDeletePDF = async (fileId: number) => {
+  // Deleta o arquivo PDF
+  async function handleDeletePDF(fileId: number) {
     try {
       setLoading(true);
       const ok = await deleteUploadFileById(fileId);
-      if (ok) {
-        setRefreshKeyPecas((prev) => prev + 1); // Força refresh da lista de peças
-        showFlashMessage("PDF excluído com sucesso!", "success");
-        //console.log("Deletado com sucesso!");
-      } else {
-        showFlashMessage("Erro ao exccluir PDF!", "error");
+      if (mountedRef.current) {
+        if (ok) {
+          setRefreshKeyPecas((prev) => prev + 1);
+          showFlashMessage("PDF excluído com sucesso!", "success");
+        } else {
+          showFlashMessage("Erro ao excluir PDF!", "error");
+        }
       }
-    } catch (err) {
-      console.error("Erro ao deletar:", err);
-      showFlashMessage("Erro ao exccluir PDF!", "error");
+    } catch (error) {
+      const { userMsg, techMsg } = describeApiError(error);
+      console.error("Erro de API:", techMsg);
+      showFlashMessage(userMsg, "error", TIME_FLASH_ALERTA_SEC * 5, {
+        title: "Erro",
+        details: techMsg,
+      });
     } finally {
-      setLoading(false);
+      if (mountedRef.current) setLoading(false);
     }
-  };
+  }
 
-  const handleAbrirDialog = (idDoc: string, pje: string, texto: string) => {
-    setIdDoc(idDoc);
+  // Abrir/fechar dialog
+  function handleAbrirDialog(idDocX: string, pje: string, texto: string) {
+    setIdDoc(idDocX);
     setTextoOCR(texto);
     setIdPJE(pje);
     setDialogOpen(true);
-  };
-  const handleAutuar = async (idFile: string) => {
+  }
+  function handleFecharDialog() {
+    setDialogOpen(false);
+    setTextoOCR("");
+  }
+
+  // Copiar/fechar snackbar
+  async function handleCopyText() {
+    try {
+      await navigator.clipboard.writeText(textoOCR);
+      if (mountedRef.current) {
+        setSnackbarError(false);
+        setSnackbarOpen(true);
+      }
+    } catch {
+      if (mountedRef.current) {
+        setSnackbarError(true);
+        setSnackbarOpen(true);
+      }
+    }
+  }
+  function handleSnackbarClose() {
+    setSnackbarOpen(false);
+  }
+
+  // Autuar 1 (com cache “recentemente processado”)
+  async function handleAutuar(idFile: string) {
+    if (autuandoIds[idFile] || recentlyProcessedIdsRef.current.has(idFile))
+      return;
+
+    markAutuando([idFile], true);
     try {
       setLoading(true);
+      const payload = [{ IdContexto: idCtxtNum, IdDoc: idFile }];
+      const rsp = (await autuarDocumentos(payload)) as AutuarResponse | null;
 
-      // Prepara o payload no formato esperado pela API
-      const payload = [
-        {
-          IdContexto: Number(idCtxt),
-          IdDoc: idFile,
-        },
-      ];
+      if (!mountedRef.current) return;
 
-      const rsp = await autuarDocumentos(payload);
-      setLoading(false);
+      if (rsp && Array.isArray(rsp.extractedErros)) {
+        if (rsp.extractedErros.length === 0) {
+          showFlashMessage("Documento juntado com sucesso!", "success");
+          setRefreshKeyOCR((p) => p + 1);
 
-      if (rsp && rsp.extractedErros && rsp.extractedErros.length === 0) {
-        showFlashMessage("Documentos juntados com sucesso!", "success");
-        setRefreshKeyOCR((prev) => prev + 1);
-      } else if (rsp && rsp.extractedErros && rsp.extractedErros.length > 0) {
-        showFlashMessage(
-          `Alguns documentos não foram juntados: ${rsp.extractedErros.join(
-            ", "
-          )}`,
-          "warning"
-        );
-        setRefreshKeyOCR((prev) => prev + 1);
+          // marca como processado recentemente (janela anti-reenvio)
+          recentlyProcessedIdsRef.current.add(idFile);
+          setTimeout(
+            () => recentlyProcessedIdsRef.current.delete(idFile),
+            30_000
+          );
+
+          if (idDoc === idFile) setDialogOpen(false);
+        } else {
+          showFlashMessage(
+            `Falha ao autuar: ${rsp.extractedErros.join(", ")}`,
+            "warning"
+          );
+          setRefreshKeyOCR((p) => p + 1);
+        }
       } else if (rsp) {
         showFlashMessage("Nenhum documento juntado!", "warning");
       } else {
-        showFlashMessage("Erro ao juntar documentos!", "error");
+        showFlashMessage("Erro ao juntar documento!", "error");
       }
-    } catch (err) {
-      setLoading(false);
-      console.error("Erro ao juntar documentos:", err);
-      showFlashMessage("Erro ao juntar documentos", "error");
+    } catch (error) {
+      const { userMsg, techMsg } = describeApiError(error);
+      console.error("Erro de API:", techMsg);
+      showFlashMessage(userMsg, "error", TIME_FLASH_ALERTA_SEC * 5, {
+        title: "Erro",
+        details: techMsg,
+      });
     } finally {
-      setLoading(false);
+      if (mountedRef.current) {
+        markAutuando([idFile], false);
+        setLoading(false);
+      }
     }
-  };
+  }
 
-  const handleAutuarMultipla = async (idFile: string[]) => {
+  // Autuar múltipla (com trava síncrona)
+  async function handleAutuarMultipla(ids: string[]) {
+    if (callLockRef.current) return; // trava anti duplo-clique
+    callLockRef.current = true;
+
+    const initial = [...ids];
+
     try {
+      const pendentes = initial.filter(
+        (id) => !autuandoIds[id] && !recentlyProcessedIdsRef.current.has(id)
+      );
+      if (pendentes.length === 0) return;
+
+      markAutuando(pendentes, true);
       setLoading(true);
-      // Monta o array de objetos esperados pela API
-      const payload = idFile.map((id) => ({
-        IdContexto: Number(idCtxt),
+
+      const payload = pendentes.map((id) => ({
+        IdContexto: idCtxtNum,
         IdDoc: id,
       }));
+      const rsp = (await autuarDocumentos(payload)) as AutuarResponse | null;
 
-      const rsp = await autuarDocumentos(payload);
-      setLoading(false);
+      if (!mountedRef.current) return;
 
-      if (rsp && rsp.extractedErros && rsp.extractedErros.length === 0) {
-        showFlashMessage("Documentos juntados com sucesso!", "success");
-        setRefreshKeyOCR((prev) => prev + 1); // Força refresh da lista OCR
-      } else if (rsp && rsp.extractedErros && rsp.extractedErros.length > 0) {
-        showFlashMessage(
-          `Alguns documentos não foram juntados: ${rsp.extractedErros.join(
-            ", "
-          )}`,
-          "warning"
+      if (rsp && Array.isArray(rsp.extractedErros)) {
+        const failed = new Set(rsp.extractedErros);
+        const okIds = pendentes.filter((id) => !failed.has(id));
+
+        okIds.forEach((id) => recentlyProcessedIdsRef.current.add(id));
+        setTimeout(
+          () =>
+            okIds.forEach((id) => recentlyProcessedIdsRef.current.delete(id)),
+          30_000
         );
-        setRefreshKeyOCR((prev) => prev + 1);
+
+        if (failed.size === 0) {
+          showFlashMessage("Documentos juntados com sucesso!", "success");
+        } else {
+          showFlashMessage(
+            `Alguns documentos falharam: ${[...failed].join(", ")}`,
+            "warning"
+          );
+        }
+        setRefreshKeyOCR((p) => p + 1);
+      } else if (rsp) {
+        showFlashMessage("Nenhum documento juntado.", "warning");
       } else {
         showFlashMessage("Erro ao juntar documentos!", "error");
       }
-    } catch (err) {
-      setLoading(false);
-      console.error("Erro ao juntar documentos:", err);
-      showFlashMessage("Erro ao juntar documentos", "error");
-    } finally {
-      setLoading(false);
-    }
-  };
 
-  const handleFecharDialog = () => {
-    setDialogOpen(false);
-    setTextoOCR("");
-  };
-
-  const handleCopyText = () => {
-    navigator.clipboard
-      .writeText(textoOCR)
-      .then(() => {
-        setSnackbarError(false);
-        setSnackbarOpen(true);
-      })
-      .catch(() => {
-        setSnackbarError(true);
-        setSnackbarOpen(true);
+      // cooldown para ES/OpenSearch refletirem a deleção em autos_temp
+      await new Promise((r) => setTimeout(r, 250));
+    } catch (error) {
+      const { userMsg, techMsg } = describeApiError(error);
+      console.error("Erro de API:", techMsg);
+      showFlashMessage(userMsg, "error", TIME_FLASH_ALERTA_SEC * 5, {
+        title: "Erro",
+        details: techMsg,
       });
-  };
-  const handleSnackbarClose = () => setSnackbarOpen(false);
+    } finally {
+      if (mountedRef.current) {
+        markAutuando(initial, false);
+        setLoading(false);
+      }
+      setTimeout(() => {
+        callLockRef.current = false;
+      }, 200);
+    }
+  }
+
+  const isAutuandoAtual = !!(idDoc && autuandoIds[idDoc]);
 
   return (
     <Box p={2}>
@@ -294,7 +401,7 @@ export const UploadProcesso = () => {
           </Paper>
         </Grid>
 
-        {/*COL-2 Arquivos transferidos por upload */}
+        {/* COL-2 Arquivos transferidos por upload */}
         <Grid size={{ xs: 11, sm: 10, md: 7, lg: 3, xl: 3 }}>
           <Paper
             sx={{
@@ -320,7 +427,7 @@ export const UploadProcesso = () => {
           </Paper>
         </Grid>
 
-        {/*COL-3 Arquivos transferidos por upload */}
+        {/* COL-3 Peças processuais */}
         <Grid size={{ xs: 11, sm: 10, md: 7, lg: 5, xl: 5 }}>
           <Paper
             sx={{
@@ -347,51 +454,82 @@ export const UploadProcesso = () => {
           </Paper>
         </Grid>
       </Grid>
+
       {/* Dialog para exibir texto OCR */}
       <Dialog
         open={dialogOpen}
         onClose={handleFecharDialog}
         maxWidth="md"
         fullWidth
+        aria-labelledby="ocr-dialog-title"
+        aria-describedby="ocr-dialog-content"
       >
-        <DialogTitle>
-          ID: {idPJE}
-          <IconButton
-            onClick={() => handleDeleteOCR(idDoc)}
-            title="Deletar o registro"
-            sx={{ position: "absolute", right: 250, top: 8 }}
-            disabled={isLoading}
-          >
-            <Delete />
-            <Typography variant="body2">Excluir</Typography>
-          </IconButton>
-          <IconButton
-            onClick={() => handleAutuar(idDoc)}
-            title="Juntar aos Autos"
-            sx={{ position: "absolute", right: 150, top: 8 }}
-            disabled={isLoading}
-          >
-            <PostAdd />
-            <Typography variant="body2">Autuar</Typography>
-          </IconButton>
-          {/* Botão de cópia no topo, à direita */}
-          <IconButton
-            onClick={handleCopyText}
-            title="Copiar para área de transferência"
-            sx={{ position: "absolute", right: 48, top: 8 }}
-          >
-            <ContentCopy />
-            <Typography variant="body2">Copiar</Typography>
-          </IconButton>
-          {/* Botão de fechar no topo, à direita */}
-          <IconButton
-            onClick={handleFecharDialog}
+        <DialogTitle id="ocr-dialog-title" sx={{ pr: 2 }}>
+          <Stack direction="row" alignItems="center" spacing={1}>
+            <Typography variant="subtitle2" sx={{ mr: 1 }}>
+              ID:
+            </Typography>
+            <Typography variant="body1" sx={{ fontWeight: 600 }}>
+              {idPJE}
+            </Typography>
+          </Stack>
+
+          {/* Ações no título */}
+          <Stack
+            direction="row"
+            spacing={0.5}
             sx={{ position: "absolute", right: 8, top: 8 }}
           >
-            <Close />
-          </IconButton>
+            <Tooltip title="Copiar texto">
+              <span>
+                <IconButton
+                  onClick={handleCopyText}
+                  aria-label="Copiar texto OCR"
+                >
+                  <ContentCopy />
+                </IconButton>
+              </span>
+            </Tooltip>
+
+            <Tooltip title="Autuar nos autos">
+              <span>
+                <IconButton
+                  onClick={() => handleAutuar(idDoc)}
+                  aria-label="Juntar aos autos"
+                  disabled={isLoading || isAutuandoAtual}
+                >
+                  <PostAdd />
+                </IconButton>
+              </span>
+            </Tooltip>
+
+            <Tooltip title="Excluir texto OCR">
+              <span>
+                <IconButton
+                  onClick={() => handleDeleteOCR(idDoc)}
+                  aria-label="Excluir texto OCR"
+                  disabled={isLoading}
+                >
+                  <Delete />
+                </IconButton>
+              </span>
+            </Tooltip>
+
+            <Tooltip title="Fechar">
+              <span>
+                <IconButton
+                  onClick={handleFecharDialog}
+                  aria-label="Fechar"
+                  ref={closeBtnRef}
+                >
+                  <Close />
+                </IconButton>
+              </span>
+            </Tooltip>
+          </Stack>
         </DialogTitle>
-        <DialogContent dividers>
+
+        <DialogContent id="ocr-dialog-content" dividers>
           <TextField
             value={textoOCR}
             multiline
@@ -399,14 +537,13 @@ export const UploadProcesso = () => {
             minRows={15}
             variant="outlined"
             slotProps={{
-              input: {
-                readOnly: true,
-              },
+              input: { readOnly: true },
             }}
           />
         </DialogContent>
       </Dialog>
 
+      {/* Snackbar de cópia */}
       <Snackbar
         open={snackbarOpen}
         autoHideDuration={3000}

@@ -97,7 +97,7 @@ const AboutDialog: React.FC<AboutDialogProps> = ({
           <strong>Autor:</strong> {author}
         </DialogContentText>
         <DialogContentText>
-          <strong>Versão:</strong> {versionAPP}
+          <strong>Versão APP:</strong> {versionAPP}
         </DialogContentText>
         <DialogContentText>
           <strong>Versão API:</strong> {versionAPIDisplay}
@@ -128,13 +128,13 @@ export const MenuLateral = ({ children }: IMenuLateralProps) => {
   const { isDrawerOpen, toggleDrawerOpen, drawerOptions } = useDrawerContext();
   const { toggleTheme } = useAppThemeContext();
   const { logout, userLogged } = useAuth();
-  const { version: versionAPI } = useSystem();
+  const { versionApi, versionApp } = useSystem();
 
   // Título no AppBar
   const { tituloJanela } = useDrawerContext();
 
   // Versão do APP
-  const versionAPP = "1.1.2";
+  //const versionAPP = "1.1.2";
 
   const [openAbout, setOpenAbout] = useState(false);
 
@@ -317,8 +317,8 @@ export const MenuLateral = ({ children }: IMenuLateralProps) => {
       <AboutDialog
         open={openAbout}
         onClose={handleCloseAbout}
-        versionAPP={versionAPP}
-        versionAPI={versionAPI}
+        versionAPP={versionApp}
+        versionAPI={versionApi}
       />
 
       {/* ÁREA DO CONTEÚDO */}

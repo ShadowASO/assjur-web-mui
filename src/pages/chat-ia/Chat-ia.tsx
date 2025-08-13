@@ -28,6 +28,11 @@ import {
 } from "../../shared/services/query/QueryResponse";
 import { useQueryGPT } from "../../shared/services/query/Query";
 import { useDrawerContext } from "../../shared/contexts/DrawerProvider";
+import { describeApiError } from "../../shared/services/api/erros/errosApi";
+import {
+  TIME_FLASH_ALERTA_SEC,
+  useFlash,
+} from "../../shared/contexts/FlashProvider";
 
 export const ChatIA = () => {
   const theme = useTheme();
@@ -35,11 +40,12 @@ export const ChatIA = () => {
   const [query, setQuery] = useState("");
   const [prevId, setPrevId] = useState("");
 
-  const [isLoading, setIsLoading] = useState(false);
+  const [isLoading, setLoading] = useState(false);
 
   const { addMessage, addOutput, messagesRef } = useMessageReponse();
   const { getOutputMessageOpenAi } = useQueryGPT();
   const { setTituloJanela } = useDrawerContext();
+  const { showFlashMessage } = useFlash();
 
   const Api = useApi();
 
@@ -70,11 +76,9 @@ export const ChatIA = () => {
         ],
       };
 
-      setIsLoading(true);
-      //console.log(payload);
+      setLoading(true);
 
       const response = await Api.post("/query/chat", payload);
-      //console.log(response);
 
       if (response.ok && response.data) {
         const data = response.data as IResponseOpenaiApi;
@@ -92,11 +96,16 @@ export const ChatIA = () => {
         addMessage("", "assistant", "Erro ao processar a resposta da API.");
       }
     } catch (error) {
-      console.error("Erro ao acessar a API:", error);
+      const { userMsg, techMsg } = describeApiError(error);
+      console.error("Erro de API:", techMsg);
+      showFlashMessage(userMsg, "error", TIME_FLASH_ALERTA_SEC * 5, {
+        title: "Erro",
+        details: techMsg, // aparece no botão (i)
+      });
 
       addMessage("", "assistant", "Erro ao processar a resposta da API.");
     } finally {
-      setIsLoading(false);
+      setLoading(false);
     }
   };
 

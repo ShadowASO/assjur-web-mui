@@ -71,8 +71,12 @@ export const ListaProcessos = () => {
         setRows([]);
       }
     } catch (error) {
-      console.error(error);
-      showFlashMessage("Erro ao recarregar lista de contextos!", "error");
+      const { userMsg, techMsg } = describeApiError(error);
+      console.error("Erro de API:", techMsg);
+      showFlashMessage(userMsg, "error", TIME_FLASH_ALERTA_SEC * 5, {
+        title: "Erro",
+        details: techMsg, // aparece no botão (i)
+      });
     } finally {
       setLoading(false);
     }
@@ -152,7 +156,6 @@ export const ListaProcessos = () => {
         showFlashMessage(userMsg, "error", TIME_FLASH_ALERTA_SEC * 5, {
           title: "Erro",
           details: techMsg, // aparece no botão (i)
-          // persist: true,    // opcional: não fecha automaticamente
         });
       } finally {
         setLoading(false);

@@ -8,7 +8,10 @@
 import { PageBaseLayout } from "../../shared/layouts";
 import { BarraDetalhes } from "../../shared/components/BarraDetalhes";
 import { useEffect, useRef, useState } from "react";
-import { useFlash } from "../../shared/contexts/FlashProvider";
+import {
+  TIME_FLASH_ALERTA_SEC,
+  useFlash,
+} from "../../shared/contexts/FlashProvider";
 import { Controller, useForm } from "react-hook-form";
 import {
   Box,
@@ -33,6 +36,7 @@ import { ContentCopy } from "@mui/icons-material";
 import { itemsNatureza } from "../../shared/constants/itemsModelos";
 import { TiptapEditor } from "../../shared/components/TiptapEditor";
 import { useNavigate, useParams, useLocation } from "react-router-dom";
+import { describeApiError } from "../../shared/services/api/erros/errosApi";
 
 interface IFormData {
   natureza: string;
@@ -52,7 +56,7 @@ export const DetalheModelos = () => {
   const location = useLocation();
   const { showFlashMessage } = useFlash();
 
-  const [isLoading, setIsLoading] = useState(false); // carregamento/IO em geral
+  const [isLoading, setLoading] = useState(false); // carregamento/IO em geral
   const [isSaving, setIsSaving] = useState(false); // flag de salvar (trava botões)
   const [mode, setMode] = useState<"view" | "edit" | "create">(
     idReg === "nova" ? "create" : "view"
@@ -89,7 +93,7 @@ export const DetalheModelos = () => {
       setMode(idReg === "nova" ? "create" : "view");
       if (idReg !== "nova") {
         try {
-          setIsLoading(true);
+          setLoading(true);
           const rsp = await selectModelo(idReg);
           if (rsp instanceof Error) {
             if (!active) return;
@@ -105,8 +109,15 @@ export const DetalheModelos = () => {
           if (!active) return;
           originalRef.current = dados;
           reset(dados, { keepDirty: false, keepTouched: false });
+        } catch (error) {
+          const { userMsg, techMsg } = describeApiError(error);
+          console.error("Erro de API:", techMsg);
+          showFlashMessage(userMsg, "error", TIME_FLASH_ALERTA_SEC * 5, {
+            title: "Erro",
+            details: techMsg, // aparece no botão (i)
+          });
         } finally {
-          setIsLoading(false);
+          setLoading(false);
         }
       } else {
         const vazios: IFormData = {
@@ -202,7 +213,7 @@ export const DetalheModelos = () => {
   const handleDelete = async (id: string) => {
     if (id === "nova") return;
     if (confirm("Deseja realmente excluir o modelo?")) {
-      setIsLoading(true);
+      setLoading(true);
       try {
         const rsp = await deleteModelos(id);
         if (rsp) {
@@ -211,8 +222,15 @@ export const DetalheModelos = () => {
         } else {
           showFlashMessage("Erro na exclusão do registro", "error");
         }
+      } catch (error) {
+        const { userMsg, techMsg } = describeApiError(error);
+        console.error("Erro de API:", techMsg);
+        showFlashMessage(userMsg, "error", TIME_FLASH_ALERTA_SEC * 5, {
+          title: "Erro",
+          details: techMsg, // aparece no botão (i)
+        });
       } finally {
-        setIsLoading(false);
+        setLoading(false);
       }
     }
   };

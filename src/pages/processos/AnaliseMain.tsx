@@ -69,8 +69,12 @@ import {
   RESPOSTA_RAG_CHAT,
   type RespostaRAG,
 } from "../../shared/constants/respostaRag";
-import { useFlash } from "../../shared/contexts/FlashProvider";
+import {
+  TIME_FLASH_ALERTA_SEC,
+  useFlash,
+} from "../../shared/contexts/FlashProvider";
 import { useDrawerContext } from "../../shared/contexts/DrawerProvider";
+import { describeApiError } from "../../shared/services/api/erros/errosApi";
 
 type HSProps = import("react-syntax-highlighter").SyntaxHighlighterProps;
 type PrismTheme = Record<string, React.CSSProperties>;
@@ -196,8 +200,12 @@ export const AnalisesMain = () => {
         const response = await refreshAutos(Number(idCtxt));
         setAutos(response?.length ? response : []);
       } catch (error) {
-        console.error(error);
-        showFlashMessage("Erro ao listar os autos!", "error");
+        const { userMsg, techMsg } = describeApiError(error);
+        console.error("API:", techMsg);
+        showFlashMessage(userMsg, "error", TIME_FLASH_ALERTA_SEC * 5, {
+          title: "Erro",
+          details: techMsg, // aparece no botão (i)
+        });
       } finally {
         setLoading(false);
       }
@@ -223,8 +231,12 @@ export const AnalisesMain = () => {
           setProcesso(rsp?.nr_proc ?? "");
         }
       } catch (error) {
-        console.error(error);
-        showFlashMessage("Erro ao listar o número do processo!", "error");
+        const { userMsg, techMsg } = describeApiError(error);
+        console.error("API:", techMsg);
+        showFlashMessage(userMsg, "error", TIME_FLASH_ALERTA_SEC * 5, {
+          title: "Erro",
+          details: techMsg, // aparece no botão (i)
+        });
       } finally {
         setLoading(false);
       }

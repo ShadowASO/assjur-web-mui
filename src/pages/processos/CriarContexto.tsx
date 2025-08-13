@@ -1,11 +1,10 @@
 /**
  * File: CriarContexto.tsx
- * Criação:  15/06/2025
- * Exibe uma janela Dialog para que seja informado o número do processo para o qual se
- * deseja criar um novo contexto.
- *
+ * Atualização: 13/08/2025
+ * Dialog para informar o número do processo (CNJ) e criar um novo contexto.
  */
-import { useRef, useState } from "react";
+
+import React, { useCallback, useEffect, useMemo, useState } from "react";
 import {
   Dialog,
   DialogTitle,
@@ -16,16 +15,27 @@ import {
   Typography,
   Box,
   TextField,
-  CircularProgress,
+  useMediaQuery,
+  useTheme,
+  InputAdornment,
+  type OutlinedInputProps,
 } from "@mui/material";
 import CloseIcon from "@mui/icons-material/Close";
+//import { LoadingButton } from "@mui/lab";
+
+import LoadingButton from "@mui/lab/LoadingButton";
 import type { MetadadosProcessoCnj } from "../../shared/types/cnjTypes";
 import {
   insertContexto,
   searchMetadadosCNJ,
 } from "../../shared/services/api/fetch/apiTools";
 import ShowMetadadosCnj from "./ShowMetadados";
-import { useFlash } from "../../shared/contexts/FlashProvider";
+import {
+  TIME_FLASH_ALERTA_SEC,
+  useFlash,
+} from "../../shared/contexts/FlashProvider";
+import { describeApiError } from "../../shared/services/api/erros/errosApi";
+import { Clear } from "@mui/icons-material";
 
 interface CriarContextoProps {
   open: boolean;
@@ -33,75 +43,138 @@ interface CriarContextoProps {
   onSuccess?: () => void;
 }
 
+/* ---------- Helpers ---------- */
+// Apenas formatação de máscara (não valida DV do CNJ).
+const formatCNJ = (digits: string) => {
+  const d = digits.replace(/\D/g, "").slice(0, 20);
+  if (d.length === 0) return "";
+  const p = [
+    d.slice(0, 7), // NNNNNNN
+    d.slice(7, 9), // NN
+    d.slice(9, 13), // NNNN
+    d.slice(13, 14), // N
+    d.slice(14, 16), // NN
+    d.slice(16, 20), // NNNN
+  ];
+  // Monta só até onde há dígitos
+  let out = p[0];
+  if (d.length > 7) out += "-" + p[1];
+  if (d.length > 9) out += "." + p[2];
+  if (d.length > 13) out += "." + p[3];
+  if (d.length > 14) out += "." + p[4];
+  if (d.length > 16) out += "." + p[5];
+  return out;
+};
+
+const normalizeCNJ = (value: string) => value.replace(/\D/g, "").slice(0, 20);
+
 export const CriarContexto = ({
   open,
   onClose,
   onSuccess,
 }: CriarContextoProps) => {
+  const theme = useTheme();
+  const fullScreen = useMediaQuery(theme.breakpoints.down("sm"));
+
   const [numeroProcesso, setNumeroProcesso] = useState<string>("");
+  const [fieldError, setFieldError] = useState<string>("");
   const [metaCnj, setMetaCnj] = useState<MetadadosProcessoCnj | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [creating, setCreating] = useState(false);
   const { showFlashMessage } = useFlash();
 
-  const regexCNJ = /^\d{7}-\d{2}\.\d{4}\.\d\.\d{2}\.\d{4}$/;
+  const regexCNJ = useMemo(() => /^\d{7}-\d{2}\.\d{4}\.\d\.\d{2}\.\d{4}$/, []);
 
-  const fieldProcessoRef = useRef<HTMLInputElement | null>(null);
-
-  const handleClose = () => {
-    handleLimpar();
-    onClose();
-  };
-
-  const handleLimpar = () => {
+  // Limpa estados quando fecha o dialog
+  const handleLimpar = useCallback(() => {
     setNumeroProcesso("");
     setMetaCnj(null);
-    if (fieldProcessoRef.current) fieldProcessoRef.current.value = "";
-  };
+    setFieldError("");
+  }, []);
 
-  const handleBuscarMetadadosCnj = async () => {
-    const numeroProcessoLimpo = numeroProcesso.replace(/\D/g, ""); // Remove pontos, traços, espaços etc.
+  const handleClose = useCallback(() => {
+    handleLimpar();
+    onClose();
+  }, [handleLimpar, onClose]);
 
-    if (numeroProcessoLimpo.length !== 20) {
-      showFlashMessage(
-        "Número do processo deve ter exatamente 20 dígitos.",
-        "error"
-      );
+  // Validação básica (tamanho + máscara CNJ)
+  const validateNumero = useCallback(
+    (value: string) => {
+      const digits = normalizeCNJ(value);
+      if (digits.length !== 20) {
+        return "O número deve ter exatamente 20 dígitos.";
+      }
+      const masked = formatCNJ(digits);
+      if (!regexCNJ.test(masked)) {
+        return "Formato inválido. Use o padrão CNJ: NNNNNNN-NN.NNNN.N.NN.NNNN";
+      }
+      return "";
+    },
+    [regexCNJ]
+  );
 
+  // Aplica máscara ao perder o foco
+  const handleBlur = useCallback(() => {
+    const digits = normalizeCNJ(numeroProcesso);
+    const masked = formatCNJ(digits);
+    setNumeroProcesso(masked);
+    setFieldError(validateNumero(masked));
+  }, [numeroProcesso, validateNumero]);
+
+  // Atualiza campo (permite digitação livre, sanitiza só no blur)
+  const handleChange = useCallback(
+    (e: React.ChangeEvent<HTMLInputElement>) => {
+      const v = e.target.value;
+      setNumeroProcesso(v);
+      if (fieldError) setFieldError(""); // usuário está editando: limpe erro visual
+    },
+    [fieldError]
+  );
+
+  const handleBuscarMetadadosCnj = useCallback(async () => {
+    // Valide antes
+    const error = validateNumero(numeroProcesso);
+    if (error) {
+      setFieldError(error);
+      setMetaCnj(null);
       return;
     }
-    if (!regexCNJ.test(numeroProcesso)) {
-      showFlashMessage("Número do processo fora do formato CNJ!", "error");
-      return;
-    }
+
+    const numeroProcessoLimpo = normalizeCNJ(numeroProcesso);
 
     setIsLoading(true);
+    setMetaCnj(null);
     try {
       const metaDados = await searchMetadadosCNJ(numeroProcessoLimpo);
       if (metaDados) {
         setMetaCnj(metaDados);
-        console.log("Processo confirmado no CNJ:", numeroProcessoLimpo);
+        showFlashMessage("Processo localizado no CNJ.", "success");
       } else {
-        showFlashMessage("Processo não encontrado na base do CNJ!", "error");
+        setFieldError("Processo não encontrado na base do CNJ.");
       }
     } catch (error) {
-      console.error("Erro ao buscar metadados CNJ:", error);
-
-      showFlashMessage("Processo não encontrado na base do CNJ!", "error");
+      const { userMsg, techMsg } = describeApiError(error);
+      console.error("Erro de API (CNJ):", techMsg);
+      setFieldError(userMsg || "Não foi possível consultar o CNJ agora.");
+      showFlashMessage(userMsg, "error", TIME_FLASH_ALERTA_SEC * 5, {
+        title: "Erro ao consultar CNJ",
+        details: techMsg,
+      });
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [numeroProcesso, showFlashMessage, validateNumero]);
 
-  const handleCriarContexto = async () => {
+  const handleCriarContexto = useCallback(async () => {
     if (!metaCnj) return;
 
+    setCreating(true);
     try {
       const hit = metaCnj.hits.hits[0]?._source;
-      const juizo = hit?.orgaoJulgador.nome;
-      const classe = hit?.classe.nome;
-      const assunto = hit?.assuntos[0]?.nome ?? "Assunto não identificado";
-      const numeroProcessoLimpo = numeroProcesso.replace(/\D/g, ""); // Remove pontos, traços, espaços etc.
+      const juizo = hit?.orgaoJulgador?.nome ?? "Órgão julgador não informado";
+      const classe = hit?.classe?.nome ?? "Classe não informada";
+      const assunto = hit?.assuntos?.[0]?.nome ?? "Assunto não identificado";
+      const numeroProcessoLimpo = normalizeCNJ(numeroProcesso);
 
       const rsp = await insertContexto(
         numeroProcessoLimpo,
@@ -112,86 +185,166 @@ export const CriarContexto = ({
 
       if (rsp) {
         showFlashMessage("Contexto criado com sucesso!", "success");
-        onClose();
-        if (onSuccess) onSuccess(); // <<---- Callback para forçar refresh
+        if (onSuccess) onSuccess();
+        handleClose();
       } else {
         showFlashMessage("Não foi possível criar o contexto.", "error");
       }
     } catch (error) {
-      console.error("Erro ao criar contexto:", error);
+      const { userMsg, techMsg } = describeApiError(error);
+      console.error("Erro de API (criar contexto):", techMsg);
+      showFlashMessage(userMsg, "error", TIME_FLASH_ALERTA_SEC * 5, {
+        title: "Erro ao criar contexto",
+        details: techMsg,
+      });
     } finally {
       setCreating(false);
     }
-  };
+  }, [metaCnj, numeroProcesso, onSuccess, showFlashMessage, handleClose]);
+
+  // Submit do formulário com Enter dispara a consulta ao CNJ
+  const handleSubmit = useCallback(
+    (e: React.FormEvent) => {
+      e.preventDefault();
+      if (!isLoading && !creating) {
+        void handleBuscarMetadadosCnj();
+      }
+    },
+    [handleBuscarMetadadosCnj, isLoading, creating]
+  );
+
+  // Pressionar ESC fecha o diálogo (o MUI já faz isso por padrão; mantemos por clareza)
+  useEffect(() => {
+    if (!open) return;
+    const onKey = (ev: KeyboardEvent) => {
+      if (ev.key === "Escape") handleClose();
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [open, handleClose]);
+
+  const canConsultar = useMemo(
+    () => !!normalizeCNJ(numeroProcesso).length && !isLoading && !creating,
+    [numeroProcesso, isLoading, creating]
+  );
+
+  const canCriar = useMemo(
+    () => !!metaCnj && !creating && !isLoading,
+    [metaCnj, creating, isLoading]
+  );
+
+  // const canLimpar = useMemo(
+  //   () => !!numeroProcesso || !!metaCnj,
+  //   [numeroProcesso, metaCnj]
+  // );
 
   return (
-    <>
-      <Dialog open={open} onClose={handleClose} fullWidth maxWidth="sm">
-        <DialogTitle>
+    <Dialog
+      open={open}
+      onClose={handleClose}
+      fullWidth
+      maxWidth="sm"
+      fullScreen={fullScreen}
+      aria-labelledby="criar-contexto-title"
+    >
+      <DialogTitle id="criar-contexto-title">
+        <Box
+          display="flex"
+          alignItems="center"
+          justifyContent="space-between"
+          gap={1}
+        >
+          <Typography variant="h6">Contexto do processo</Typography>
+          <IconButton aria-label="Fechar" onClick={handleClose}>
+            <CloseIcon />
+          </IconButton>
+        </Box>
+      </DialogTitle>
+
+      <DialogContent dividers>
+        <Box component="form" onSubmit={handleSubmit} noValidate>
+          <TextField
+            fullWidth
+            autoFocus
+            label="Número do Processo (CNJ)"
+            placeholder="NNNNNNN-NN.NNNN.N.NN.NNNN"
+            value={numeroProcesso}
+            onChange={handleChange}
+            onBlur={handleBlur}
+            variant="outlined"
+            size="small"
+            inputMode="numeric"
+            disabled={isLoading || creating}
+            error={!!fieldError}
+            helperText={
+              fieldError ||
+              "Informe o número completo (20 dígitos). Pressione Enter para consultar."
+            }
+            // ✅ MUI v6+: use slotProps.input no lugar de InputProps
+            slotProps={{
+              input: {
+                endAdornment: numeroProcesso ? (
+                  <InputAdornment position="end">
+                    <IconButton
+                      size="small"
+                      aria-label="Limpar número do processo"
+                      onClick={handleLimpar}
+                      edge="end"
+                      disabled={isLoading || creating}
+                    >
+                      <Clear fontSize="small" />
+                    </IconButton>
+                  </InputAdornment>
+                ) : undefined,
+              } as Partial<OutlinedInputProps>, // ajuda o TS a entender as props do slot
+            }}
+          />
+
           <Box
-            display="flex"
-            alignItems="center"
-            justifyContent="space-between"
+            id="ajuda-numero-processo"
+            sx={{
+              position: "absolute",
+              width: 0,
+              height: 0,
+              overflow: "hidden",
+            }}
           >
-            <Typography variant="h6">Criar Novo Contexto</Typography>
-            <IconButton onClick={handleClose}>
-              <CloseIcon />
-            </IconButton>
+            Número CNJ com 20 dígitos. Formato: sete dígitos, hífen, dois
+            dígitos, ponto, quatro dígitos, ponto, um dígito, ponto, dois
+            dígitos, ponto, quatro dígitos.
           </Box>
-        </DialogTitle>
+        </Box>
 
-        <DialogContent dividers>
-          <Box mt={1} mb={2}>
-            <TextField
-              inputRef={fieldProcessoRef}
-              fullWidth
-              label="Número do Processo"
-              placeholder="Digite o número do processo"
-              value={numeroProcesso}
-              onChange={(e) => setNumeroProcesso(e.target.value)}
-              variant="outlined"
-              size="small"
-              disabled={isLoading || creating}
-            />
+        {metaCnj && (
+          <Box mt={2}>
+            <ShowMetadadosCnj processoCnj={metaCnj} />
           </Box>
+        )}
+      </DialogContent>
 
-          {isLoading && (
-            <Box display="flex" justifyContent="center" my={2}>
-              <CircularProgress size={24} />
-            </Box>
-          )}
+      <DialogActions sx={{ gap: 1, px: 3, py: 2 }}>
+        <LoadingButton
+          variant="outlined"
+          onClick={handleBuscarMetadadosCnj}
+          loading={isLoading}
+          disabled={!canConsultar}
+        >
+          Consultar CNJ
+        </LoadingButton>
 
-          {metaCnj && <ShowMetadadosCnj processoCnj={metaCnj} />}
-        </DialogContent>
+        <LoadingButton
+          variant="contained"
+          onClick={handleCriarContexto}
+          loading={creating}
+          disabled={!canCriar}
+        >
+          Criar Contexto
+        </LoadingButton>
 
-        <DialogActions>
-          <Button
-            variant="outlined"
-            onClick={handleBuscarMetadadosCnj}
-            disabled={numeroProcesso.length === 0 || isLoading}
-          >
-            Buscar
-          </Button>
-          <Button
-            variant="outlined"
-            onClick={handleLimpar}
-            disabled={numeroProcesso.length === 0 && !metaCnj}
-          >
-            Limpar
-          </Button>
-          <Button
-            variant="contained"
-            color="primary"
-            onClick={handleCriarContexto}
-            disabled={!metaCnj || creating}
-          >
-            Confirmar
-          </Button>
-          <Button variant="text" onClick={handleClose}>
-            Fechar
-          </Button>
-        </DialogActions>
-      </Dialog>
-    </>
+        <Button variant="text" onClick={handleClose}>
+          Fechar
+        </Button>
+      </DialogActions>
+    </Dialog>
   );
 };

@@ -8,7 +8,10 @@ import { useNavigate, useParams } from "react-router-dom";
 import { PageBaseLayout } from "../../shared/layouts";
 import { BarraDetalhes } from "../../shared/components/BarraDetalhes";
 import { useCallback, useEffect, useRef, useState } from "react";
-import { useFlash } from "../../shared/contexts/FlashProvider";
+import {
+  TIME_FLASH_ALERTA_SEC,
+  useFlash,
+} from "../../shared/contexts/FlashProvider";
 import { Controller, useForm } from "react-hook-form";
 import * as yup from "yup";
 import { setFormErrors } from "../../shared/forms/rhf/utilitarios";
@@ -37,6 +40,7 @@ import {
 } from "@mui/material";
 import { ContentCopy } from "@mui/icons-material";
 import { itemsDocumento } from "../../shared/constants/autosDoc";
+import { describeApiError } from "../../shared/services/api/erros/errosApi";
 
 interface IFormPrompt {
   nm_desc: string;
@@ -61,7 +65,7 @@ export const DetalhePrompt = () => {
   const navigate = useNavigate();
   const { showFlashMessage } = useFlash();
 
-  const [isLoading, setIsLoading] = useState(false); // load geral
+  const [isLoading, setLoading] = useState(false); // load geral
   const [isSaving, setIsSaving] = useState(false); // flag de salvar
   const [mode, setMode] = useState<"view" | "edit" | "create">(
     idReg === "novo" ? "create" : "view"
@@ -98,7 +102,7 @@ export const DetalhePrompt = () => {
 
       if (idReg !== "novo") {
         try {
-          setIsLoading(true);
+          setLoading(true);
           const rsp = await selectPrompt(Number(idReg));
           if (!active) return;
           if (rsp instanceof Error || !rsp) {
@@ -119,8 +123,15 @@ export const DetalhePrompt = () => {
           };
           originalRef.current = dados;
           reset(dados, { keepDirty: false, keepTouched: false });
+        } catch (error) {
+          const { userMsg, techMsg } = describeApiError(error);
+          console.error("Erro de API:", techMsg);
+          showFlashMessage(userMsg, "error", TIME_FLASH_ALERTA_SEC * 5, {
+            title: "Erro",
+            details: techMsg, // aparece no botão (i)
+          });
         } finally {
-          setIsLoading(false);
+          setLoading(false);
         }
       } else {
         const vazios: IFormPrompt = {
