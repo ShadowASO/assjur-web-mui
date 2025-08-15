@@ -15,7 +15,7 @@ import {
   Grid,
   Tooltip,
   IconButton,
-  InputAdornment,
+  CircularProgress,
 } from "@mui/material";
 
 import ReactMarkdown from "react-markdown";
@@ -41,6 +41,7 @@ export const ChatIA = () => {
   const [prevId, setPrevId] = useState("");
 
   const [isLoading, setLoading] = useState(false);
+  const [isSending, setIsSending] = useState(false);
 
   const { addMessage, addOutput, messagesRef } = useMessageReponse();
   const { getOutputMessageOpenAi } = useQueryGPT();
@@ -55,18 +56,18 @@ export const ChatIA = () => {
   }, [setTituloJanela]);
 
   const handleSendPrompt = async () => {
-    //Se o campo de prompt estiver vazio, faz nada
-    if (!query.trim()) return;
+    const text = query.trim();
+    if (!text) return;
+    if (isSending) return; // evita duplo envio
 
-    //Caso o campo de prompt possua valores
     const userQuery: IMessageResponseItem = {
       id: prevId,
       role: "user",
-      text: query,
+      text,
     };
 
+    setIsSending(true);
     setQuery("");
-
     addMessage(userQuery.id, userQuery.role, userQuery.text);
 
     try {
@@ -77,16 +78,13 @@ export const ChatIA = () => {
       };
 
       setLoading(true);
-
       const response = await Api.post("/query/chat", payload);
 
       if (response.ok && response.data) {
         const data = response.data as IResponseOpenaiApi;
-
         const out = getOutputMessageOpenAi(data.output);
 
         if (out) {
-          //console.log(data.id);
           addOutput(out);
           setPrevId(data.id);
         } else {
@@ -100,12 +98,12 @@ export const ChatIA = () => {
       console.error("Erro de API:", techMsg);
       showFlashMessage(userMsg, "error", TIME_FLASH_ALERTA_SEC * 5, {
         title: "Erro",
-        details: techMsg, // aparece no botão (i)
+        details: techMsg,
       });
-
       addMessage("", "assistant", "Erro ao processar a resposta da API.");
     } finally {
       setLoading(false);
+      setIsSending(false);
     }
   };
 
@@ -209,66 +207,127 @@ export const ChatIA = () => {
         </Grid>
 
         {/* Área de entrada */}
+        {/* Área de entrada */}
         <Grid
           size={{ xs: 12, sm: 12, md: 12, lg: 12, xl: 12 }}
-          display={"flex"}
+          display="flex"
           justifyContent="center"
         >
-          <TextField
-            fullWidth
-            multiline
-            minRows={3}
-            maxRows={3}
-            placeholder="Digite sua mensagem..."
-            value={query}
-            onChange={(e) => setQuery(e.target.value)}
-            onKeyDown={(e) => {
-              if (e.key === "Enter" && !e.shiftKey && !isLoading) {
-                e.preventDefault();
-                handleSendPrompt();
-              }
-            }}
-            disabled={isLoading}
-            autoFocus
-            sx={{
-              "& .MuiOutlinedInput-root": {
-                borderRadius: "16px", // Aqui você define o grau de arredondamento
-                backgroundColor: theme.palette.background.paper,
-              },
+          <Box width="100%" maxWidth="45%">
+            {/* Wrapper para overlay */}
+            <Box position="relative">
+              <TextField
+                fullWidth
+                multiline
+                minRows={3}
+                maxRows={3}
+                placeholder="Digite sua mensagem..."
+                value={query}
+                onChange={(e) => setQuery(e.target.value)}
+                onKeyDown={(e) => {
+                  // Enter envia; Shift+Enter quebra linha
+                  if (
+                    e.key === "Enter" &&
+                    !e.shiftKey &&
+                    !isLoading &&
+                    !isSending
+                  ) {
+                    e.preventDefault();
+                    handleSendPrompt();
+                  }
+                }}
+                disabled={isLoading || isSending}
+                autoFocus
+                sx={{
+                  "& .MuiOutlinedInput-root": {
+                    borderRadius: 2, // 16px
+                    backgroundColor: theme.palette.background.paper,
+                    alignItems: "start",
+                  },
+                  "& .MuiInputBase-root": {
+                    maxHeight: 220,
+                    overflow: "auto",
+                  },
+                  "& textarea": { height: "100% !important", overflow: "auto" },
+                }}
+                slotProps={{
+                  input: { style: { padding: 24 } },
+                  inputLabel: { shrink: true },
+                }}
+              />
 
-              width: "45%",
-            }}
-            slotProps={{
-              input: {
-                style: { padding: "24px" },
-                endAdornment: (
-                  <InputAdornment position="end">
-                    <Box display="flex" flexDirection="column">
-                      <IconButton
-                        size="small"
-                        onClick={handleSendPrompt}
-                        edge="end"
-                        title="Enviar"
-                        disabled={isLoading}
-                      >
-                        <Send fontSize="small" />
-                      </IconButton>
-                      <IconButton
-                        size="small"
-                        onClick={() => setQuery("")}
-                        edge="end"
-                        title="Limpar"
-                        disabled={isLoading}
-                      >
-                        <Clear fontSize="small" />
-                      </IconButton>
-                    </Box>
-                  </InputAdornment>
-                ),
-              },
-              inputLabel: { shrink: true },
-            }}
-          />
+              {/* Overlay de carregamento só sobre o campo */}
+              {isSending && (
+                <Box
+                  role="status"
+                  aria-live="polite"
+                  sx={{
+                    position: "absolute",
+                    inset: 0,
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    bgcolor: "rgba(255,255,255,0.6)",
+                    backdropFilter: "blur(2px)",
+                    borderRadius: 2,
+                  }}
+                >
+                  <CircularProgress size={24} />
+                  <Typography variant="body2" ml={1.5}>
+                    Enviando…
+                  </Typography>
+                </Box>
+              )}
+            </Box>
+
+            {/* Barra de ações EXTERNA, alinhada à direita */}
+            <Box
+              mt={0.5}
+              display="flex"
+              justifyContent="flex-end"
+              gap={0.5}
+              aria-label="Ações do prompt"
+            >
+              <Tooltip title="Enviar">
+                <span>
+                  <IconButton
+                    size="small"
+                    onClick={handleSendPrompt}
+                    disabled={isLoading || isSending || !query.trim()}
+                    aria-label="Enviar prompt"
+                  >
+                    <Send fontSize="small" />
+                  </IconButton>
+                </span>
+              </Tooltip>
+
+              <Tooltip title="Copiar prompt">
+                <span>
+                  <IconButton
+                    size="small"
+                    onClick={() => navigator.clipboard.writeText(query)}
+                    disabled={isLoading || isSending || !query}
+                    aria-label="Copiar prompt"
+                  >
+                    <ContentCopy fontSize="small" />
+                  </IconButton>
+                </span>
+              </Tooltip>
+
+              <Tooltip title="Limpar">
+                <span>
+                  <IconButton
+                    size="small"
+                    onClick={() => setQuery("")}
+                    disabled={isLoading || isSending || !query}
+                    aria-label="Limpar prompt"
+                  >
+                    <Clear fontSize="small" />
+                  </IconButton>
+                </span>
+              </Tooltip>
+            </Box>
+          </Box>
         </Grid>
       </Grid>
     </Box>

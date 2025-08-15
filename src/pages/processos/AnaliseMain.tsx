@@ -17,7 +17,6 @@ import {
   DialogTitle,
   Grid,
   IconButton,
-  InputAdornment,
   LinearProgress,
   Paper,
   Stack,
@@ -32,6 +31,7 @@ import {
   useMediaQuery,
   useTheme,
   TextField,
+  CircularProgress,
 } from "@mui/material";
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 import React, {
@@ -140,6 +140,8 @@ export const AnalisesMain = () => {
   const [prompt, setPrompt] = useState("");
   const [prevId, setPrevId] = useState("");
   const [refreshPecas, setRefreshPecas] = useState(0);
+  // estado só para envio do prompt (sem travar toda a tela)
+  const [isSending, setIsSending] = useState(false);
 
   // tokens
   const [ptUso, setPtUso] = useState(0);
@@ -477,27 +479,37 @@ export const AnalisesMain = () => {
   );
 
   const handleSendPrompt = useCallback(async () => {
-    if (!prompt.trim()) {
+    const text = prompt.trim();
+    if (!text) {
       showFlashMessage("Digite um prompt antes de enviar.", "warning", 3);
       return;
     }
+    if (isSending) return; // evita duplo envio
+    setIsSending(true);
+
     const userQuery: IMessageResponseItem = {
       id: prevId,
       role: "user",
-      text: prompt,
+      text,
     };
+
     setPrompt("");
-    setLoading(true);
     addMessage(userQuery.id, userQuery.role, userQuery.text);
+
     try {
       const msg = getMessages();
       const payload = { id_ctxt: idCtxt, messages: msg, previd: prevId };
       const response = await Api.post("/contexto/query/rag", payload);
+
       if (response.ok && response.data) {
         const data = response.data as IResponseOpenaiApi;
         const out = getMessageOpenAi(data?.output);
-        if (out) await funcToolFormataResposta(out);
-        else setDialogo("");
+        if (out) {
+          await funcToolFormataResposta(out);
+          setRefreshPecas((p) => p + 1);
+        } else {
+          setDialogo("");
+        }
       } else {
         setDialogo("");
       }
@@ -505,7 +517,7 @@ export const AnalisesMain = () => {
       console.error("Erro ao acessar a API:", error);
       showFlashMessage("Erro ao consultar a IA.", "error");
     } finally {
-      setLoading(false);
+      setIsSending(false);
     }
   }, [
     Api,
@@ -517,13 +529,14 @@ export const AnalisesMain = () => {
     prevId,
     prompt,
     showFlashMessage,
+    isSending,
   ]);
 
-  const handlerCleanChat = useCallback(() => {
+  const handlerCleanChat = () => {
     setPrevId("");
     setDialogo("");
     clearMessages();
-  }, [clearMessages]);
+  };
 
   // JSON formatado (sem custo de highlight se Suspense ainda não carregou)
   const jsonFormatado = useMemo(() => {
@@ -889,71 +902,120 @@ export const AnalisesMain = () => {
             </Box>
 
             {/* PROMPT */}
-            <TextField
-              label="Prompt"
-              multiline
-              minRows={4}
-              fullWidth
-              disabled={isLoading}
-              value={prompt}
-              onChange={(e) => setPrompt(e.target.value)}
-              onKeyDown={(e) => {
-                if (
-                  (e.key === "Enter" && !e.shiftKey) ||
-                  (e.key === "Enter" && e.ctrlKey)
-                ) {
-                  e.preventDefault();
-                  if (!isLoading) handleSendPrompt();
-                }
-              }}
-              placeholder="Digite o prompt aqui..."
-              sx={{
-                "& .MuiOutlinedInput-root": { borderRadius: "16px" },
-                "& .MuiInputBase-root": { height: 150, overflow: "auto" },
-                "& textarea": { height: "100% !important", overflow: "auto" },
-              }}
-              slotProps={{
-                input: {
-                  style: { padding: "24px" },
-                  endAdornment: (
-                    <InputAdornment position="end">
-                      <Box display="flex" flexDirection="column">
-                        <IconButton
-                          size="small"
-                          onClick={handleSendPrompt}
-                          edge="end"
-                          title="Enviar"
-                          disabled={isLoading}
-                        >
-                          <Send fontSize="small" />
-                        </IconButton>
-                        <IconButton
-                          size="small"
-                          onClick={() =>
-                            copyToClipboard(prompt, "Prompt copiado!")
-                          }
-                          edge="end"
-                          title="Copiar"
-                          disabled={isLoading}
-                        >
-                          <ContentCopy fontSize="small" />
-                        </IconButton>
-                        <IconButton
-                          size="small"
-                          onClick={() => setPrompt("")}
-                          edge="end"
-                          title="Limpar"
-                          disabled={isLoading}
-                        >
-                          <Delete fontSize="small" />
-                        </IconButton>
-                      </Box>
-                    </InputAdornment>
-                  ),
-                },
-                inputLabel: { shrink: true },
-              }}
-            />
+
+            {/* PROMPT (overlay só no campo + barra de ações externa, simétrica) */}
+            <Box>
+              {/* Wrapper do campo para permitir overlay sem afetar a barra */}
+              <Box position="relative">
+                <TextField
+                  label="Prompt"
+                  multiline
+                  minRows={4}
+                  fullWidth
+                  disabled={isLoading || isSending}
+                  value={prompt}
+                  onChange={(e) => setPrompt(e.target.value)}
+                  onKeyDown={(e) => {
+                    // Enter envia; Shift+Enter quebra linha
+                    if (e.key === "Enter" && !e.shiftKey) {
+                      e.preventDefault();
+                      if (!isSending && !isLoading) handleSendPrompt();
+                    }
+                  }}
+                  placeholder="Digite o prompt aqui..."
+                  sx={{
+                    "& .MuiOutlinedInput-root": { borderRadius: 2 }, // 16px
+                    "& .MuiInputBase-root": {
+                      maxHeight: 220,
+                      overflow: "auto",
+                      // padding interno consistente (sem endAdornment em multiline)
+                      alignItems: "start",
+                    },
+                    "& textarea": {
+                      height: "100% !important",
+                      overflow: "auto",
+                    },
+                  }}
+                  slotProps={{
+                    input: { style: { padding: 24 } },
+                    inputLabel: { shrink: true },
+                  }}
+                />
+
+                {/* Overlay de carregamento apenas sobre o campo */}
+                {isSending && (
+                  <Box
+                    role="status"
+                    aria-live="polite"
+                    sx={{
+                      position: "absolute",
+                      inset: 0,
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      bgcolor: "rgba(255,255,255,0.6)",
+                      backdropFilter: "blur(2px)",
+                      borderRadius: 2,
+                      zIndex: 1,
+                    }}
+                  >
+                    <CircularProgress size={28} />
+                    <Typography variant="body2" ml={1.5}>
+                      Processando…
+                    </Typography>
+                  </Box>
+                )}
+              </Box>
+
+              {/* Barra de ações EXTERNA, alinhada à direita, sem sobrepor o campo */}
+
+              <Box
+                mt={0.5}
+                display="flex"
+                justifyContent="flex-end"
+                gap={0.5}
+                aria-label="Ações do prompt"
+              >
+                <Tooltip title="Enviar">
+                  <span>
+                    <IconButton
+                      size="small"
+                      onClick={handleSendPrompt}
+                      disabled={isLoading || isSending || !prompt.trim()}
+                      aria-label="Enviar prompt"
+                    >
+                      <Send fontSize="small" />
+                    </IconButton>
+                  </span>
+                </Tooltip>
+
+                <Tooltip title="Copiar prompt">
+                  <span>
+                    <IconButton
+                      size="small"
+                      onClick={() => copyToClipboard(prompt, "Prompt copiado!")}
+                      disabled={isLoading || isSending || !prompt}
+                      aria-label="Copiar prompt"
+                    >
+                      <ContentCopy fontSize="small" />
+                    </IconButton>
+                  </span>
+                </Tooltip>
+
+                <Tooltip title="Limpar">
+                  <span>
+                    <IconButton
+                      size="small"
+                      onClick={() => setPrompt("")}
+                      disabled={isLoading || isSending || !prompt}
+                      aria-label="Limpar prompt"
+                    >
+                      <Delete fontSize="small" />
+                    </IconButton>
+                  </span>
+                </Tooltip>
+              </Box>
+            </Box>
           </Paper>
         </Grid>
 
@@ -1007,24 +1069,44 @@ export const AnalisesMain = () => {
               </Suspense>
             </Paper>
 
-            <Box display="flex" justifyContent="flex-end" gap={1} mb={1} mt={1}>
+            {/* Barra de ações externa — Copiar / Salvar */}
+            <Box
+              mt={0.5}
+              display="flex"
+              justifyContent="flex-end"
+              gap={0.5}
+              aria-label="Ações da análise"
+            >
               <Tooltip title="Copiar conteúdo">
-                <IconButton
-                  size="small"
-                  onClick={() => copyToClipboard(minuta, "Conteúdo copiado!")}
-                >
-                  <ContentCopy fontSize="small" />
-                  <Typography variant="body2">Copiar</Typography>
-                </IconButton>
+                <span>
+                  <IconButton
+                    size="small"
+                    onClick={() => copyToClipboard(minuta, "Conteúdo copiado!")}
+                    disabled={!minuta?.trim()}
+                    aria-label="Copiar conteúdo"
+                  >
+                    <ContentCopy fontSize="small" />
+                    <Typography variant="body2" ml={0.5}>
+                      Copiar
+                    </Typography>
+                  </IconButton>
+                </span>
               </Tooltip>
+
               <Tooltip title="Salvar análise">
-                <IconButton
-                  size="small"
-                  onClick={() => handleSaveAnaliseByIA(minuta)}
-                >
-                  <Save fontSize="small" />
-                  <Typography variant="body2">Salvar</Typography>
-                </IconButton>
+                <span>
+                  <IconButton
+                    size="small"
+                    onClick={() => handleSaveAnaliseByIA(minuta)}
+                    disabled={!minuta?.trim()}
+                    aria-label="Salvar análise"
+                  >
+                    <Save fontSize="small" />
+                    <Typography variant="body2" ml={0.5}>
+                      Salvar
+                    </Typography>
+                  </IconButton>
+                </span>
               </Tooltip>
             </Box>
           </Paper>
