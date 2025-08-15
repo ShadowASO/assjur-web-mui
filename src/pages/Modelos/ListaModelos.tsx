@@ -1,11 +1,11 @@
 /**
  * File: ListaModelos.tsx
  * Criação:  14/06/2025
- * Alterações: 10/08/2025
+ * Alterações: 15/08/2025 (dedupe + cancelamento + URL guard)
  * Janela para buscar e listar modelos de documentos
  */
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { BarraListagem } from "../../shared/components/BarraListagem";
 import { PageBaseLayout } from "../../shared/layouts";
@@ -72,25 +72,26 @@ export const ListaModelos = () => {
   const containerRef = useRef<HTMLDivElement | null>(null);
   const savedScrollTop = useRef<number>(0);
 
+  // Para deduplicar chamadas com os mesmos parâmetros
+  const lastParamsRef = useRef<{ termo: string; natureza: string } | null>(
+    null
+  );
+
   // Carrega conteúdo/scroll do sessionStorage na montagem
   useEffect(() => {
     const persistedJson = sessionStorage.getItem(SESSION_KEY);
     if (persistedJson) {
       try {
         const parsed = JSON.parse(persistedJson) as PersistedState;
-        if (parsed?.selectedContent) {
-          setSelectedContent(parsed.selectedContent);
-        }
+        if (parsed?.selectedContent) setSelectedContent(parsed.selectedContent);
       } catch {
-        // ignore
+        /* noop */
       }
     }
     const sTop = sessionStorage.getItem(SCROLL_KEY);
     if (sTop) {
       const n = Number(sTop);
-      if (!Number.isNaN(n)) {
-        savedScrollTop.current = n;
-      }
+      if (!Number.isNaN(n)) savedScrollTop.current = n;
     }
   }, []);
 
@@ -106,20 +107,37 @@ export const ListaModelos = () => {
     if (selectedId) next.set("sid", selectedId);
     else next.delete("sid");
 
-    setSearchParams(next, { replace: true });
+    // **GUARDA**: só atualiza a URL se houve mudança real
+    const nextStr = next.toString();
+    const curStr = searchParams.toString();
+    if (nextStr !== curStr) {
+      setSearchParams(next, { replace: true });
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [searchTexto, natureza, selectedId]);
 
-  // Busca com debounce + proteção contra corrida
+  // Busca com debounce + cancelamento + dedupe de parâmetros
   useEffect(() => {
-    let isActive = true;
+    let cancelled = false;
     const controller = new AbortController();
 
+    // NÃO dependemos da identidade de `debounce` para não re-disparar
     debounce(async () => {
+      if (cancelled) return;
+
       const termo = searchTexto.trim();
 
+      // Deduplica por parâmetros (evita duplicação no StrictMode)
+      const sameParams =
+        lastParamsRef.current &&
+        lastParamsRef.current.termo === termo &&
+        lastParamsRef.current.natureza === natureza;
+
+      if (sameParams) return; // evita hit duplicado
+
+      lastParamsRef.current = { termo, natureza };
+
       if (!termo) {
-        if (!isActive) return;
         setRows([]);
         setSelectedContent("");
         setSelectedId(null);
@@ -128,11 +146,10 @@ export const ListaModelos = () => {
 
       try {
         setLoading(true);
-        const rsp = await searchModelos(
-          termo,
-          natureza /*, { signal: controller.signal } */
-        );
-        if (!isActive) return;
+        // **CANCELAMENTO REAL**: passe o signal até a camada de API
+        const rsp = await searchModelos(termo, natureza, {
+          signal: controller.signal,
+        });
 
         setRows(rsp ?? []);
 
@@ -151,12 +168,14 @@ export const ListaModelos = () => {
           setSelectedContent("");
         }
       } catch (error) {
-        //console.error(error);
-        if (isActive) {
-          setRows([]);
-          setSelectedId(null);
-          setSelectedContent("");
-        }
+        // Se o erro foi por abort, ignore silenciosamente
+        // @ts-expect-error: AbortError check
+        if (error?.name === "AbortError") return;
+
+        setRows([]);
+        setSelectedId(null);
+        setSelectedContent("");
+
         const { userMsg, techMsg } = describeApiError(error);
         console.error("Erro de API:", techMsg);
         showFlashMessage(userMsg, "error", TIME_FLASH_ALERTA_SEC * 5, {
@@ -164,15 +183,18 @@ export const ListaModelos = () => {
           details: techMsg, // aparece no botão (i)
         });
       } finally {
-        if (isActive) setLoading(false);
+        setLoading(false);
       }
     });
 
     return () => {
-      isActive = false;
-      controller.abort();
+      cancelled = true;
+      //controller.abort(); // aborta a execução anterior (evita 2º hit no StrictMode)
     };
-  }, [searchTexto, natureza, debounce, selectedId]);
+    // Dependemos apenas dos VALORES que alteram o request;
+    // não incluímos `debounce` para evitar disparos por mudança de identidade.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [searchTexto, natureza, selectedId]); // <- `selectedId` aqui só para reconstruir preview após retorno
 
   // Restaura o scroll após carregar linhas
   useEffect(() => {
@@ -183,34 +205,36 @@ export const ListaModelos = () => {
   }, [rows.length]);
 
   // Salva scroll no sessionStorage em cada scroll
-  const handleScroll = () => {
+  const handleScroll = useCallback(() => {
     if (!containerRef.current) return;
     sessionStorage.setItem(SCROLL_KEY, String(containerRef.current.scrollTop));
-  };
+  }, []);
 
   // Antes de navegar para detalhe, persiste selectedContent e scroll
-  const goToDetalhe = (id: string) => {
-    // persiste conteúdo selecionado para re-hidratar rápido no retorno
-    const persist: PersistedState = {
-      selectedContent,
-    };
-    sessionStorage.setItem(SESSION_KEY, JSON.stringify(persist));
+  const goToDetalhe = useCallback(
+    (id: string) => {
+      // persiste conteúdo selecionado para re-hidratar rápido no retorno
+      const persist: PersistedState = { selectedContent };
+      sessionStorage.setItem(SESSION_KEY, JSON.stringify(persist));
 
-    if (containerRef.current) {
-      sessionStorage.setItem(
-        SCROLL_KEY,
-        String(containerRef.current.scrollTop)
-      );
-    }
-    //navigate(`/modelos/detalhes/${id}`);
-    // dentro de goToDetalhe(row.id)
-    navigate(`/modelos/detalhes/${id}`, {
-      state: { fromSearch: window.location.search },
-    });
-  };
+      if (containerRef.current) {
+        sessionStorage.setItem(
+          SCROLL_KEY,
+          String(containerRef.current.scrollTop)
+        );
+      }
 
-  const handleDelete = async (id: string) => {
-    if (confirm("Deseja realmente apagar o modelo?")) {
+      navigate(`/modelos/detalhes/${id}`, {
+        state: { fromSearch: window.location.search },
+      });
+    },
+    [navigate, selectedContent]
+  );
+
+  const handleDelete = useCallback(
+    async (id: string) => {
+      if (!confirm("Deseja realmente apagar o modelo?")) return;
+
       try {
         setLoading(true);
 
@@ -235,22 +259,26 @@ export const ListaModelos = () => {
       } finally {
         setLoading(false);
       }
-    }
-  };
+    },
+    [selectedId, showFlashMessage]
+  );
 
-  const copiarParaClipboard = async (texto: string) => {
-    try {
-      if (!texto) return;
-      await navigator.clipboard.writeText(texto);
-      showFlashMessage(
-        "Texto copiado para a área de transferência!",
-        "success",
-        3
-      );
-    } catch {
-      showFlashMessage("Não foi possível copiar o texto.", "error", 3);
-    }
-  };
+  const copiarParaClipboard = useCallback(
+    async (texto: string) => {
+      try {
+        if (!texto) return;
+        await navigator.clipboard.writeText(texto);
+        showFlashMessage(
+          "Texto copiado para a área de transferência!",
+          "success",
+          3
+        );
+      } catch {
+        showFlashMessage("Não foi possível copiar o texto.", "error", 3);
+      }
+    },
+    [showFlashMessage]
+  );
 
   // label do filtro (apenas exibição, sem lógica)
   const naturezaLabel = useMemo(() => natureza || "Despacho", [natureza]);

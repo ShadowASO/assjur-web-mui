@@ -85,7 +85,7 @@ export const DetalheModelos = () => {
       (location.state as { fromSearch?: string } | undefined)?.fromSearch ?? "";
     navigate(`/modelos${fromSearch}`, { replace: true });
   };
-
+  //const inflightRef = useRef<string | null>(null);
   // Carrega dados quando entra no detalhe ou cria novo
   useEffect(() => {
     let active = true;
@@ -94,7 +94,9 @@ export const DetalheModelos = () => {
       if (idReg !== "nova") {
         try {
           setLoading(true);
+          //inflightRef.current = idReg;
           const rsp = await selectModelo(idReg);
+          //if (inflightRef.current !== idReg) return; // resposta antiga, ignore
           if (rsp instanceof Error) {
             if (!active) return;
             showFlashMessage(rsp.message, "error");
