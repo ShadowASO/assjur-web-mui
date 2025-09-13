@@ -480,6 +480,18 @@ export const UploadProcesso = () => {
             spacing={0.5}
             sx={{ position: "absolute", right: 8, top: 8 }}
           >
+            <Tooltip title="Excluir texto OCR">
+              <span>
+                <IconButton
+                  onClick={() => handleDeleteOCR(idDoc)}
+                  aria-label="Excluir texto OCR"
+                  disabled={isLoading}
+                >
+                  <Delete />
+                </IconButton>
+              </span>
+            </Tooltip>
+
             <Tooltip title="Copiar texto">
               <span>
                 <IconButton
@@ -499,18 +511,6 @@ export const UploadProcesso = () => {
                   disabled={isLoading || isAutuandoAtual}
                 >
                   <PostAdd />
-                </IconButton>
-              </span>
-            </Tooltip>
-
-            <Tooltip title="Excluir texto OCR">
-              <span>
-                <IconButton
-                  onClick={() => handleDeleteOCR(idDoc)}
-                  aria-label="Excluir texto OCR"
-                  disabled={isLoading}
-                >
-                  <Delete />
                 </IconButton>
               </span>
             </Tooltip>
