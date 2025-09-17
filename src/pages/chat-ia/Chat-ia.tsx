@@ -52,7 +52,7 @@ export const ChatIA = () => {
 
   // setTituloJanela(`Janela de Chat`);
   useEffect(() => {
-    setTituloJanela(`Janela de Chat`);
+    setTituloJanela(`Janela de Bate-papo`);
   }, [setTituloJanela]);
 
   const handleSendPrompt = async () => {

@@ -254,7 +254,7 @@ export const CriarContexto = ({
           justifyContent="space-between"
           gap={1}
         >
-          <Typography variant="h6">Contexto do processo</Typography>
+          <Typography variant="h6">Criar contexto</Typography>
           <IconButton aria-label="Fechar" onClick={handleClose}>
             <CloseIcon />
           </IconButton>

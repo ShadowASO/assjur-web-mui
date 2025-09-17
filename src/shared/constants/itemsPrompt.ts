@@ -1,19 +1,38 @@
-// export interface Item {
-// 	key: number;
-// 	description: string;
-// }
-
 import { type Item } from "./items";
 
+// Constantes para identificação das naturezas de prompts
+export const PROMPT_ANALISE_AUTUACAO = 1;
+export const PROMPT_ANALISE_CONTEXTO = 2;
+export const PROMPT_ANALISE_JULGAMENTO = 3;
+export const PROMPT_ANALISE_DOCUMENTO = 4;
+// ----------------
+export const PROMPT_ANALISE_ANONIMIZA = 100;
+// ------ prompts RAG
+export const PROMPT_RAG_IDENTIFICA = 101;
+export const PROMPT_RAG_ANALISE = 102;
+export const PROMPT_RAG_JULGAMENTO = 103;
+export const PROMPT_RAG_DECISAO = 104;
+export const PROMPT_RAG_DESPACHO = 105;
+export const PROMPT_RAG_COMPLEMENTO = 301;
+
+// Lista de naturezas (tipos) de prompts
 export const itemsNatureza: Item[] = [
   { key: 0, description: "Selecione a natureza" },
-  { key: 1, description: "Análise de Autuação" },
-  { key: 2, description: "Análise de Contexto" },
-  { key: 3, description: "Análise de Julgamento" },
-  { key: 4, description: "Análise do Documento" },
-
-  { key: 100, description: "Analise de Anonimização" },
-  { key: 101, description: "Formata Respostas" },
+  { key: PROMPT_ANALISE_AUTUACAO, description: "Análise de Autuação" },
+  { key: PROMPT_ANALISE_CONTEXTO, description: "Análise de Contexto" },
+  { key: PROMPT_ANALISE_JULGAMENTO, description: "Análise de Julgamento" },
+  { key: PROMPT_ANALISE_DOCUMENTO, description: "Análise do Documento" },
+  { key: PROMPT_ANALISE_ANONIMIZA, description: "Análise de Anonimização" },
+  // ------ RAG
+  { key: PROMPT_RAG_IDENTIFICA, description: "Identifica finalidade RAG" },
+  { key: PROMPT_RAG_ANALISE, description: "Análise Jurídica (RAG)" },
+  { key: PROMPT_RAG_JULGAMENTO, description: "Análise de Julgamento (RAG)" },
+  { key: PROMPT_RAG_DECISAO, description: "Análise de Decisão (RAG)" },
+  { key: PROMPT_RAG_DESPACHO, description: "Análise de Despacho (RAG)" },
+  {
+    key: PROMPT_RAG_COMPLEMENTO,
+    description: "Complemento de informações(RAG)",
+  },
 ];
 
 export const itemsClasse: Item[] = [

@@ -56,17 +56,19 @@ import { useApi } from "../../shared/contexts/ApiProvider";
 import {
   type IOutputResponseItem,
   type IMessageResponseItem,
-  type IResponseOpenaiApi,
   useMessageReponse,
+  type IResponseRAG,
 } from "../../shared/services/query/QueryResponse";
 import {
   getDocumentoName,
   NATU_DOC_IA_ANALISE,
   NATU_DOC_IA_SENTENCA,
+  NATU_RAG_ANALISE,
+  NATU_RAG_SENTENCA,
 } from "../../shared/constants/autosDoc";
 import {
-  getRespostaDescricao,
-  RESPOSTA_RAG_CHAT,
+  RAG_RESPONSE_COMPLEMENTO,
+  RAG_RESPONSE_OUTROS,
   type RespostaRAG,
 } from "../../shared/constants/respostaRag";
 import {
@@ -161,7 +163,9 @@ export const AnalisesMain = () => {
       autos.filter(
         (reg) =>
           reg.id_natu !== NATU_DOC_IA_ANALISE &&
-          reg.id_natu !== NATU_DOC_IA_SENTENCA
+          reg.id_natu !== NATU_DOC_IA_SENTENCA &&
+          reg.id_natu !== NATU_RAG_ANALISE &&
+          reg.id_natu !== NATU_RAG_SENTENCA
       ),
     [autos]
   );
@@ -170,7 +174,9 @@ export const AnalisesMain = () => {
       autos.filter(
         (reg) =>
           reg.id_natu === NATU_DOC_IA_ANALISE ||
-          reg.id_natu === NATU_DOC_IA_SENTENCA
+          reg.id_natu === NATU_DOC_IA_SENTENCA ||
+          reg.id_natu === NATU_RAG_ANALISE ||
+          reg.id_natu === NATU_RAG_SENTENCA
       ),
     [autos]
   );
@@ -384,7 +390,8 @@ export const AnalisesMain = () => {
       try {
         const ok = await insertDocumentoAutos(
           idCtxtNum,
-          NATU_DOC_IA_ANALISE,
+          //NATU_DOC_IA_ANALISE,
+          NATU_RAG_ANALISE,
           "",
           texto,
           ""
@@ -457,7 +464,11 @@ export const AnalisesMain = () => {
           tipo_resp: Number(rawObj.tipo_resp),
           texto: rawObj.texto,
         };
-        if (respostaObj.tipo_resp === RESPOSTA_RAG_CHAT) {
+        //if (respostaObj.tipo_resp === RESPOSTA_RAG_CHAT) {
+        if (
+          respostaObj.tipo_resp === RAG_RESPONSE_COMPLEMENTO ||
+          respostaObj.tipo_resp === RAG_RESPONSE_OUTROS
+        ) {
           output.content[0].text = respostaObj.texto;
           addOutput(output);
           setDialogo(
@@ -502,7 +513,8 @@ export const AnalisesMain = () => {
       const response = await Api.post("/contexto/query/rag", payload);
 
       if (response.ok && response.data) {
-        const data = response.data as IResponseOpenaiApi;
+        //const data = response.data as IResponseOpenaiApi;
+        const data = response.data as IResponseRAG;
         const out = getMessageOpenAi(data?.output);
         if (out) {
           await funcToolFormataResposta(out);
@@ -533,9 +545,9 @@ export const AnalisesMain = () => {
   ]);
 
   const handlerCleanChat = () => {
+    clearMessages();
     setPrevId("");
     setDialogo("");
-    clearMessages();
   };
 
   // JSON formatado (sem custo de highlight se Suspense ainda não carregou)
@@ -769,7 +781,9 @@ export const AnalisesMain = () => {
                           onClick={() => {
                             if (
                               reg.id_natu === NATU_DOC_IA_ANALISE ||
-                              reg.id_natu === NATU_DOC_IA_SENTENCA
+                              reg.id_natu === NATU_DOC_IA_SENTENCA ||
+                              reg.id_natu === NATU_RAG_ANALISE ||
+                              reg.id_natu === NATU_RAG_SENTENCA
                             ) {
                               setMinuta(reg.doc);
                             } else if (reg.doc_json_raw) {
@@ -784,7 +798,8 @@ export const AnalisesMain = () => {
                           }}
                           sx={{ cursor: "pointer" }}
                         >
-                          {getRespostaDescricao(reg.id_natu)}
+                          {/* {getRespostaDescricao(reg.id_natu)} */}
+                          {getDocumentoName(reg.id_natu)}
                         </TableCell>
                       </TableRow>
                     ))}
@@ -887,7 +902,7 @@ export const AnalisesMain = () => {
                   <span>
                     <IconButton
                       size="medium"
-                      onClick={handlerCleanChat}
+                      onClick={() => handlerCleanChat()}
                       edge="end"
                       disabled={isLoading}
                     >

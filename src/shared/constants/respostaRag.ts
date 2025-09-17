@@ -1,6 +1,19 @@
-export const RESPOSTA_RAG_CHAT = 1;
-export const RESPOSTA_RAG_ANALISE = 2000;
-export const RESPOSTA_RAG_SENTENCA = 2001;
+// export const RESPOSTA_RAG_CHAT = 1;
+// export const RESPOSTA_RAG_ANALISE = 2000;
+// export const RESPOSTA_RAG_SENTENCA = 2001;
+
+// export const RAG_EVENTO_ANALISE = 102;
+// export const RAG_EVENTO_SENTENCA = 103;
+// export const RAG_EVENTO_DECISAO = 104;
+// export const RAG_EVENTO_DESPACHO = 105;
+// export const RAG_EVENTO_OUTROS = 999;
+
+export const RAG_RESPONSE_ANALISE = 201;
+export const RAG_RESPONSE_SENTENCA = 202;
+export const RAG_RESPONSE_DECISAO = 203;
+export const RAG_RESPONSE_DESPACHO = 204;
+export const RAG_RESPONSE_COMPLEMENTO = 301;
+export const RAG_RESPONSE_OUTROS = 999;
 
 export type RespostaRAG = {
   tipo_resp: number;
@@ -13,9 +26,12 @@ export interface itemRespostaRAG {
   Texto: string;
 }
 export const itemsResposta: itemRespostaRAG[] = [
-  { TipoResp: RESPOSTA_RAG_CHAT, Texto: "Chat" },
-  { TipoResp: RESPOSTA_RAG_ANALISE, Texto: "Análise jurídica" },
-  { TipoResp: RESPOSTA_RAG_SENTENCA, Texto: "Sentença" },
+  { TipoResp: RAG_RESPONSE_ANALISE, Texto: "Análise jurídica" },
+  { TipoResp: RAG_RESPONSE_SENTENCA, Texto: "Minuta de sentença" },
+  { TipoResp: RAG_RESPONSE_DECISAO, Texto: "Minuta de decisão" },
+  { TipoResp: RAG_RESPONSE_DESPACHO, Texto: "Minuta de despacho" },
+  { TipoResp: RAG_RESPONSE_COMPLEMENTO, Texto: "Complemento solicitado" },
+  { TipoResp: RAG_RESPONSE_OUTROS, Texto: "Outros" },
 ];
 
 // Função utilitária genérica

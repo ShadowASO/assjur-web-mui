@@ -102,6 +102,17 @@ export interface IResponseOpenaiApi {
   output: IOutputResponseItem[];
   usage: IUsageResponse;
 }
+
+export interface IResponseRAG {
+  id: string;
+  //object: string;
+  //created: number;
+  //status: string;
+  //model: string;
+  output: IOutputResponseItem[];
+  //usage: IUsageResponse;
+}
+
 export function useMessageReponse() {
   const messagesRef = useRef<IMessageResponseItem[]>([]); // sempre atualizado
 

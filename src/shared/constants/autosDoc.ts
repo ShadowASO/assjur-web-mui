@@ -22,6 +22,14 @@ export const NATU_DOC_CERTIDOES = 1002;
 export const NATU_DOC_MOVIMENTACAO = 1003;
 export const NATU_DOC_IA_ANALISE = 2000;
 export const NATU_DOC_IA_SENTENCA = 2001;
+//RAG
+
+export const NATU_RAG_ANALISE = 201;
+export const NATU_RAG_SENTENCA = 202;
+
+//export const PROMPT_RAG_JULGAMENTO = 103;
+//export const PROMPT_RAG_DECISAO = 104;
+//export const PROMPT_RAG_DESPACHO = 105;
 
 export const itemsDocumento: Item[] = [
   { key: 0, description: "Selecione o documento" },
@@ -38,6 +46,7 @@ export const itemsDocumento: Item[] = [
   { key: NATU_DOC_PROCURACAO, description: "Procuração" },
   { key: NATU_DOC_ROL_TESTEMUNHAS, description: "Rol de Testemunhas" },
   { key: NATU_DOC_CONTRATO, description: "Contrato" },
+
   { key: NATU_DOC_LAUDO_PERICIAL, description: "Laudo Pericial" },
   { key: NATU_DOC_TERMO_AUDIENCIA, description: "Termo de Audiência" },
   {
@@ -48,6 +57,9 @@ export const itemsDocumento: Item[] = [
 
   { key: NATU_DOC_IA_ANALISE, description: "Análise por IA" },
   { key: NATU_DOC_IA_SENTENCA, description: "Sentença por IA" },
+  //RAG
+  { key: NATU_RAG_ANALISE, description: "Análise por IA" },
+  { key: NATU_RAG_SENTENCA, description: "Sentença por IA" },
 ];
 
 // Função utilitária genérica

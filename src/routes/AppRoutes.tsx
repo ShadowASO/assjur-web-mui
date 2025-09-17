@@ -46,7 +46,7 @@ export const AppRoutes = () => {
       {
         icon: LocationCity,
         path: "/chat-ia",
-        label: "Chat IA",
+        label: "Bate-papo",
       },
     ]);
   }, []);
