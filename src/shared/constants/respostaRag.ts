@@ -13,6 +13,7 @@ export const RAG_RESPONSE_SENTENCA = 202;
 export const RAG_RESPONSE_DECISAO = 203;
 export const RAG_RESPONSE_DESPACHO = 204;
 export const RAG_RESPONSE_COMPLEMENTO = 301;
+export const RAG_RESPONSE_PREANALISE = 302;
 export const RAG_RESPONSE_OUTROS = 999;
 
 export type RespostaRAG = {
@@ -31,6 +32,7 @@ export const itemsResposta: itemRespostaRAG[] = [
   { TipoResp: RAG_RESPONSE_DECISAO, Texto: "Minuta de decisão" },
   { TipoResp: RAG_RESPONSE_DESPACHO, Texto: "Minuta de despacho" },
   { TipoResp: RAG_RESPONSE_COMPLEMENTO, Texto: "Complemento solicitado" },
+  { TipoResp: RAG_RESPONSE_PREANALISE, Texto: "Pré-análise jurídica" },
   { TipoResp: RAG_RESPONSE_OUTROS, Texto: "Outros" },
 ];
 

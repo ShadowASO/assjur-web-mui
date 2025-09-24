@@ -26,6 +26,7 @@ export const NATU_DOC_IA_SENTENCA = 2001;
 
 export const NATU_RAG_ANALISE = 201;
 export const NATU_RAG_SENTENCA = 202;
+export const NATU_RAG_PREANALISE = 302;
 
 //export const PROMPT_RAG_JULGAMENTO = 103;
 //export const PROMPT_RAG_DECISAO = 104;
@@ -47,19 +48,20 @@ export const itemsDocumento: Item[] = [
   { key: NATU_DOC_ROL_TESTEMUNHAS, description: "Rol de Testemunhas" },
   { key: NATU_DOC_CONTRATO, description: "Contrato" },
 
-  { key: NATU_DOC_LAUDO_PERICIAL, description: "Laudo Pericial" },
-  { key: NATU_DOC_TERMO_AUDIENCIA, description: "Termo de Audiência" },
+  // { key: NATU_DOC_LAUDO_PERICIAL, description: "Laudo Pericial" },
+  // { key: NATU_DOC_TERMO_AUDIENCIA, description: "Termo de Audiência" },
   {
     key: NATU_DOC_PARECER_MP,
     description: "Manifestação do Ministério Público",
   },
   { key: NATU_DOC_AUTOS, description: "Autos Processuais" },
 
-  { key: NATU_DOC_IA_ANALISE, description: "Análise por IA" },
-  { key: NATU_DOC_IA_SENTENCA, description: "Sentença por IA" },
+  // { key: NATU_DOC_IA_ANALISE, description: "Análise por IA" },
+  // { key: NATU_DOC_IA_SENTENCA, description: "Sentença por IA" },
   //RAG
   { key: NATU_RAG_ANALISE, description: "Análise por IA" },
   { key: NATU_RAG_SENTENCA, description: "Sentença por IA" },
+  { key: NATU_RAG_PREANALISE, description: "Pré-análise por IA" },
 ];
 
 // Função utilitária genérica

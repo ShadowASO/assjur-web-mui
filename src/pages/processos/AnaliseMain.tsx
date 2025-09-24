@@ -2,7 +2,7 @@
  * File: AnaliseMain.tsx
  * Atualização: 12/08/2025
  */
-import { ContentCopy, Delete, Save, Send } from "@mui/icons-material";
+import { ContentCopy, Delete, Send } from "@mui/icons-material";
 import {
   Accordion,
   AccordionDetails,
@@ -61,9 +61,8 @@ import {
 } from "../../shared/services/query/QueryResponse";
 import {
   getDocumentoName,
-  NATU_DOC_IA_ANALISE,
-  NATU_DOC_IA_SENTENCA,
   NATU_RAG_ANALISE,
+  NATU_RAG_PREANALISE,
   NATU_RAG_SENTENCA,
 } from "../../shared/constants/autosDoc";
 import {
@@ -162,9 +161,8 @@ export const AnalisesMain = () => {
     () =>
       autos.filter(
         (reg) =>
-          reg.id_natu !== NATU_DOC_IA_ANALISE &&
-          reg.id_natu !== NATU_DOC_IA_SENTENCA &&
           reg.id_natu !== NATU_RAG_ANALISE &&
+          reg.id_natu !== NATU_RAG_PREANALISE &&
           reg.id_natu !== NATU_RAG_SENTENCA
       ),
     [autos]
@@ -173,9 +171,8 @@ export const AnalisesMain = () => {
     () =>
       autos.filter(
         (reg) =>
-          reg.id_natu === NATU_DOC_IA_ANALISE ||
-          reg.id_natu === NATU_DOC_IA_SENTENCA ||
           reg.id_natu === NATU_RAG_ANALISE ||
+          reg.id_natu === NATU_RAG_PREANALISE ||
           reg.id_natu === NATU_RAG_SENTENCA
       ),
     [autos]
@@ -372,43 +369,43 @@ export const AnalisesMain = () => {
   );
 
   // salvar IA / RAG
-  const handleSaveAnaliseByIA = useCallback(
-    async (texto: string) => {
-      if (!texto) {
-        showFlashMessage(
-          "Não há qualquer análise disponível para salvamento!",
-          "warning"
-        );
-        return;
-      }
-      const idCtxtNum = Number(idCtxt);
-      if (isNaN(idCtxtNum) || idCtxtNum <= 0) {
-        showFlashMessage("Contexto inválido para salvar a análise!", "error");
-        return;
-      }
-      setLoading(true);
-      try {
-        const ok = await insertDocumentoAutos(
-          idCtxtNum,
-          //NATU_DOC_IA_ANALISE,
-          NATU_RAG_ANALISE,
-          "",
-          texto,
-          ""
-        );
-        showFlashMessage(
-          ok ? "Análise salva com sucesso!" : "Erro ao salvar a análise!",
-          ok ? "success" : "error"
-        );
-      } catch (error) {
-        console.error("Erro ao acessar a API:", error);
-        showFlashMessage("Erro inesperado ao salvar a análise.", "error");
-      } finally {
-        setLoading(false);
-      }
-    },
-    [idCtxt]
-  );
+  // const handleSaveAnaliseByIA = useCallback(
+  //   async (texto: string) => {
+  //     if (!texto) {
+  //       showFlashMessage(
+  //         "Não há qualquer análise disponível para salvamento!",
+  //         "warning"
+  //       );
+  //       return;
+  //     }
+  //     const idCtxtNum = Number(idCtxt);
+  //     if (isNaN(idCtxtNum) || idCtxtNum <= 0) {
+  //       showFlashMessage("Contexto inválido para salvar a análise!", "error");
+  //       return;
+  //     }
+  //     setLoading(true);
+  //     try {
+  //       const ok = await insertDocumentoAutos(
+  //         idCtxtNum,
+  //         //NATU_DOC_IA_ANALISE,
+  //         NATU_RAG_ANALISE,
+  //         "",
+  //         texto,
+  //         ""
+  //       );
+  //       showFlashMessage(
+  //         ok ? "Análise salva com sucesso!" : "Erro ao salvar a análise!",
+  //         ok ? "success" : "error"
+  //       );
+  //     } catch (error) {
+  //       console.error("Erro ao acessar a API:", error);
+  //       showFlashMessage("Erro inesperado ao salvar a análise.", "error");
+  //     } finally {
+  //       setLoading(false);
+  //     }
+  //   },
+  //   [idCtxt]
+  // );
 
   // OpenAI helpers
   const getMessageOpenAi = useCallback(
@@ -477,7 +474,7 @@ export const AnalisesMain = () => {
           setPrevId(output.id);
         } else {
           setMinuta(respostaObj.texto);
-          await funcToolSaveRAG(respostaObj);
+          //await funcToolSaveRAG(respostaObj);
         }
       } catch {
         // fallback: texto bruto
@@ -780,9 +777,8 @@ export const AnalisesMain = () => {
                         <TableCell
                           onClick={() => {
                             if (
-                              reg.id_natu === NATU_DOC_IA_ANALISE ||
-                              reg.id_natu === NATU_DOC_IA_SENTENCA ||
                               reg.id_natu === NATU_RAG_ANALISE ||
+                              reg.id_natu === NATU_RAG_PREANALISE ||
                               reg.id_natu === NATU_RAG_SENTENCA
                             ) {
                               setMinuta(reg.doc);
@@ -1103,22 +1099,6 @@ export const AnalisesMain = () => {
                     <ContentCopy fontSize="small" />
                     <Typography variant="body2" ml={0.5}>
                       Copiar
-                    </Typography>
-                  </IconButton>
-                </span>
-              </Tooltip>
-
-              <Tooltip title="Salvar análise">
-                <span>
-                  <IconButton
-                    size="small"
-                    onClick={() => handleSaveAnaliseByIA(minuta)}
-                    disabled={!minuta?.trim()}
-                    aria-label="Salvar análise"
-                  >
-                    <Save fontSize="small" />
-                    <Typography variant="body2" ml={0.5}>
-                      Salvar
                     </Typography>
                   </IconButton>
                 </span>
