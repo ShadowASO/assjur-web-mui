@@ -285,7 +285,7 @@ export const ListaModelos = () => {
 
   return (
     <PageBaseLayout
-      title="Modelos cadastrados"
+      title="Modelos Cadastrados"
       toolBar={
         <BarraListagem
           buttonLabel="Nova"

@@ -57,7 +57,7 @@ import {
   type IOutputResponseItem,
   type IMessageResponseItem,
   useMessageReponse,
-  type IResponseRAG,
+  type IResponseOutput,
 } from "../../shared/services/query/QueryResponse";
 import {
   getDocumentoName,
@@ -65,11 +65,7 @@ import {
   NATU_RAG_PREANALISE,
   NATU_RAG_SENTENCA,
 } from "../../shared/constants/autosDoc";
-import {
-  RAG_RESPONSE_COMPLEMENTO,
-  RAG_RESPONSE_OUTROS,
-  type RespostaRAG,
-} from "../../shared/constants/respostaRag";
+import { type AnaliseProcessoRAG } from "../../shared/constants/respostaRag";
 import {
   TIME_FLASH_ALERTA_SEC,
   useFlash,
@@ -368,75 +364,39 @@ export const AnalisesMain = () => {
     [showFlashMessage]
   );
 
-  // salvar IA / RAG
-  // const handleSaveAnaliseByIA = useCallback(
-  //   async (texto: string) => {
-  //     if (!texto) {
-  //       showFlashMessage(
-  //         "Não há qualquer análise disponível para salvamento!",
-  //         "warning"
-  //       );
-  //       return;
-  //     }
-  //     const idCtxtNum = Number(idCtxt);
-  //     if (isNaN(idCtxtNum) || idCtxtNum <= 0) {
-  //       showFlashMessage("Contexto inválido para salvar a análise!", "error");
-  //       return;
-  //     }
-  //     setLoading(true);
-  //     try {
-  //       const ok = await insertDocumentoAutos(
-  //         idCtxtNum,
-  //         //NATU_DOC_IA_ANALISE,
-  //         NATU_RAG_ANALISE,
-  //         "",
-  //         texto,
-  //         ""
-  //       );
-  //       showFlashMessage(
-  //         ok ? "Análise salva com sucesso!" : "Erro ao salvar a análise!",
-  //         ok ? "success" : "error"
-  //       );
-  //     } catch (error) {
-  //       console.error("Erro ao acessar a API:", error);
-  //       showFlashMessage("Erro inesperado ao salvar a análise.", "error");
-  //     } finally {
-  //       setLoading(false);
-  //     }
-  //   },
-  //   [idCtxt]
-  // );
-
   // OpenAI helpers
-  const getMessageOpenAi = useCallback(
-    (out: IOutputResponseItem[]): IOutputResponseItem | undefined =>
-      out.find((o) => o?.type === "message"),
+  const getOutputMessage = useCallback(
+    (out?: IOutputResponseItem[]): IOutputResponseItem | undefined =>
+      Array.isArray(out) ? out.find((o) => o?.type === "message") : undefined,
     []
   );
 
   const funcToolSaveRAG = useCallback(
-    async (rag: RespostaRAG) => {
-      if (!rag.texto) {
+    async (rag: AnaliseProcessoRAG) => {
+      if (!rag || !rag.identificacao?.numero_processo) {
         showFlashMessage(
           "Não há qualquer análise disponível para salvamento!",
           "warning"
         );
         return;
       }
+
       const idCtxtNum = Number(idCtxt);
       if (isNaN(idCtxtNum) || idCtxtNum <= 0) {
         showFlashMessage("Contexto inválido para salvar a análise!", "error");
         return;
       }
+
       setLoading(true);
       try {
         const ok = await insertDocumentoAutos(
           idCtxtNum,
-          rag.tipo_resp,
-          "",
-          rag.texto,
-          ""
+          rag.tipo.codigo, // agora usamos o tipo da estrutura
+          rag.identificacao.numero_processo, // pode ser útil salvar o número do processo
+          JSON.stringify(rag), // salva a análise completa em JSON
+          "" // ou "" caso não queira salvar aqui
         );
+
         showFlashMessage(
           ok ? "Análise salva com sucesso!" : "Erro ao salvar a análise!",
           ok ? "success" : "error"
@@ -451,33 +411,65 @@ export const AnalisesMain = () => {
     [idCtxt]
   );
 
-  const funcToolFormataResposta = useCallback(
+  /**
+   * Formata a resposta recebida do servidor e faz a exibição.
+   */
+  const formataRespostaRAG = useCallback(
     async (output: IOutputResponseItem) => {
+      //console.log(output);
       const maybeText = output?.content?.[0]?.text;
       if (!maybeText) return;
+
       try {
         const rawObj = JSON.parse(maybeText);
-        const respostaObj: RespostaRAG = {
-          tipo_resp: Number(rawObj.tipo_resp),
-          texto: rawObj.texto,
-        };
-        //if (respostaObj.tipo_resp === RESPOSTA_RAG_CHAT) {
-        if (
-          respostaObj.tipo_resp === RAG_RESPONSE_COMPLEMENTO ||
-          respostaObj.tipo_resp === RAG_RESPONSE_OUTROS
-        ) {
-          output.content[0].text = respostaObj.texto;
-          addOutput(output);
-          setDialogo(
-            (prev) => (prev ? prev + "\n\n" : "") + output.content[0].text
-          );
-          setPrevId(output.id);
-        } else {
-          setMinuta(respostaObj.texto);
-          //await funcToolSaveRAG(respostaObj);
+
+        // 1. Validar se existe tipo.codigo
+        if (!rawObj?.tipo?.codigo) {
+          throw new Error("Objeto não contém campo tipo.codigo");
         }
-      } catch {
-        // fallback: texto bruto
+
+        // 2. Roteamento por tipo
+        switch (rawObj.tipo.codigo) {
+          case 201: {
+            // Análise jurídica do processo
+            const respostaObj: AnaliseProcessoRAG = rawObj;
+            setMinuta(JSON.stringify(respostaObj, null, 2));
+            break;
+          }
+
+          case 202: {
+            // Sentença
+            const respostaObj: AnaliseProcessoRAG = rawObj;
+            setMinuta(JSON.stringify(respostaObj, null, 2));
+            break;
+          }
+
+          case 203: {
+            // Decisão interlocutória
+            const respostaObj: AnaliseProcessoRAG = rawObj;
+            setMinuta(JSON.stringify(respostaObj, null, 2));
+            break;
+          }
+
+          case 204: {
+            // Despacho
+            const respostaObj: AnaliseProcessoRAG = rawObj;
+            setMinuta(JSON.stringify(respostaObj, null, 2));
+            break;
+          }
+
+          default: {
+            // Tipo desconhecido → exibir bruto
+            //output.content[0].text = JSON.stringify(rawObj, null, 2);
+            addOutput(output);
+            setDialogo(
+              (prev) => (prev ? prev + "\n\n" : "") + output.content[0].text
+            );
+            setPrevId(output.id);
+          }
+        }
+      } catch (err) {
+        console.error("Erro ao processar resposta:", err);
         addOutput(output);
         setDialogo((prev) => (prev ? prev + "\n\n" : "") + maybeText);
         setPrevId(output.id);
@@ -510,17 +502,34 @@ export const AnalisesMain = () => {
       const response = await Api.post("/contexto/query/rag", payload);
 
       if (response.ok && response.data) {
-        //const data = response.data as IResponseOpenaiApi;
-        const data = response.data as IResponseRAG;
-        const out = getMessageOpenAi(data?.output);
-        if (out) {
-          await funcToolFormataResposta(out);
-          setRefreshPecas((p) => p + 1);
-        } else {
-          setDialogo("");
+        const respOutput = response.data as IResponseOutput;
+
+        if (!respOutput?.output || !Array.isArray(respOutput.output)) {
+          console.log(respOutput);
+          showFlashMessage(
+            "Resposta da API não está no formato esperado (sem output).",
+            "error"
+          );
+          return;
         }
+        //Extraio o primeiro  output com tipo "message"
+        const output = getOutputMessage(respOutput.output);
+        if (!output) {
+          console.log(output);
+          showFlashMessage(
+            "Resposta da API não contém mensagem válida.",
+            "error"
+          );
+          return;
+        }
+
+        //console.log(output);
+
+        //Aqui é que eu verifico o formato
+        await formataRespostaRAG(output);
+        setRefreshPecas((p) => p + 1);
       } else {
-        setDialogo("");
+        showFlashMessage("Resposta inválida da API.", "error");
       }
     } catch (error) {
       console.error("Erro ao acessar a API:", error);
@@ -531,8 +540,8 @@ export const AnalisesMain = () => {
   }, [
     Api,
     addMessage,
-    funcToolFormataResposta,
-    getMessageOpenAi,
+    formataRespostaRAG,
+    getOutputMessage,
     getMessages,
     idCtxt,
     prevId,

@@ -103,7 +103,7 @@ export interface IResponseOpenaiApi {
   usage: IUsageResponse;
 }
 
-export interface IResponseRAG {
+export interface IResponseOutput {
   id: string;
   //object: string;
   //created: number;

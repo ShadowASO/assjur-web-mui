@@ -14,6 +14,7 @@ export const PROMPT_RAG_JULGAMENTO = 103;
 export const PROMPT_RAG_DECISAO = 104;
 export const PROMPT_RAG_DESPACHO = 105;
 export const PROMPT_RAG_COMPLEMENTO = 301;
+export const PROMPT_RAG_OUTROS = 999;
 
 // Lista de naturezas (tipos) de prompts
 export const itemsNatureza: Item[] = [
@@ -32,6 +33,10 @@ export const itemsNatureza: Item[] = [
   {
     key: PROMPT_RAG_COMPLEMENTO,
     description: "Complemento de informações(RAG)",
+  },
+  {
+    key: PROMPT_RAG_OUTROS,
+    description: "Outras naturezas(RAG)",
   },
 ];
 
