@@ -15,6 +15,8 @@ import { ListaPrompts } from "../pages/prompts/ListaPrompts";
 import { UploadProcesso } from "../pages/processos/UploadProcesso";
 import { DetalhePrompt } from "../pages/prompts/DetalhePrompt";
 import { AnalisesMain } from "../pages/processos/AnaliseMain";
+import { ListaRAG } from "../pages/rag/ListaRAG";
+import { DetalheRAG } from "../pages/rag/DetalheRAG";
 
 export const AppRoutes = () => {
   const { setDrawerOptions } = useDrawerContext();
@@ -42,6 +44,11 @@ export const AppRoutes = () => {
         icon: LocationCity,
         path: "/prompts",
         label: "Prompts",
+      },
+      {
+        icon: LocationCity,
+        path: "/rag",
+        label: "RAG",
       },
       {
         icon: LocationCity,
@@ -116,6 +123,23 @@ export const AppRoutes = () => {
         element={
           <RequireAuth>
             <ListaPrompts></ListaPrompts>
+          </RequireAuth>
+        }
+      />
+      //RAG
+      <Route
+        path="/rag"
+        element={
+          <RequireAuth>
+            <ListaRAG></ListaRAG>
+          </RequireAuth>
+        }
+      />
+      <Route
+        path="/rag/detalhes/:id"
+        element={
+          <RequireAuth>
+            <DetalheRAG></DetalheRAG>
           </RequireAuth>
         }
       />

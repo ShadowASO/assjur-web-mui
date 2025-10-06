@@ -16,6 +16,7 @@ import type {
 import { TokenStorage } from "./TokenStorage";
 import type { MetadadosProcessoCnj } from "../../../types/cnjTypes";
 import { ApiError } from "../erros/errosApi";
+import type { BaseRow, BodyBaseInsert } from "../../../../pages/rag/typeRAG";
 
 // ======================= Infra de API =======================
 
@@ -510,6 +511,92 @@ export async function deleteModelos(id: string): Promise<boolean> {
 export async function selectModelo(id: string): Promise<ModelosRow | null> {
   const rsp = await apiGet<DocsPayload<ModelosRow>>(`/tabelas/modelos/${id}`);
   return getDoc<ModelosRow>(rsp, "/tabelas/modelos/:id");
+}
+
+// ======================= RAG =======================
+
+export interface ResponseRAGInsert {
+  id: string;
+  message: string;
+}
+
+export async function insertRAG(
+  id_pje: string,
+  classe: string,
+  assunto: string,
+  natureza: string,
+  tipo: string,
+  tema: string,
+  fonte: string,
+  data_texto: string
+): Promise<ResponseRAGInsert | null> {
+  const body: BodyBaseInsert = {
+    id_pje,
+    classe,
+    assunto,
+    natureza,
+    tipo,
+    tema,
+    fonte,
+    data_texto,
+  };
+
+  const rsp = await apiPost<ResponseRAGInsert>("/tabelas/rag", body);
+  return rsp.data ?? null;
+}
+
+export async function updateRAG(
+  id: string,
+  id_pje: string,
+  classe: string,
+  assunto: string,
+  natureza: string,
+  tipo: string,
+  tema: string,
+  fonte: string,
+  data_texto: string
+): Promise<BaseRow | null> {
+  const body = {
+    id_pje,
+    classe,
+    assunto,
+    natureza,
+    tipo,
+    tema,
+    fonte,
+    data_texto,
+  };
+
+  const rsp = await apiPut<DocsPayload<BaseRow>>(`/tabelas/rag/${id}`, body);
+  return getDoc<BaseRow>(rsp, "/tabelas/rag/:id");
+}
+
+export async function searchRAG(
+  consulta: string,
+  natureza: string,
+  opts?: CallOptions
+): Promise<BaseRow[]> {
+  const body = {
+    Index_name: "ml-rag-msmarco",
+    Natureza: natureza,
+    Search_texto: consulta,
+  };
+  const rsp = await apiPost<DocsPayload<BaseRow>>(
+    "/tabelas/rag/search",
+    body,
+    opts
+  );
+  return getDocs<BaseRow>(rsp, "/tabelas/rag/search");
+}
+
+export async function deleteRAG(id: string): Promise<boolean> {
+  await apiDelete<unknown>(`/tabelas/rag/${id}`);
+  return true;
+}
+
+export async function selectRAG(id: string): Promise<BaseRow | null> {
+  const rsp = await apiGet<DocsPayload<BaseRow>>(`/tabelas/rag/${id}`);
+  return getDoc<BaseRow>(rsp, "/tabelas/rag/:id");
 }
 
 // ======================= Utilitários =======================

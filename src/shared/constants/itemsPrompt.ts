@@ -13,6 +13,7 @@ export const PROMPT_RAG_ANALISE = 102;
 export const PROMPT_RAG_JULGAMENTO = 103;
 export const PROMPT_RAG_DECISAO = 104;
 export const PROMPT_RAG_DESPACHO = 105;
+export const PROMPT_RAG_FORMATA_SENTENCA = 300;
 export const PROMPT_RAG_COMPLEMENTO = 301;
 export const PROMPT_RAG_OUTROS = 999;
 
@@ -30,6 +31,10 @@ export const itemsNatureza: Item[] = [
   { key: PROMPT_RAG_JULGAMENTO, description: "Análise de Julgamento (RAG)" },
   { key: PROMPT_RAG_DECISAO, description: "Análise de Decisão (RAG)" },
   { key: PROMPT_RAG_DESPACHO, description: "Análise de Despacho (RAG)" },
+  {
+    key: PROMPT_RAG_FORMATA_SENTENCA,
+    description: "Formatar sentença para RAG",
+  },
   {
     key: PROMPT_RAG_COMPLEMENTO,
     description: "Complemento de informações(RAG)",
