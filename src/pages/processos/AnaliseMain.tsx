@@ -376,12 +376,6 @@ export const AnalisesMain = () => {
   );
 
   /**
-   * Formata a resposta recebida do servidor e faz a exibição.
-   */
-  /**
-   * Formata a resposta recebida do servidor e faz a exibição.
-   */
-  /**
    * Formata a resposta recebida do servidor e faz a exibição no diálogo.
    */
   const formataRespostaRAG = useCallback(
@@ -390,21 +384,51 @@ export const AnalisesMain = () => {
       if (!maybeText) return;
 
       try {
+        console.log(maybeText);
         const rawObj = JSON.parse(maybeText);
 
         // 1️⃣ Validação mínima do objeto retornado
-        if (!rawObj?.tipo?.codigo) {
+        if (!rawObj?.tipo?.evento) {
           throw new Error("Objeto não contém campo tipo.codigo");
         }
 
         // 2️⃣ Roteamento por tipo de resposta
-        switch (rawObj.tipo.codigo) {
+        switch (rawObj.tipo.evento) {
           case 201: // Análise jurídica
           case 202: // Sentença
           case 203: // Decisão interlocutória
           case 204: // Despacho
             setMinuta(JSON.stringify(rawObj, null, 2));
             break;
+          case 300: {
+            // ✅ Exibir JSON bruto no painel de minuta
+            //setMinuta(JSON.stringify(rawObj, null, 2));
+            const confirmacao = rawObj.confirmacao ?? "";
+
+            // ✅ Monta novo item de saída compatível com IOutputResponseItem
+            const complementoOutput: IOutputResponseItem = {
+              type: "message",
+              id: output.id,
+              status: "completed",
+              role: "assistant",
+              content: [
+                {
+                  type: "text",
+                  text: confirmacao,
+                  annotations: [],
+                },
+              ],
+            };
+
+            // ✅ Adiciona no histórico visual
+            addOutput(complementoOutput);
+
+            // ✅ Atualiza o diálogo textual
+            setDialogo((prev) => (prev ? prev + "\n\n" : "") + confirmacao);
+
+            setPrevId(output.id);
+            break;
+          }
 
           case 301: {
             // 🚨 Dados faltantes → gerar perguntas ao usuário
@@ -420,9 +444,6 @@ export const AnalisesMain = () => {
               textoComplemento =
                 "O modelo indicou que há dados complementares necessários, mas não especificou quais.";
             }
-
-            // ✅ Exibir JSON bruto no painel de minuta
-            //setMinuta(JSON.stringify(rawObj, null, 2));
 
             // ✅ Monta novo item de saída compatível com IOutputResponseItem
             const complementoOutput: IOutputResponseItem = {

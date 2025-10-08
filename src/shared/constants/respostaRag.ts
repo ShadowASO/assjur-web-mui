@@ -1,14 +1,29 @@
-export const RAG_RESPONSE_ANALISE = 201;
-export const RAG_RESPONSE_SENTENCA = 202;
-export const RAG_RESPONSE_DECISAO = 203;
-export const RAG_RESPONSE_DESPACHO = 204;
-export const RAG_RESPONSE_COMPLEMENTO = 301;
-export const RAG_RESPONSE_PREANALISE = 302;
-export const RAG_RESPONSE_OUTROS = 999;
+export const RAG_EVENTO_PREANALISE = 200;
+export const RAG_EVENTO_ANALISE = 201;
+export const RAG_EVENTO_SENTENCA = 202;
+export const RAG_EVENTO_DECISAO = 203;
+export const RAG_EVENTO_DESPACHO = 204;
+//-----  Comp
 
-export type RespostaBaseRAG = {
-  tipo: { codigo: number; descricao: string };
-};
+export const RAG_EVENTO_CONFIRMACAO = 300;
+export const RAG_EVENTO_COMPLEMENTO = 301;
+export const RAG_EVENTO_ADD_BASE = 302;
+
+export const RAG_EVENTO_OUTROS = 999;
+
+// Representa o tipo identificador do evento jurídico.
+export interface TipoEvento {
+  evento: number; // Código numérico do evento jurídico
+  descricao: string; // Descrição textual do evento
+}
+
+// Estrutura base genérica que contém o identificador de tipo.
+export interface BaseObjeto {
+  tipo: TipoEvento; // Identificador do evento
+}
+export interface RespostaBaseRAG {
+  tipo: TipoEvento; // Identificador do evento
+}
 
 export function isRespostaBaseRAG(obj: unknown): obj is RespostaBaseRAG {
   if (
@@ -28,10 +43,7 @@ export function isRespostaBaseRAG(obj: unknown): obj is RespostaBaseRAG {
 //------- ANÁLISE PROCESSUAL
 
 export type AnaliseProcessoRAG = RespostaBaseRAG & {
-  tipo: {
-    codigo: number;
-    descricao: string;
-  };
+  tipo: TipoEvento;
 
   identificacao: {
     numero_processo: string;
@@ -103,10 +115,7 @@ export type AnaliseProcessoRAG = RespostaBaseRAG & {
 //********* SENTENÇA  */
 
 export type SentencaRAG = RespostaBaseRAG & {
-  tipo?: {
-    codigo?: number;
-    descricao?: string;
-  };
+  tipo: TipoEvento;
 
   processo?: {
     numero?: string;
@@ -159,13 +168,13 @@ export interface itemRespostaRAG {
   Texto: string;
 }
 export const itemsResposta: itemRespostaRAG[] = [
-  { TipoResp: RAG_RESPONSE_ANALISE, Texto: "Análise jurídica" },
-  { TipoResp: RAG_RESPONSE_SENTENCA, Texto: "Minuta de sentença" },
-  { TipoResp: RAG_RESPONSE_DECISAO, Texto: "Minuta de decisão" },
-  { TipoResp: RAG_RESPONSE_DESPACHO, Texto: "Minuta de despacho" },
-  { TipoResp: RAG_RESPONSE_COMPLEMENTO, Texto: "Complemento solicitado" },
-  { TipoResp: RAG_RESPONSE_PREANALISE, Texto: "Pré-análise jurídica" },
-  { TipoResp: RAG_RESPONSE_OUTROS, Texto: "Outros" },
+  { TipoResp: RAG_EVENTO_ANALISE, Texto: "Análise jurídica" },
+  { TipoResp: RAG_EVENTO_SENTENCA, Texto: "Minuta de sentença" },
+  { TipoResp: RAG_EVENTO_DECISAO, Texto: "Minuta de decisão" },
+  { TipoResp: RAG_EVENTO_DESPACHO, Texto: "Minuta de despacho" },
+  { TipoResp: RAG_EVENTO_COMPLEMENTO, Texto: "Complemento solicitado" },
+  { TipoResp: RAG_EVENTO_PREANALISE, Texto: "Pré-análise jurídica" },
+  { TipoResp: RAG_EVENTO_OUTROS, Texto: "Outros" },
 ];
 
 // Função utilitária genérica
