@@ -48,7 +48,7 @@ import {
   deleteAutos,
   formatNumeroProcesso,
   getContextoById,
-  insertDocumentoAutos,
+  //insertDocumentoAutos,
   refreshAutos,
 } from "../../shared/services/api/fetch/apiTools";
 import type { AutosRow } from "../../shared/types/tabelas";
@@ -65,7 +65,7 @@ import {
   NATU_RAG_PREANALISE,
   NATU_RAG_SENTENCA,
 } from "../../shared/constants/autosDoc";
-import { type AnaliseProcessoRAG } from "../../shared/constants/respostaRag";
+//import { type AnaliseProcessoRAG } from "../../shared/constants/respostaRag";
 import {
   TIME_FLASH_ALERTA_SEC,
   useFlash,
@@ -149,6 +149,10 @@ export const AnalisesMain = () => {
   const [selectedIdsAutos, setSelectedIdsAutos] = useState<string[]>([]);
   const [selectedIdsRag, setSelectedIdsRag] = useState<string[]>([]);
   const [confirmOpen, setConfirmOpen] = useState<null | "autos" | "rag">(null);
+
+  //const [selectedRagId, setSelectedRagId] = useState<string | null>(null);
+
+  // seleção de minuta exibida
 
   const { addMessage, getMessages, addOutput, clearMessages } =
     useMessageReponse();
@@ -371,96 +375,84 @@ export const AnalisesMain = () => {
     []
   );
 
-  const funcToolSaveRAG = useCallback(
-    async (rag: AnaliseProcessoRAG) => {
-      if (!rag || !rag.identificacao?.numero_processo) {
-        showFlashMessage(
-          "Não há qualquer análise disponível para salvamento!",
-          "warning"
-        );
-        return;
-      }
-
-      const idCtxtNum = Number(idCtxt);
-      if (isNaN(idCtxtNum) || idCtxtNum <= 0) {
-        showFlashMessage("Contexto inválido para salvar a análise!", "error");
-        return;
-      }
-
-      setLoading(true);
-      try {
-        const ok = await insertDocumentoAutos(
-          idCtxtNum,
-          rag.tipo.codigo, // agora usamos o tipo da estrutura
-          rag.identificacao.numero_processo, // pode ser útil salvar o número do processo
-          JSON.stringify(rag), // salva a análise completa em JSON
-          "" // ou "" caso não queira salvar aqui
-        );
-
-        showFlashMessage(
-          ok ? "Análise salva com sucesso!" : "Erro ao salvar a análise!",
-          ok ? "success" : "error"
-        );
-      } catch (error) {
-        console.error("Erro ao acessar a API:", error);
-        showFlashMessage("Erro inesperado ao salvar a análise.", "error");
-      } finally {
-        setLoading(false);
-      }
-    },
-    [idCtxt]
-  );
-
   /**
    * Formata a resposta recebida do servidor e faz a exibição.
    */
+  /**
+   * Formata a resposta recebida do servidor e faz a exibição.
+   */
+  /**
+   * Formata a resposta recebida do servidor e faz a exibição no diálogo.
+   */
   const formataRespostaRAG = useCallback(
     async (output: IOutputResponseItem) => {
-      //console.log(output);
       const maybeText = output?.content?.[0]?.text;
       if (!maybeText) return;
 
       try {
         const rawObj = JSON.parse(maybeText);
 
-        // 1. Validar se existe tipo.codigo
+        // 1️⃣ Validação mínima do objeto retornado
         if (!rawObj?.tipo?.codigo) {
           throw new Error("Objeto não contém campo tipo.codigo");
         }
 
-        // 2. Roteamento por tipo
+        // 2️⃣ Roteamento por tipo de resposta
         switch (rawObj.tipo.codigo) {
-          case 201: {
-            // Análise jurídica do processo
-            const respostaObj: AnaliseProcessoRAG = rawObj;
-            setMinuta(JSON.stringify(respostaObj, null, 2));
+          case 201: // Análise jurídica
+          case 202: // Sentença
+          case 203: // Decisão interlocutória
+          case 204: // Despacho
+            setMinuta(JSON.stringify(rawObj, null, 2));
             break;
-          }
 
-          case 202: {
-            // Sentença
-            const respostaObj: AnaliseProcessoRAG = rawObj;
-            setMinuta(JSON.stringify(respostaObj, null, 2));
-            break;
-          }
+          case 301: {
+            // 🚨 Dados faltantes → gerar perguntas ao usuário
+            const faltantes: string[] = rawObj.faltantes ?? [];
+            let textoComplemento = "";
 
-          case 203: {
-            // Decisão interlocutória
-            const respostaObj: AnaliseProcessoRAG = rawObj;
-            setMinuta(JSON.stringify(respostaObj, null, 2));
-            break;
-          }
+            if (faltantes.length > 0) {
+              textoComplemento =
+                "Algumas questões controvertidas ainda não foram respondidas:\n\n" +
+                faltantes.map((q, i) => `${i + 1}. ${q}`).join("\n") +
+                "\n\nPor favor, responda a cada uma dessas questões para prosseguir com o julgamento.";
+            } else {
+              textoComplemento =
+                "O modelo indicou que há dados complementares necessários, mas não especificou quais.";
+            }
 
-          case 204: {
-            // Despacho
-            const respostaObj: AnaliseProcessoRAG = rawObj;
-            setMinuta(JSON.stringify(respostaObj, null, 2));
+            // ✅ Exibir JSON bruto no painel de minuta
+            //setMinuta(JSON.stringify(rawObj, null, 2));
+
+            // ✅ Monta novo item de saída compatível com IOutputResponseItem
+            const complementoOutput: IOutputResponseItem = {
+              type: "message",
+              id: output.id + "-faltantes",
+              status: "completed",
+              role: "assistant",
+              content: [
+                {
+                  type: "text",
+                  text: textoComplemento,
+                  annotations: [],
+                },
+              ],
+            };
+
+            // ✅ Adiciona no histórico visual
+            addOutput(complementoOutput);
+
+            // ✅ Atualiza o diálogo textual
+            setDialogo(
+              (prev) => (prev ? prev + "\n\n" : "") + textoComplemento
+            );
+
+            setPrevId(output.id);
             break;
           }
 
           default: {
-            // Tipo desconhecido → exibir bruto
-            //output.content[0].text = JSON.stringify(rawObj, null, 2);
+            // Tipo desconhecido → exibir texto bruto
             addOutput(output);
             setDialogo(
               (prev) => (prev ? prev + "\n\n" : "") + output.content[0].text
@@ -470,12 +462,30 @@ export const AnalisesMain = () => {
         }
       } catch (err) {
         console.error("Erro ao processar resposta:", err);
-        addOutput(output);
+
+        // ⚠️ Em caso de erro no parsing, adiciona o texto bruto
+        const erroOutput: IOutputResponseItem = {
+          type: "message",
+          id: output.id + "-erro",
+          status: "error",
+          role: "assistant",
+          content: [
+            {
+              type: "text",
+              text:
+                "Erro ao processar resposta do servidor. Exibindo conteúdo bruto:\n\n" +
+                maybeText,
+              annotations: [],
+            },
+          ],
+        };
+
+        addOutput(erroOutput);
         setDialogo((prev) => (prev ? prev + "\n\n" : "") + maybeText);
         setPrevId(output.id);
       }
     },
-    [addOutput, funcToolSaveRAG]
+    [addOutput, setDialogo, setMinuta, setPrevId]
   );
 
   const handleSendPrompt = useCallback(async () => {
@@ -527,6 +537,7 @@ export const AnalisesMain = () => {
 
         //Aqui é que eu verifico o formato
         await formataRespostaRAG(output);
+
         setRefreshPecas((p) => p + 1);
       } else {
         showFlashMessage("Resposta inválida da API.", "error");
@@ -785,13 +796,7 @@ export const AnalisesMain = () => {
                         </TableCell>
                         <TableCell
                           onClick={() => {
-                            if (
-                              reg.id_natu === NATU_RAG_ANALISE ||
-                              reg.id_natu === NATU_RAG_PREANALISE ||
-                              reg.id_natu === NATU_RAG_SENTENCA
-                            ) {
-                              setMinuta(reg.doc);
-                            } else if (reg.doc_json_raw) {
+                            if (reg.doc_json_raw) {
                               setMinuta(
                                 typeof reg.doc_json_raw === "string"
                                   ? reg.doc_json_raw
@@ -801,7 +806,6 @@ export const AnalisesMain = () => {
                               setMinuta("");
                             }
                           }}
-                          sx={{ cursor: "pointer" }}
                         >
                           {/* {getRespostaDescricao(reg.id_natu)} */}
                           {getDocumentoName(reg.id_natu)}

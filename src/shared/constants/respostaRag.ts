@@ -65,7 +65,10 @@ export type AnaliseProcessoRAG = RespostaBaseRAG & {
     pedidos_subsidiarios: string[];
   };
 
-  questoes_controvertidas: string[];
+  questoes_controvertidas: {
+    descricao: string;
+    pergunta_ao_usuario: string;
+  }[];
 
   provas: {
     autor: string[];
