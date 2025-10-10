@@ -34,24 +34,18 @@ import {
   CircularProgress,
 } from "@mui/material";
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
-import React, {
-  Suspense,
-  useCallback,
-  useEffect,
-  useMemo,
-  useRef,
-  useState,
-} from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import ReactMarkdown from "react-markdown";
 import { useParams } from "react-router-dom";
 import {
   deleteAutos,
+  deleteEvento,
   formatNumeroProcesso,
   getContextoById,
-  //insertDocumentoAutos,
   refreshAutos,
+  refreshEventos,
 } from "../../shared/services/api/fetch/apiTools";
-import type { AutosRow } from "../../shared/types/tabelas";
+import type { AutosRow, EventosRow } from "../../shared/types/tabelas";
 import { useApi } from "../../shared/contexts/ApiProvider";
 import {
   type IOutputResponseItem,
@@ -59,35 +53,15 @@ import {
   useMessageReponse,
   type IResponseOutput,
 } from "../../shared/services/query/QueryResponse";
-import {
-  getDocumentoName,
-  NATU_RAG_ANALISE,
-  NATU_RAG_PREANALISE,
-  NATU_RAG_SENTENCA,
-} from "../../shared/constants/autosDoc";
-//import { type AnaliseProcessoRAG } from "../../shared/constants/respostaRag";
+import { getDocumentoName } from "../../shared/constants/autosDoc";
+
 import {
   TIME_FLASH_ALERTA_SEC,
   useFlash,
 } from "../../shared/contexts/FlashProvider";
 import { useDrawerContext } from "../../shared/contexts/DrawerProvider";
 import { describeApiError } from "../../shared/services/api/erros/errosApi";
-
-type HSProps = import("react-syntax-highlighter").SyntaxHighlighterProps;
-type PrismTheme = Record<string, React.CSSProperties>;
-
-const SyntaxHighlighter = React.lazy<React.ComponentType<HSProps>>(async () => {
-  const prismMod = await import("react-syntax-highlighter");
-  const { duotoneLight } = (await import(
-    "react-syntax-highlighter/dist/esm/styles/prism"
-  )) as { duotoneLight: PrismTheme };
-
-  const Comp: React.FC<HSProps> = (props) => (
-    <prismMod.Prism style={duotoneLight} {...props} />
-  );
-
-  return { default: Comp };
-});
+import { MinutaViewer } from "./MinutasViewer";
 
 /* ============== Hook simples de infinite slice com IntersectionObserver ============== */
 function useInfiniteSlice<T>(items: T[], step = 30) {
@@ -131,7 +105,10 @@ export const AnalisesMain = () => {
 
   const [isLoading, setLoading] = useState(false);
   const [processo, setProcesso] = useState("");
+
   const [autos, setAutos] = useState<AutosRow[]>([]);
+  const [eventos, setEventos] = useState<EventosRow[]>([]);
+
   const [minuta, setMinuta] = useState("");
   const [dialogo, setDialogo] = useState("");
   const [prompt, setPrompt] = useState("");
@@ -147,48 +124,39 @@ export const AnalisesMain = () => {
 
   // seleção
   const [selectedIdsAutos, setSelectedIdsAutos] = useState<string[]>([]);
-  const [selectedIdsRag, setSelectedIdsRag] = useState<string[]>([]);
+  const [selectedIdsEventos, setSelectedIdsEventos] = useState<string[]>([]);
   const [confirmOpen, setConfirmOpen] = useState<null | "autos" | "rag">(null);
-
-  //const [selectedRagId, setSelectedRagId] = useState<string | null>(null);
-
-  // seleção de minuta exibida
 
   const { addMessage, getMessages, addOutput, clearMessages } =
     useMessageReponse();
-
-  const autosFiltrados = useMemo(
-    () =>
-      autos.filter(
-        (reg) =>
-          reg.id_natu !== NATU_RAG_ANALISE &&
-          reg.id_natu !== NATU_RAG_PREANALISE &&
-          reg.id_natu !== NATU_RAG_SENTENCA
-      ),
-    [autos]
-  );
-  const ragFiltrados = useMemo(
-    () =>
-      autos.filter(
-        (reg) =>
-          reg.id_natu === NATU_RAG_ANALISE ||
-          reg.id_natu === NATU_RAG_PREANALISE ||
-          reg.id_natu === NATU_RAG_SENTENCA
-      ),
-    [autos]
-  );
 
   // infinite slices
   const {
     visible: autosVisiveis,
     hasMore: autosHasMore,
     sentinelRef: autosSentinel,
-  } = useInfiniteSlice(autosFiltrados, 40);
+  } = useInfiniteSlice(autos, 40);
   const {
-    visible: ragVisiveis,
-    hasMore: ragHasMore,
-    sentinelRef: ragSentinel,
-  } = useInfiniteSlice(ragFiltrados, 40);
+    visible: eventosVisiveis,
+    hasMore: eventosHasMore,
+    sentinelRef: eventosSentinel,
+  } = useInfiniteSlice(eventos, 40);
+
+  // Seleciona e exibe a minuta correspondente a um evento
+  const handleSelectEvento = useCallback((evento: EventosRow) => {
+    if (!evento) return;
+    //setSelectedIdsEventos([evento.id]);
+
+    if (evento.doc_json_raw) {
+      const raw =
+        typeof evento.doc_json_raw === "string"
+          ? evento.doc_json_raw
+          : JSON.stringify(evento.doc_json_raw, null, 2);
+      setMinuta(raw);
+    } else {
+      setMinuta("");
+    }
+  }, []);
 
   // título
   useEffect(() => {
@@ -197,7 +165,7 @@ export const AnalisesMain = () => {
     );
   }, [processo, setTituloJanela]);
 
-  // carregar autos
+  // carregar autos (peças)
   useEffect(() => {
     (async () => {
       try {
@@ -206,10 +174,9 @@ export const AnalisesMain = () => {
         setAutos(response?.length ? response : []);
       } catch (error) {
         const { userMsg, techMsg } = describeApiError(error);
-        console.error("API:", techMsg);
         showFlashMessage(userMsg, "error", TIME_FLASH_ALERTA_SEC * 5, {
           title: "Erro",
-          details: techMsg, // aparece no botão (i)
+          details: techMsg,
         });
       } finally {
         setLoading(false);
@@ -217,40 +184,53 @@ export const AnalisesMain = () => {
     })();
   }, [idCtxt, refreshPecas]);
 
+  // ========================= CARREGAMENTO DE EVENTOS =========================
+  useEffect(() => {
+    (async () => {
+      try {
+        setLoading(true);
+        const response = await refreshEventos(Number(idCtxt));
+        const lista = response?.length ? response : [];
+        setEventos(lista);
+
+        // ✅ Seleciona automaticamente o primeiro evento da lista
+        if (lista.length > 0 && !minuta) {
+          handleSelectEvento(lista[0]);
+        }
+      } catch (error) {
+        const { userMsg, techMsg } = describeApiError(error);
+        showFlashMessage(userMsg, "error", TIME_FLASH_ALERTA_SEC * 5, {
+          title: "Erro",
+          details: techMsg,
+        });
+      } finally {
+        setLoading(false);
+      }
+    })();
+  }, [idCtxt, refreshPecas, handleSelectEvento]);
+
   // processo + tokens
   useEffect(() => {
     (async () => {
       try {
         setLoading(true);
-        if (!idCtxt) {
-          setProcesso("");
-          setPtUso(0);
-          setCtUso(0);
-          setTtUso(0);
-          return;
-        }
+        if (!idCtxt) return;
         const rsp = await getContextoById(idCtxt);
         if (rsp) {
           setPtUso(rsp.prompt_tokens ?? 0);
           setCtUso(rsp.completion_tokens ?? 0);
-          setProcesso(rsp?.nr_proc ?? "");
+          setProcesso(rsp.nr_proc ?? "");
         }
       } catch (error) {
-        const { userMsg, techMsg } = describeApiError(error);
-        console.error("API:", techMsg);
-        showFlashMessage(userMsg, "error", TIME_FLASH_ALERTA_SEC * 5, {
-          title: "Erro",
-          details: techMsg, // aparece no botão (i)
-        });
+        const { userMsg } = describeApiError(error);
+        showFlashMessage(userMsg, "error", TIME_FLASH_ALERTA_SEC * 5);
       } finally {
         setLoading(false);
       }
     })();
   }, [idCtxt]);
 
-  useEffect(() => {
-    setTtUso((ptUso ?? 0) + (ctUso ?? 0));
-  }, [ptUso, ctUso]);
+  useEffect(() => setTtUso((ptUso ?? 0) + (ctUso ?? 0)), [ptUso, ctUso]);
 
   // seleção
   const handleSelectRowAutos = useCallback((id: string, checked: boolean) => {
@@ -258,51 +238,48 @@ export const AnalisesMain = () => {
       checked ? [...prev, id] : prev.filter((sid) => sid !== id)
     );
   }, []);
-  const handleSelectRowRag = useCallback((id: string, checked: boolean) => {
-    setSelectedIdsRag((prev) =>
+
+  const handleSelectRowEventos = useCallback((id: string, checked: boolean) => {
+    setSelectedIdsEventos((prev) =>
       checked ? [...prev, id] : prev.filter((sid) => sid !== id)
     );
   }, []);
 
-  const allAutosIds = useMemo(
-    () => autosFiltrados.map((r) => r.id),
-    [autosFiltrados]
-  );
-  const allRagIds = useMemo(
-    () => ragFiltrados.map((r) => r.id),
-    [ragFiltrados]
-  );
+  const allAutosIds = useMemo(() => autos.map((r) => r.id), [autos]);
+  const allEventosIds = useMemo(() => eventos.map((r) => r.id), [eventos]);
 
   const autosAllChecked =
     selectedIdsAutos.length === allAutosIds.length && allAutosIds.length > 0;
-  const autosIndeterminate =
-    selectedIdsAutos.length > 0 && selectedIdsAutos.length < allAutosIds.length;
-  const ragAllChecked =
-    selectedIdsRag.length === allRagIds.length && allRagIds.length > 0;
-  const ragIndeterminate =
-    selectedIdsRag.length > 0 && selectedIdsRag.length < allRagIds.length;
+  const eventosAllChecked =
+    selectedIdsEventos.length === allEventosIds.length &&
+    allEventosIds.length > 0;
 
   const handleToggleAllAutos = useCallback(
     (checked: boolean) => setSelectedIdsAutos(checked ? allAutosIds : []),
     [allAutosIds]
   );
   const handleToggleAllRag = useCallback(
-    (checked: boolean) => setSelectedIdsRag(checked ? allRagIds : []),
-    [allRagIds]
+    (checked: boolean) => setSelectedIdsEventos(checked ? allEventosIds : []),
+    [allEventosIds]
   );
 
-  // deleção
-  const deleteByIds = useCallback(async (ids: string[]) => {
+  const deleteByIdsAutos = useCallback(async (ids: string[]) => {
     if (ids.length === 0) return { errors: 0 };
     const results = await Promise.all(ids.map((id) => deleteAutos(id)));
     return { errors: results.filter((ok) => !ok).length };
   }, []);
+  const deleteByIdsEventos = useCallback(async (ids: string[]) => {
+    if (ids.length === 0) return { errors: 0 };
+    const results = await Promise.all(ids.map((id) => deleteEvento(id)));
+    return { errors: results.filter((ok) => !ok).length };
+  }, []);
 
+  //********* */
   const handleDeleteSelectedAutos = useCallback(async () => {
     if (!selectedIdsAutos.length) return;
     setLoading(true);
     try {
-      const { errors } = await deleteByIds(selectedIdsAutos);
+      const { errors } = await deleteByIdsAutos(selectedIdsAutos);
       setSelectedIdsAutos([]);
       setRefreshPecas((p) => p + 1);
       showFlashMessage(
@@ -311,20 +288,17 @@ export const AnalisesMain = () => {
           : "Erro ao excluir alguns autos.",
         errors === 0 ? "success" : "error"
       );
-    } catch (e) {
-      console.error(e);
-      showFlashMessage("Erro inesperado ao excluir autos.", "error");
     } finally {
       setLoading(false);
     }
-  }, [deleteByIds, selectedIdsAutos, showFlashMessage]);
+  }, [deleteByIdsAutos, selectedIdsAutos, showFlashMessage]);
 
-  const handleDeleteSelectedRag = useCallback(async () => {
-    if (!selectedIdsRag.length) return;
+  const handleDeleteSelectedEventos = useCallback(async () => {
+    if (!selectedIdsEventos.length) return;
     setLoading(true);
     try {
-      const { errors } = await deleteByIds(selectedIdsRag);
-      setSelectedIdsRag([]);
+      const { errors } = await deleteByIdsEventos(selectedIdsEventos);
+      setSelectedIdsEventos([]);
       setRefreshPecas((p) => p + 1);
       showFlashMessage(
         errors === 0
@@ -332,13 +306,10 @@ export const AnalisesMain = () => {
           : "Erro ao excluir algumas minutas.",
         errors === 0 ? "success" : "error"
       );
-    } catch (e) {
-      console.error(e);
-      showFlashMessage("Erro inesperado ao excluir minutas.", "error");
     } finally {
       setLoading(false);
     }
-  }, [deleteByIds, selectedIdsRag, showFlashMessage]);
+  }, [deleteByIdsEventos, selectedIdsEventos, showFlashMessage]);
 
   // clipboard
   const copyToClipboard = useCallback(
@@ -349,24 +320,15 @@ export const AnalisesMain = () => {
           () => showFlashMessage(msgOk, "success"),
           () => showFlashMessage("Não foi possível copiar.", "warning")
         );
-      } else {
-        try {
-          const ta = document.createElement("textarea");
-          ta.value = texto;
-          ta.style.position = "fixed";
-          ta.style.opacity = "0";
-          document.body.appendChild(ta);
-          ta.select();
-          document.execCommand("copy");
-          document.body.removeChild(ta);
-          showFlashMessage(msgOk, "success");
-        } catch {
-          showFlashMessage("Não foi possível copiar.", "warning");
-        }
       }
     },
     [showFlashMessage]
   );
+  const handlerCleanChat = () => {
+    clearMessages();
+    setPrevId("");
+    setDialogo("");
+  };
 
   // OpenAI helpers
   const getOutputMessage = useCallback(
@@ -384,7 +346,7 @@ export const AnalisesMain = () => {
       if (!maybeText) return;
 
       try {
-        console.log(maybeText);
+        //console.log(maybeText);
         const rawObj = JSON.parse(maybeText);
 
         // 1️⃣ Validação mínima do objeto retornado
@@ -582,21 +544,6 @@ export const AnalisesMain = () => {
     isSending,
   ]);
 
-  const handlerCleanChat = () => {
-    clearMessages();
-    setPrevId("");
-    setDialogo("");
-  };
-
-  // JSON formatado (sem custo de highlight se Suspense ainda não carregou)
-  const jsonFormatado = useMemo(() => {
-    try {
-      return JSON.stringify(JSON.parse(minuta), null, 2);
-    } catch {
-      return minuta;
-    }
-  }, [minuta]);
-
   return (
     <Box
       p={0}
@@ -639,9 +586,9 @@ export const AnalisesMain = () => {
                     <TableCell padding="checkbox" sx={{ p: 1, width: 42 }}>
                       <Checkbox
                         checked={autosAllChecked}
-                        indeterminate={autosIndeterminate}
+                        //indeterminate={autosIndeterminate}
                         onChange={(e) => handleToggleAllAutos(e.target.checked)}
-                        disabled={isLoading || autosFiltrados.length === 0}
+                        disabled={isLoading || autos.length === 0}
                         inputProps={{
                           "aria-label": "Selecionar todos os Autos",
                         }}
@@ -715,7 +662,7 @@ export const AnalisesMain = () => {
                       </TableCell>
                     </TableRow>
                   )}
-                  {autosFiltrados.length === 0 && (
+                  {autos.length === 0 && (
                     <TableRow>
                       <TableCell colSpan={2}>
                         <Typography variant="body2" color="text.secondary">
@@ -750,8 +697,8 @@ export const AnalisesMain = () => {
 
                 <Tooltip
                   title={
-                    selectedIdsRag.length
-                      ? `Excluir ${selectedIdsRag.length} selecionada(s)`
+                    selectedIdsEventos.length
+                      ? `Excluir ${selectedIdsEventos.length} selecionada(s)`
                       : "Selecione itens para excluir"
                   }
                 >
@@ -768,7 +715,7 @@ export const AnalisesMain = () => {
                       size="small"
                       color="error"
                       onClick={() => setConfirmOpen("rag")}
-                      disabled={selectedIdsRag.length === 0 || isLoading}
+                      disabled={selectedIdsEventos.length === 0 || isLoading}
                       aria-label="Excluir minutas selecionadas"
                     >
                       <Delete fontSize="small" />
@@ -791,10 +738,10 @@ export const AnalisesMain = () => {
                     <TableRow>
                       <TableCell padding="checkbox" sx={{ p: 1, width: 42 }}>
                         <Checkbox
-                          checked={ragAllChecked}
-                          indeterminate={ragIndeterminate}
+                          checked={eventosAllChecked}
+                          //indeterminate={ragIndeterminate}
                           onChange={(e) => handleToggleAllRag(e.target.checked)}
-                          disabled={isLoading || ragFiltrados.length === 0}
+                          disabled={isLoading || eventos.length === 0}
                           inputProps={{
                             "aria-label": "Selecionar todas as Minutas",
                           }}
@@ -804,44 +751,48 @@ export const AnalisesMain = () => {
                     </TableRow>
                   </TableHead>
                   <TableBody>
-                    {ragVisiveis.map((reg) => (
-                      <TableRow key={reg.id} hover>
-                        <TableCell padding="checkbox">
-                          <Checkbox
-                            checked={selectedIdsRag.includes(reg.id)}
-                            onChange={(e) =>
-                              handleSelectRowRag(reg.id, e.target.checked)
-                            }
-                            disabled={isLoading}
-                          />
-                        </TableCell>
-                        <TableCell
-                          onClick={() => {
-                            if (reg.doc_json_raw) {
-                              setMinuta(
-                                typeof reg.doc_json_raw === "string"
-                                  ? reg.doc_json_raw
-                                  : JSON.stringify(reg.doc_json_raw, null, 4)
-                              );
-                            } else {
-                              setMinuta("");
-                            }
+                    {eventosVisiveis.map((reg) => {
+                      const isSelected = selectedIdsEventos.includes(reg.id);
+                      return (
+                        <TableRow
+                          key={reg.id}
+                          hover
+                          selected={isSelected}
+                          onClick={() => handleSelectEvento(reg)} // 👈 uso da função centralizada
+                          sx={{
+                            cursor: "pointer",
+                            bgcolor: isSelected
+                              ? theme.palette.action.hover
+                              : "inherit",
                           }}
                         >
-                          {/* {getRespostaDescricao(reg.id_natu)} */}
-                          {getDocumentoName(reg.id_natu)}
-                        </TableCell>
-                      </TableRow>
-                    ))}
+                          <TableCell padding="checkbox">
+                            <Checkbox
+                              checked={isSelected}
+                              onChange={(e) => {
+                                e.stopPropagation();
+                                handleSelectRowEventos(
+                                  reg.id,
+                                  e.target.checked
+                                );
+                              }}
+                              disabled={isLoading}
+                            />
+                          </TableCell>
+                          <TableCell>{getDocumentoName(reg.id_natu)}</TableCell>
+                        </TableRow>
+                      );
+                    })}
+
                     {/* sentinel para rag */}
-                    {ragHasMore && (
+                    {eventosHasMore && (
                       <TableRow>
                         <TableCell colSpan={2} sx={{ p: 0 }}>
-                          <div ref={ragSentinel} style={{ height: 1 }} />
+                          <div ref={eventosSentinel} style={{ height: 1 }} />
                         </TableCell>
                       </TableRow>
                     )}
-                    {ragFiltrados.length === 0 && (
+                    {eventos.length === 0 && (
                       <TableRow>
                         <TableCell colSpan={2}>
                           <Typography variant="body2" color="text.secondary">
@@ -960,13 +911,13 @@ export const AnalisesMain = () => {
                   disabled={isLoading || isSending}
                   value={prompt}
                   onChange={(e) => setPrompt(e.target.value)}
-                  onKeyDown={(e) => {
-                    // Enter envia; Shift+Enter quebra linha
-                    if (e.key === "Enter" && !e.shiftKey) {
-                      e.preventDefault();
-                      if (!isSending && !isLoading) handleSendPrompt();
-                    }
-                  }}
+                  // onKeyDown={(e) => {
+                  //   // Enter envia; Shift+Enter quebra linha
+                  //   if (e.key === "Enter" && !e.shiftKey) {
+                  //     e.preventDefault();
+                  //     if (!isSending && !isLoading) handleSendPrompt();
+                  //   }
+                  // }}
                   placeholder="Digite o prompt aqui..."
                   sx={{
                     "& .MuiOutlinedInput-root": { borderRadius: 2 }, // 16px
@@ -1066,79 +1017,7 @@ export const AnalisesMain = () => {
 
         {/* COL-03: VISUALIZAÇÃO (com lazy SyntaxHighlighter) */}
         <Grid size={{ xs: 12, sm: 12, md: 5, lg: 5, xl: 5 }}>
-          <Paper
-            elevation={3}
-            sx={{
-              height: "calc(100vh - 220px)",
-              p: 2,
-              display: "flex",
-              flexDirection: "column",
-            }}
-          >
-            <Paper
-              variant="outlined"
-              sx={{
-                flexGrow: 1,
-                mb: 1,
-                p: 2,
-                overflowX: "auto",
-                backgroundColor: theme.palette.background.default,
-              }}
-            >
-              <Suspense
-                fallback={
-                  <Typography variant="body2">
-                    Carregando visualizador…
-                  </Typography>
-                }
-              >
-                <SyntaxHighlighter
-                  language="json"
-                  wrapLongLines
-                  codeTagProps={{
-                    style: {
-                      whiteSpace: "pre-wrap",
-                      wordBreak: "break-word",
-                      overflowWrap: "break-word",
-                    },
-                  }}
-                  customStyle={{
-                    width: "100%",
-                    maxWidth: "100%",
-                    boxSizing: "border-box",
-                    overflowX: "auto",
-                  }}
-                >
-                  {jsonFormatado}
-                </SyntaxHighlighter>
-              </Suspense>
-            </Paper>
-
-            {/* Barra de ações externa — Copiar / Salvar */}
-            <Box
-              mt={0.5}
-              display="flex"
-              justifyContent="flex-end"
-              gap={0.5}
-              aria-label="Ações da análise"
-            >
-              <Tooltip title="Copiar conteúdo">
-                <span>
-                  <IconButton
-                    size="small"
-                    onClick={() => copyToClipboard(minuta, "Conteúdo copiado!")}
-                    disabled={!minuta?.trim()}
-                    aria-label="Copiar conteúdo"
-                  >
-                    <ContentCopy fontSize="small" />
-                    <Typography variant="body2" ml={0.5}>
-                      Copiar
-                    </Typography>
-                  </IconButton>
-                </span>
-              </Tooltip>
-            </Box>
-          </Paper>
+          <MinutaViewer minuta={minuta} copyToClipboard={copyToClipboard} />
         </Grid>
       </Grid>
 
@@ -1149,7 +1028,7 @@ export const AnalisesMain = () => {
           <Typography variant="body2">
             {confirmOpen === "autos"
               ? `Excluir ${selectedIdsAutos.length} item(ns) de Autos?`
-              : `Excluir ${selectedIdsRag.length} item(ns) de Minutas?`}
+              : `Excluir ${selectedIdsEventos.length} item(ns) de Minutas?`}
           </Typography>
         </DialogContent>
         <DialogActions>
@@ -1159,7 +1038,7 @@ export const AnalisesMain = () => {
             variant="contained"
             onClick={async () => {
               if (confirmOpen === "autos") await handleDeleteSelectedAutos();
-              else await handleDeleteSelectedRag();
+              else await handleDeleteSelectedEventos();
               setConfirmOpen(null);
             }}
           >

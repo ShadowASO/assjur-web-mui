@@ -31,11 +31,14 @@
     "react-markdown": "^10.1.0",
     "react-router-dom": "^7.6.0",
     "react-syntax-highlighter": "^15.6.1",
+    "react-to-print": "^3.1.1",
     "styled-components": "^6.1.18",
     "yup": "^1.6.1"
   },
   "devDependencies": {
     "@eslint/js": "^9.25.0",
+    "@types/html2canvas": "^1.0.0",
+    "@types/jspdf": "^2.0.0",
     "@types/react": "^19.1.8",
     "@types/react-dom": "^19.1.2",
     "@vitejs/plugin-react": "^4.4.1",

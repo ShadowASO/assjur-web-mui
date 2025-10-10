@@ -20,17 +20,12 @@ export const NATU_DOC_AUTOS = 1000;
 export const NATU_DOC_OUTROS = 1001;
 export const NATU_DOC_CERTIDOES = 1002;
 export const NATU_DOC_MOVIMENTACAO = 1003;
-export const NATU_DOC_IA_ANALISE = 2000;
-export const NATU_DOC_IA_SENTENCA = 2001;
-//RAG
 
-export const NATU_RAG_ANALISE = 201;
-export const NATU_RAG_SENTENCA = 202;
-export const NATU_RAG_PREANALISE = 302;
-
-//export const PROMPT_RAG_JULGAMENTO = 103;
-//export const PROMPT_RAG_DECISAO = 104;
-//export const PROMPT_RAG_DESPACHO = 105;
+//IA
+export const NATU_DOC_IA_PROMPT = 100;
+export const NATU_DOC_IA_PREANALISE = 101;
+export const NATU_DOC_IA_ANALISE = 102;
+export const NATU_DOC_IA_SENTENCA = 103;
 
 export const itemsDocumento: Item[] = [
   { key: 0, description: "Selecione o documento" },
@@ -48,20 +43,19 @@ export const itemsDocumento: Item[] = [
   { key: NATU_DOC_ROL_TESTEMUNHAS, description: "Rol de Testemunhas" },
   { key: NATU_DOC_CONTRATO, description: "Contrato" },
 
-  // { key: NATU_DOC_LAUDO_PERICIAL, description: "Laudo Pericial" },
-  // { key: NATU_DOC_TERMO_AUDIENCIA, description: "Termo de Audiência" },
+  { key: NATU_DOC_LAUDO_PERICIAL, description: "Laudo Pericial" },
+  { key: NATU_DOC_TERMO_AUDIENCIA, description: "Termo de Audiência" },
   {
     key: NATU_DOC_PARECER_MP,
     description: "Manifestação do Ministério Público",
   },
   { key: NATU_DOC_AUTOS, description: "Autos Processuais" },
 
-  // { key: NATU_DOC_IA_ANALISE, description: "Análise por IA" },
-  // { key: NATU_DOC_IA_SENTENCA, description: "Sentença por IA" },
   //RAG
-  { key: NATU_RAG_ANALISE, description: "Análise por IA" },
-  { key: NATU_RAG_SENTENCA, description: "Sentença por IA" },
-  { key: NATU_RAG_PREANALISE, description: "Pré-análise por IA" },
+  { key: NATU_DOC_IA_PROMPT, description: "Prompt de IA" },
+  { key: NATU_DOC_IA_ANALISE, description: "Análise Jurídica" },
+  { key: NATU_DOC_IA_SENTENCA, description: "Minuta de Sentença" },
+  { key: NATU_DOC_IA_PREANALISE, description: "Pré-análise Jurídica" },
 ];
 
 // Função utilitária genérica

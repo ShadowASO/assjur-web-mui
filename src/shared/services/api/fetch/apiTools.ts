@@ -9,6 +9,7 @@ import type {
   AutosRow,
   ContextoRow,
   DocsOcrRow,
+  EventosRow,
   ModelosRow,
   PromptsRow,
   UploadFilesRow,
@@ -597,6 +598,51 @@ export async function deleteRAG(id: string): Promise<boolean> {
 export async function selectRAG(id: string): Promise<BaseRow | null> {
   const rsp = await apiGet<DocsPayload<BaseRow>>(`/tabelas/rag/${id}`);
   return getDoc<BaseRow>(rsp, "/tabelas/rag/:id");
+}
+
+// Busca todos os eventos de um contexto específico
+export async function refreshEventos(
+  idContexto: number
+): Promise<EventosRow[]> {
+  if (!idContexto) return [];
+  const rsp = await apiGet<RowsPayload<EventosRow>>(
+    `/contexto/eventos/all/${idContexto}`
+  );
+  return getRows<EventosRow>(rsp, "/contexto/eventos/all/:id");
+}
+
+// Seleciona um evento específico pelo ID
+export async function selectEvento(idDoc: number): Promise<EventosRow | null> {
+  if (!idDoc) throw new ApiError("ID do registro ausente.");
+  const rsp = await apiGet<RowsPayload<EventosRow>>(
+    `/contexto/eventos/${idDoc}`
+  );
+  return getRow<EventosRow>(rsp, "/contexto/eventos/:id");
+}
+
+// Insere um novo evento no índice
+export async function insertEvento(
+  IdCtxt: number,
+  IdNatu: number,
+  IdEvento: string,
+  Doc: string,
+  DocJson: string
+): Promise<EventosRow | null> {
+  const body = {
+    id_ctxt: IdCtxt,
+    id_natu: IdNatu,
+    id_evento: IdEvento,
+    doc: Doc,
+    doc_json_raw: DocJson,
+  };
+  const rsp = await apiPost<RowsPayload<EventosRow>>("/contexto/eventos", body);
+  return getRow<EventosRow>(rsp, "/contexto/eventos");
+}
+
+// Deleta um evento do índice
+export async function deleteEvento(id: string): Promise<boolean> {
+  await apiDelete<unknown>(`/contexto/eventos/${id}`);
+  return true;
 }
 
 // ======================= Utilitários =======================

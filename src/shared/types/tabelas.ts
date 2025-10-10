@@ -8,6 +8,16 @@ type AutosRow = {
   doc_embedding: number[];
 };
 
+type EventosRow = {
+  id: string;
+  id_ctxt: number;
+  id_natu: number;
+  id_pje: string;
+  doc: string;
+  doc_json_raw: string;
+  doc_embedding: number[];
+};
+
 type DocsOcrRow = {
   id: string;
   id_ctxt: number;
@@ -67,6 +77,7 @@ type PromptsRow = {
 
 export type {
   AutosRow,
+  EventosRow,
   DocsOcrRow,
   UploadFilesRow,
   SessionRow,
