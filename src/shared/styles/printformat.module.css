@@ -1,0 +1,44 @@
+
+/*
+O presente modulo CSS se destina a formatar a impressão das minutas no componente 
+MinutasViewer, pois sem elas as páginas estavam ficando sem rodapé e cabeçalho.
+*/
+
+@media print {
+  @page {
+    size: A4;
+    margin: 20mm 15mm; /* margens físicas reais de todas as páginas */
+  }
+
+  body {
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+    background: white;
+  }
+
+  /* 🔹 Garante que o conteúdo tenha "respiro" interno */
+  .printpage {
+    padding-top: 25mm;
+    padding-bottom: 20mm;
+    
+  }
+
+  /* 🔹 Quebra explícita entre seções longas */
+  .pagebreak {
+    page-break-after: always;
+    break-after: page;
+  }
+
+  /* 🔹 Cabeçalho e rodapé visuais persistentes */
+  .printheader::before {
+    content: " ";
+    display: block;
+    height: 20mm; /* espaçamento superior */
+  }
+
+  .printfooter::after {
+    content: " ";
+    display: block;
+    height: 20mm; /* espaçamento inferior */
+  }
+}

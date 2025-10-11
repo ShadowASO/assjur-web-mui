@@ -61,17 +61,24 @@ export interface AnaliseJuridica {
    * Campo RAG — Tópicos jurídicos relevantes extraídos das peças processuais
    * Utilizado como base para consultas semânticas posteriores (RAG)
    */
-  rag: {
-    tema: string;
-    descricao: string;
-    relevancia: "alta" | "média" | "baixa" | string;
-  }[];
+  // rag: {
+  //   tema: string;
+  //   descricao: string;
+  //   relevancia: "alta" | "média" | "baixa" | string;
+  // }[];
+  rag: TRag[];
 
   /**
    * Campo opcional — Vetor de embeddings numéricos gerados a partir dos temas do campo `rag`
    * Compatível com o índice OpenSearch `rag_doc_embedding`
    */
   rag_embedding: number[];
+}
+
+export interface TRag {
+  tema: string;
+  descricao: string;
+  relevancia: "alta" | "média" | "baixa" | string;
 }
 
 //Sentença IA

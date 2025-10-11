@@ -1,13 +1,21 @@
 {
   "compilerOptions": {
+    // ========================================
+    // 💾 Saída e cache
+    // ========================================
     "tsBuildInfoFile": "./node_modules/.tmp/tsconfig.app.tsbuildinfo",
-    "target": "ES2020",
-    "useDefineForClassFields": true,
-    "lib": ["ES2020", "DOM", "DOM.Iterable"],
-    "module": "ESNext",
-    "skipLibCheck": true,
 
-    /* Bundler mode */
+    // ========================================
+    // 🎯 Target e bibliotecas
+    // ========================================
+    "target": "ES2022", // atualizado p/ melhor suporte async/await e classes modernas
+    "useDefineForClassFields": true,
+    "lib": ["DOM", "DOM.Iterable", "ES2022"], // 👈 garante APIs web (Clipboard, Canvas, etc.)
+
+    // ========================================
+    // 📦 Módulos e empacotamento
+    // ========================================
+    "module": "ESNext",
     "moduleResolution": "bundler",
     "allowImportingTsExtensions": true,
     "verbatimModuleSyntax": true,
@@ -15,13 +23,25 @@
     "noEmit": true,
     "jsx": "react-jsx",
 
-    /* Linting */
+    // ========================================
+    // ⚙️ Compatibilidade e interoperabilidade
+    // ========================================
+    "esModuleInterop": true, // necessário p/ libs CommonJS (ex: jspdf, html2canvas)
+    "allowSyntheticDefaultImports": true,
+    "resolveJsonModule": true,
+    "types": ["vite/client"], // inclui typings do Vite
+
+    // ========================================
+    // 🧹 Regras de lint e segurança
+    // ========================================
     "strict": true,
     "noUnusedLocals": true,
     "noUnusedParameters": true,
     "erasableSyntaxOnly": true,
     "noFallthroughCasesInSwitch": true,
-    "noUncheckedSideEffectImports": true
+    "noUncheckedSideEffectImports": true,
+    "forceConsistentCasingInFileNames": true,
+    "skipLibCheck": true // mantém compatibilidade com libs JS externas
   },
   "include": ["src"]
 }

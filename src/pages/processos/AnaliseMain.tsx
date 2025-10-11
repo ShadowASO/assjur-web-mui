@@ -556,14 +556,21 @@ export const AnalisesMain = () => {
         <LinearProgress sx={{ position: "sticky", top: 0, zIndex: 1 }} />
       )}
 
-      <Grid container spacing={1} padding={1} margin={1}>
+      <Grid
+        container
+        spacing={1}
+        padding={1}
+        margin={1}
+        sx={{ alignItems: "stretch" }}
+      >
         {/* COL-01: AUTOS + MINUTAS (Accordion para Minutas) */}
         <Grid
           size={{ xs: 12, sm: 6, md: 2, lg: 2, xl: 2 }}
           sx={{
             display: "flex",
             flexDirection: "column",
-            height: "calc(100vh - 188px)",
+            flex: 1,
+
             p: 2,
             gap: 2,
           }}
@@ -809,14 +816,16 @@ export const AnalisesMain = () => {
         </Grid>
 
         {/* COL-02: COMPLETION + PROMPT */}
-        <Grid size={{ xs: 12, sm: 12, md: 5, lg: 5, xl: 5 }}>
+        <Grid size={{ xs: 12, sm: 12, md: 4, lg: 4, xl: 4 }}>
           <Paper
             elevation={3}
             sx={{
-              height: "calc(100vh - 220px)",
-              p: 2,
               display: "flex",
               flexDirection: "column",
+              flex: 1,
+              minHeight: "calc(100vh - 180px)",
+              p: 2,
+              gap: 2,
             }}
           >
             <Paper
@@ -1016,7 +1025,7 @@ export const AnalisesMain = () => {
         </Grid>
 
         {/* COL-03: VISUALIZAÇÃO (com lazy SyntaxHighlighter) */}
-        <Grid size={{ xs: 12, sm: 12, md: 5, lg: 5, xl: 5 }}>
+        <Grid size={{ xs: 12, sm: 12, md: 6, lg: 6, xl: 6 }}>
           <MinutaViewer minuta={minuta} copyToClipboard={copyToClipboard} />
         </Grid>
       </Grid>
