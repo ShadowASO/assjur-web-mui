@@ -22,13 +22,15 @@ export interface AnaliseJuridica {
     preliminares: string[];
     prejudiciais_merito: string[];
     defesa_merito: string[];
-    pedidos_subsidiarios: string[];
+    //pedidos_subsidiarios: string[];
+    pedidos_reu: string[];
   };
 
-  questoes_controvertidas: {
-    descricao: string;
-    pergunta_ao_usuario: string;
-  }[];
+  // questoes_controvertidas: {
+  //   descricao: string;
+  //   pergunta_ao_usuario: string;
+  // }[];
+  questoes_controvertidas: TQuestoesControvertidas[];
 
   provas: {
     autor: string[];
@@ -81,8 +83,13 @@ export interface TRag {
   relevancia: "alta" | "média" | "baixa" | string;
 }
 
+export interface TQuestoesControvertidas {
+  descricao: string;
+  pergunta_ao_usuario: string;
+}
+
 //Sentença IA
-export interface SentencaIA {
+export interface MinutaSentenca {
   tipo?: Tipo;
   processo?: Processo;
   partes?: TPartes;
@@ -90,7 +97,7 @@ export interface SentencaIA {
   fundamentacao?: Fundamentacao;
   dispositivo?: Dispositivo;
   observacoes?: string[];
-  assinatura?: Assinatura;
+  //assinatura?: Assinatura;
 }
 
 export interface Tipo {
@@ -136,10 +143,10 @@ export interface Dispositivo {
   custas?: string;
 }
 
-export interface Assinatura {
-  juiz?: string;
-  cargo?: string;
-}
+// export interface Assinatura {
+//   juiz?: string;
+//   cargo?: string;
+// }
 
 //SentencaAutos
 export interface SentencaAutos {

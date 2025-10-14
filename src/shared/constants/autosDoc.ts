@@ -47,7 +47,7 @@ export const itemsDocumento: Item[] = [
   { key: NATU_DOC_TERMO_AUDIENCIA, description: "Termo de Audiência" },
   {
     key: NATU_DOC_PARECER_MP,
-    description: "Manifestação do Ministério Público",
+    description: "Manifestação do MP",
   },
   { key: NATU_DOC_AUTOS, description: "Autos Processuais" },
 

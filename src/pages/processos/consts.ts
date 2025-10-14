@@ -1,0 +1,12 @@
+export const RAG_EVENTO_PREANALISE = 200;
+export const RAG_EVENTO_ANALISE = 201;
+export const RAG_EVENTO_SENTENCA = 202;
+export const RAG_EVENTO_DECISAO = 203;
+export const RAG_EVENTO_DESPACHO = 204;
+export const RAG_EVENTO_CONCEITOS = 205;
+
+export const RAG_EVENTO_CONFIRMACAO = 300;
+export const RAG_EVENTO_COMPLEMENTO = 301;
+export const RAG_EVENTO_ADD_BASE = 302;
+
+export const RAG_EVENTO_OUTROS = 999;

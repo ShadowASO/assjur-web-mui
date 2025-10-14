@@ -25,12 +25,13 @@ import {
   Description,
 } from "@mui/icons-material";
 import { useReactToPrint } from "react-to-print";
-import { jsPDF } from "jspdf";
-import html2canvas from "html2canvas";
+
 import SyntaxHighlighter from "react-syntax-highlighter";
-import { RenderAnaliseJuridica } from "./renderAnaliseJuridica";
-import { RenderSentenca } from "./renderSentenca";
+import { RenderAnaliseJuridica } from "./renders/renderAnaliseJuridica";
+import { RenderMinutaSentenca } from "./renders/renderMinutaSentenca";
 import style from "../../shared/styles/printformat.module.css";
+
+import { exportPDFEnriquecido } from "./exportPDFEnriquecido";
 
 // ============================================================================
 // Tipos
@@ -72,7 +73,7 @@ function renderByTipo(
         <RenderAnaliseJuridica json={json} modoDocumento={modoDocumento} />
       );
     case 202:
-      return <RenderSentenca json={json} modoDocumento={modoDocumento} />;
+      return <RenderMinutaSentenca json={json} modoDocumento={modoDocumento} />;
     default:
       return (
         <Box textAlign="center" sx={{ color: "text.secondary", py: 4 }}>
@@ -153,105 +154,13 @@ export const MinutaViewer: React.FC<{
       console.log("🖨️ Clone removido após impressão.");
     },
   });
+
   // ================== Exportação PDF com margens ==================
+
   const handleExportPDF = useCallback(async () => {
     if (!renderRef.current) return;
-
-    // =====================================================
-    // 🔹 Clona o conteúdo de renderRef (sem afetar o original)
-    // =====================================================
-    const clone = renderRef.current.cloneNode(true) as HTMLDivElement;
-    clone.style.padding = "0"; // remove padding
-    clone.style.margin = "0"; // remove margens
-    clone.style.minHeight = "auto";
-    clone.style.backgroundColor = "#fff";
-
-    // 🔹 Cria container invisível fora da tela
-    const tempContainer = document.createElement("div");
-    tempContainer.style.position = "absolute";
-    tempContainer.style.left = "-9999px";
-    tempContainer.style.top = "0";
-    tempContainer.style.width = `${renderRef.current.offsetWidth}px`;
-    tempContainer.appendChild(clone);
-    document.body.appendChild(tempContainer);
-
-    // =====================================================
-    // 🔹 Agora usa o clone como base do html2canvas
-    // =====================================================
-    const element = clone;
-    const pdf = new jsPDF("p", "mm", "a4");
-
-    const pageWidth = 210; // mm
-    const pageHeight = 297; // mm
-    const marginTop = 25;
-    const marginBottom = 20;
-    const marginLeft = 15;
-
-    const contentWidth = pageWidth - marginLeft * 2;
-    const contentHeight = pageHeight - marginTop - marginBottom;
-
-    // 🧮 Converte mm para pixels
-    const canvas = await html2canvas(element, {
-      scale: 2,
-      useCORS: true,
-      backgroundColor: "#ffffff",
-      logging: false,
-    });
-
-    const imgWidth = canvas.width;
-    const imgHeight = canvas.height;
-    const pageHeightPx = (contentHeight * imgWidth) / contentWidth;
-
-    let remainingHeight = imgHeight;
-    let position = 0;
-    let page = 0;
-
-    // =====================================================
-    // 🔹 Quebra o conteúdo em múltiplas páginas, se necessário
-    // =====================================================
-    while (remainingHeight > 0) {
-      const pageCanvas = document.createElement("canvas");
-      const pageCtx = pageCanvas.getContext("2d")!;
-      pageCanvas.width = imgWidth;
-      pageCanvas.height = Math.min(pageHeightPx, remainingHeight);
-
-      // copia o trecho da página atual
-      pageCtx.drawImage(
-        canvas,
-        0,
-        position,
-        imgWidth,
-        pageCanvas.height,
-        0,
-        0,
-        imgWidth,
-        pageCanvas.height
-      );
-
-      const pageImgData = pageCanvas.toDataURL("image/png");
-
-      if (page > 0) pdf.addPage();
-      pdf.addImage(
-        pageImgData,
-        "PNG",
-        marginLeft,
-        marginTop,
-        contentWidth,
-        (pageCanvas.height * contentWidth) / imgWidth
-      );
-
-      remainingHeight -= pageCanvas.height;
-      position += pageCanvas.height;
-      page++;
-    }
-
-    pdf.save("documento.pdf");
-
-    // =====================================================
-    // 🔹 Remove o container invisível após a exportação
-    // =====================================================
-    tempContainer.remove();
-    console.log("📄 PDF gerado a partir de clone sem padding.");
+    const html = renderRef.current.innerHTML;
+    await exportPDFEnriquecido(html, "Minuta de Sentença");
   }, []);
 
   // ========================================================================

@@ -77,6 +77,7 @@ async function apiGet<T>(url: string, opts?: CallOptions) {
 
 async function apiPost<T>(url: string, body?: unknown, opts?: CallOptions) {
   const rsp = await api.post(url, body, { signal: opts?.signal });
+  //console.log(rsp);
   ensureOk<T>(rsp, url);
   return rsp as OkResponse<T>;
 }
@@ -111,6 +112,7 @@ export async function searchMetadadosCNJ(
       opts
     );
     const meta = rsp.data.metadados;
+    //console.log(rsp);
 
     // defensivo: optional chaining
     const total = meta?.hits?.total?.value ?? 0;

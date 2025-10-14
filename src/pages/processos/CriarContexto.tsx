@@ -24,7 +24,10 @@ import CloseIcon from "@mui/icons-material/Close";
 //import { LoadingButton } from "@mui/lab";
 
 import LoadingButton from "@mui/lab/LoadingButton";
-import type { MetadadosProcessoCnj } from "../../shared/types/cnjTypes";
+import type {
+  // MetadadosProcessoCnj,
+  ProcessoSource,
+} from "../../shared/types/cnjTypes";
 import {
   insertContexto,
   searchMetadadosCNJ,
@@ -78,17 +81,51 @@ export const CriarContexto = ({
 
   const [numeroProcesso, setNumeroProcesso] = useState<string>("");
   const [fieldError, setFieldError] = useState<string>("");
-  const [metaCnj, setMetaCnj] = useState<MetadadosProcessoCnj | null>(null);
+
+  //const [metaCnj, setMetaCnj] = useState<MetadadosProcessoCnj | null>(null);
+  const [sourceCnj, setSourceCnj] = useState<ProcessoSource | null>(null);
+
   const [isLoading, setIsLoading] = useState(false);
   const [creating, setCreating] = useState(false);
   const { showFlashMessage } = useFlash();
 
   const regexCNJ = useMemo(() => /^\d{7}-\d{2}\.\d{4}\.\d\.\d{2}\.\d{4}$/, []);
 
+  const hitCnjTemp: ProcessoSource = {
+    numeroProcesso: "",
+    classe: {
+      codigo: 7,
+      nome: "Procedimento Comum Cível",
+    },
+    sistema: {
+      codigo: 1,
+      nome: "PJe",
+    },
+    formato: {
+      codigo: 2,
+      nome: "Digital",
+    },
+    tribunal: "TJCE",
+    dataHoraUltimaAtualizacao: "2025-10-14T10:30:00Z",
+    grau: "1º Grau",
+    "@timestamp": new Date().toISOString(),
+    dataAjuizamento: "2024-11-02T00:00:00Z",
+    movimentos: [],
+    id: "proc-12345",
+    nivelSigilo: 0,
+    orgaoJulgador: {
+      codigoMunicipioIBGE: 2304400,
+      codigo: 5678,
+      nome: "3ª Vara Cível da Comarca de Sobral",
+    },
+    assuntos: [{ codigo: 11807, nome: "Tarifas" }],
+  };
+
   // Limpa estados quando fecha o dialog
   const handleLimpar = useCallback(() => {
     setNumeroProcesso("");
-    setMetaCnj(null);
+    //setMetaCnj(null);
+    setSourceCnj(null);
     setFieldError("");
   }, []);
 
@@ -136,21 +173,28 @@ export const CriarContexto = ({
     const error = validateNumero(numeroProcesso);
     if (error) {
       setFieldError(error);
-      setMetaCnj(null);
+      //setMetaCnj(null);
+      setSourceCnj(null);
       return;
     }
 
     const numeroProcessoLimpo = normalizeCNJ(numeroProcesso);
 
     setIsLoading(true);
-    setMetaCnj(null);
+    //setMetaCnj(null);
+    setSourceCnj(null);
     try {
       const metaDados = await searchMetadadosCNJ(numeroProcessoLimpo);
+      console.log(metaDados);
       if (metaDados) {
-        setMetaCnj(metaDados);
+        const hit = metaDados.hits.hits[0]?._source;
+        setSourceCnj(hit);
+        //setMetaCnj(medaDados);
         showFlashMessage("Processo localizado no CNJ.", "success");
       } else {
         setFieldError("Processo não encontrado na base do CNJ.");
+        hitCnjTemp.numeroProcesso = numeroProcessoLimpo;
+        setSourceCnj(hitCnjTemp);
       }
     } catch (error) {
       const { userMsg, techMsg } = describeApiError(error);
@@ -166,11 +210,12 @@ export const CriarContexto = ({
   }, [numeroProcesso, showFlashMessage, validateNumero]);
 
   const handleCriarContexto = useCallback(async () => {
-    if (!metaCnj) return;
+    if (!sourceCnj) return;
 
     setCreating(true);
     try {
-      const hit = metaCnj.hits.hits[0]?._source;
+      //const hit = metaCnj.hits.hits[0]?._source;
+      const hit = sourceCnj;
       const juizo = hit?.orgaoJulgador?.nome ?? "Órgão julgador não informado";
       const classe = hit?.classe?.nome ?? "Classe não informada";
       const assunto = hit?.assuntos?.[0]?.nome ?? "Assunto não identificado";
@@ -200,7 +245,7 @@ export const CriarContexto = ({
     } finally {
       setCreating(false);
     }
-  }, [metaCnj, numeroProcesso, onSuccess, showFlashMessage, handleClose]);
+  }, [sourceCnj, numeroProcesso, onSuccess, showFlashMessage, handleClose]);
 
   // Submit do formulário com Enter dispara a consulta ao CNJ
   const handleSubmit = useCallback(
@@ -229,8 +274,8 @@ export const CriarContexto = ({
   );
 
   const canCriar = useMemo(
-    () => !!metaCnj && !creating && !isLoading,
-    [metaCnj, creating, isLoading]
+    () => !!sourceCnj && !creating && !isLoading,
+    [sourceCnj, creating, isLoading]
   );
 
   // const canLimpar = useMemo(
@@ -315,9 +360,9 @@ export const CriarContexto = ({
           </Box>
         </Box>
 
-        {metaCnj && (
+        {sourceCnj && (
           <Box mt={2}>
-            <ShowMetadadosCnj processoCnj={metaCnj} />
+            <ShowMetadadosCnj processoCnj={sourceCnj} />
           </Box>
         )}
       </DialogContent>

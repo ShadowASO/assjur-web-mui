@@ -5,45 +5,53 @@
  */
 
 import { Box, Typography, Divider } from "@mui/material";
-import type { Acordao, SentencaIA } from "./types";
+import type { Acordao, MinutaSentenca } from "../types";
 
 // ============================================================================
 // Funções utilitárias
 // ============================================================================
 const renderList = (items?: string[]) => {
   if (!items || items.length === 0) return null;
-  return items.map((item, i) => (
-    <Typography key={i} variant="body2" component="p">
-      {item}
-    </Typography>
-  ));
+  return (
+    <Box sx={{ mt: 1 }}>
+      {items.map((item, i) => (
+        <Typography key={i} variant="body2" sx={{ textIndent: "2em" }}>
+          {item}
+        </Typography>
+      ))}
+    </Box>
+  );
 };
 
 const renderAcordaos = (items?: Acordao[]) => {
   if (!items || items.length === 0) return null;
-  return items.map((item, i) => (
-    <Typography key={i} variant="body2" component="p">
-      {item.tribunal ?? "Tribunal"} — {item.processo ?? "Processo"} —{" "}
-      {item.ementa ?? ""}
-    </Typography>
-  ));
+  return (
+    <Box sx={{ mt: 1 }}>
+      {items.map((item, i) => (
+        <Typography key={i} variant="body2" sx={{ textIndent: "2em" }}>
+          {item.tribunal ?? "Tribunal"} — {item.processo ?? "Processo"} —{" "}
+          {item.ementa ?? ""}
+        </Typography>
+      ))}
+    </Box>
+  );
 };
 
 // ============================================================================
 // Componente principal
 // ============================================================================
-export function RenderSentenca({
+export function RenderMinutaSentenca({
   json,
   modoDocumento = false,
 }: {
   json: string;
   modoDocumento?: boolean;
 }) {
-  let obj: SentencaIA | null = null;
+  let obj: MinutaSentenca | null = null;
 
   // 🔍 Parse seguro
   try {
-    obj = JSON.parse(json) as SentencaIA;
+    obj = JSON.parse(json) as MinutaSentenca;
   } catch (err) {
     console.error("Erro ao fazer parse do JSON:", err);
     return (
@@ -71,7 +79,7 @@ export function RenderSentenca({
       <Box sx={{ px: 1 }}>
         {/* ====================== IDENTIFICAÇÃO ====================== */}
         <Typography variant="subtitle1">
-          <strong>Processo nº:</strong> {obj.processo?.numero ?? "—"}
+          <strong>Processos nº:</strong> {obj.processo?.numero ?? "—"}
         </Typography>
 
         <Typography variant="subtitle1">
@@ -107,7 +115,11 @@ export function RenderSentenca({
         {/* ====================== RELATÓRIO ====================== */}
         {obj.relatorio?.length ? (
           <>
-            <Typography variant="body2" component="p" sx={{ mt: 6 }}>
+            <Typography
+              variant="body2"
+              component="p"
+              sx={{ mt: 6, textIndent: "2em" }}
+            >
               Vistos etc
             </Typography>
             {renderList(obj.relatorio)}
@@ -151,7 +163,7 @@ export function RenderSentenca({
             {/* Doutrina */}
             {obj.fundamentacao.doutrina?.length ? (
               <>
-                <Typography variant="body2" component="p" sx={{ mt: 2 }}>
+                <Typography variant="body2" component="div" sx={{ mt: 2 }}>
                   <strong>Doutrina</strong>
                 </Typography>
                 {renderList(obj.fundamentacao.doutrina)}
@@ -229,14 +241,18 @@ export function RenderSentenca({
           </>
         ) : null}
         {/* Providências finais */}
-        <Typography variant="body2" component="p" sx={{ mt: 2 }}>
-          <p>Registre-se. Publique-se. Intime-se.</p>
-          <p>
+        <Box sx={{ mt: 2 }}>
+          <Typography variant="body2" sx={{ textIndent: "2em" }}>
+            Registre-se. Publique-se. Intime-se.
+          </Typography>
+          <Typography variant="body2" sx={{ textIndent: "2em" }}>
             Transitada em julgado, arquivem-se após cumpridas as formalidades
             legais.
-          </p>
-          <p>Sobral/CE, data de inclusão no sistema.</p>
-        </Typography>
+          </Typography>
+          <Typography variant="body2" sx={{ textIndent: "2em" }}>
+            Sobral/CE, data de inclusão no sistema.
+          </Typography>
+        </Box>
 
         {/* Carimbo */}
         <Box sx={{ textAlign: "center", mt: 10 }}>
@@ -274,7 +290,7 @@ export function RenderSentenca({
       <Typography variant="body2">
         <strong>Classe:</strong> {obj.processo?.classe ?? "—"}
       </Typography>
-      <Typography variant="body2" component="p">
+      <Typography variant="body2" component="div">
         <strong>Assunto:</strong> {obj.processo?.assunto ?? "—"}
       </Typography>
 
@@ -334,7 +350,7 @@ export function RenderSentenca({
                     Relator: {a.relator ?? "—"} | Data: {a.data ?? "—"}
                   </Typography>
                   {a.ementa && (
-                    <Typography variant="body2" component="p">
+                    <Typography variant="body2" component="div">
                       {a.ementa}
                     </Typography>
                   )}
@@ -352,17 +368,17 @@ export function RenderSentenca({
           <Typography variant="h6" gutterBottom>
             Dispositivo
           </Typography>
-          <Typography variant="body2" component="p">
+          <Typography variant="body2" component="div">
             {obj.dispositivo.decisao ?? "—"}
           </Typography>
           {renderList(obj.dispositivo.condenacoes)}
           {obj.dispositivo.honorarios && (
-            <Typography variant="body2" component="p">
+            <Typography variant="body2" component="div">
               <strong>Honorários:</strong> {obj.dispositivo.honorarios}
             </Typography>
           )}
           {obj.dispositivo.custas && (
-            <Typography variant="body2" component="p">
+            <Typography variant="body2" component="div">
               <strong>Custas:</strong> {obj.dispositivo.custas}
             </Typography>
           )}

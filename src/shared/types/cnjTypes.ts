@@ -75,6 +75,48 @@ interface RequestCnjPublicApi {
   };
 }
 
+export interface ProcessoSource {
+  numeroProcesso: string;
+  classe: CodigoNome;
+  sistema: CodigoNome;
+  formato: CodigoNome;
+  tribunal: string;
+  dataHoraUltimaAtualizacao: string;
+  grau: string;
+  "@timestamp": string;
+  dataAjuizamento: string;
+  movimentos: Movimento[];
+  id: string;
+  nivelSigilo: number;
+  orgaoJulgador: OrgaoJulgador;
+  assuntos: CodigoNome[];
+}
+
+export interface CodigoNome {
+  codigo: number;
+  nome: string;
+}
+
+export interface Movimento {
+  codigo: number;
+  nome: string;
+  dataHora: string;
+  complementosTabelados?: ComplementoTabelado[];
+}
+
+export interface ComplementoTabelado {
+  codigo: number;
+  valor: number;
+  nome: string;
+  descricao: string;
+}
+
+export interface OrgaoJulgador {
+  codigoMunicipioIBGE: number;
+  codigo: number;
+  nome: string;
+}
+
 export type {
   RequestCnjPublicApi,
   _ResponseCnjPublicApi as MetadadosProcessoCnj,

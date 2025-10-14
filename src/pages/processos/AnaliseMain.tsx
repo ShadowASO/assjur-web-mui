@@ -62,6 +62,15 @@ import {
 import { useDrawerContext } from "../../shared/contexts/DrawerProvider";
 import { describeApiError } from "../../shared/services/api/erros/errosApi";
 import { MinutaViewer } from "./MinutasViewer";
+import {
+  RAG_EVENTO_ANALISE,
+  RAG_EVENTO_COMPLEMENTO,
+  RAG_EVENTO_CONFIRMACAO,
+  RAG_EVENTO_DECISAO,
+  RAG_EVENTO_DESPACHO,
+  RAG_EVENTO_OUTROS,
+  RAG_EVENTO_SENTENCA,
+} from "./consts";
 
 /* ============== Hook simples de infinite slice com IntersectionObserver ============== */
 function useInfiniteSlice<T>(items: T[], step = 30) {
@@ -340,105 +349,117 @@ export const AnalisesMain = () => {
   /**
    * Formata a resposta recebida do servidor e faz a exibição no diálogo.
    */
+
+  // ========================================================
+  // 🧩 Função utilitária: cria um IOutputResponseItem padronizado
+  // ========================================================
+  function criarOutputItem(
+    id: string,
+    texto: string,
+    status: "completed" | "error" = "completed"
+  ): IOutputResponseItem {
+    return {
+      type: "message",
+      id,
+      status,
+      role: "assistant",
+      content: [
+        {
+          type: "text",
+          text: texto,
+          annotations: [],
+        },
+      ],
+    };
+  }
+
+  // ========================================================
+  // 🧠 Função principal: formata e roteia respostas do modelo
+  // ========================================================
   const formataRespostaRAG = useCallback(
     async (output: IOutputResponseItem) => {
       const maybeText = output?.content?.[0]?.text;
       if (!maybeText) return;
 
       try {
-        //console.log(maybeText);
         const rawObj = JSON.parse(maybeText);
 
-        // 1️⃣ Validação mínima do objeto retornado
         if (!rawObj?.tipo?.evento) {
-          throw new Error("Objeto não contém campo tipo.codigo");
+          throw new Error("Objeto não contém campo tipo.evento");
         }
 
-        // 2️⃣ Roteamento por tipo de resposta
         switch (rawObj.tipo.evento) {
-          case 201: // Análise jurídica
-          case 202: // Sentença
-          case 203: // Decisão interlocutória
-          case 204: // Despacho
+          // ==================================================
+          // 🔹 Casos que geram minuta completa
+          // ==================================================
+          case RAG_EVENTO_ANALISE:
+          case RAG_EVENTO_SENTENCA:
+          case RAG_EVENTO_DECISAO:
+          case RAG_EVENTO_DESPACHO: {
             setMinuta(JSON.stringify(rawObj, null, 2));
             break;
-          case 300: {
-            // ✅ Exibir JSON bruto no painel de minuta
-            //setMinuta(JSON.stringify(rawObj, null, 2));
+          }
+
+          // ==================================================
+          // 🔹 Confirmação de intenção
+          // ==================================================
+          case RAG_EVENTO_CONFIRMACAO: {
             const confirmacao = rawObj.confirmacao ?? "";
-
-            // ✅ Monta novo item de saída compatível com IOutputResponseItem
-            const complementoOutput: IOutputResponseItem = {
-              type: "message",
-              id: output.id,
-              status: "completed",
-              role: "assistant",
-              content: [
-                {
-                  type: "text",
-                  text: confirmacao,
-                  annotations: [],
-                },
-              ],
-            };
-
-            // ✅ Adiciona no histórico visual
+            const complementoOutput = criarOutputItem(output.id, confirmacao);
             addOutput(complementoOutput);
-
-            // ✅ Atualiza o diálogo textual
-            setDialogo((prev) => (prev ? prev + "\n\n" : "") + confirmacao);
-
+            setDialogo((prev) =>
+              prev ? `${prev}\n\n${confirmacao}` : confirmacao
+            );
             setPrevId(output.id);
             break;
           }
 
-          case 301: {
-            // 🚨 Dados faltantes → gerar perguntas ao usuário
+          // ==================================================
+          // 🔹 Solicitação de complementação (faltantes)
+          // ==================================================
+          case RAG_EVENTO_COMPLEMENTO: {
             const faltantes: string[] = rawObj.faltantes ?? [];
-            let textoComplemento = "";
+            const textoComplemento =
+              faltantes.length > 0
+                ? `Algumas questões controvertidas ainda não foram respondidas:\n\n${faltantes
+                    .map((q, i) => `${i + 1}. ${q}`)
+                    .join(
+                      "\n"
+                    )}\n\nPor favor, responda a cada uma dessas questões para prosseguir com o julgamento.`
+                : "O modelo indicou que há dados complementares necessários, mas não especificou quais.";
 
-            if (faltantes.length > 0) {
-              textoComplemento =
-                "Algumas questões controvertidas ainda não foram respondidas:\n\n" +
-                faltantes.map((q, i) => `${i + 1}. ${q}`).join("\n") +
-                "\n\nPor favor, responda a cada uma dessas questões para prosseguir com o julgamento.";
-            } else {
-              textoComplemento =
-                "O modelo indicou que há dados complementares necessários, mas não especificou quais.";
-            }
-
-            // ✅ Monta novo item de saída compatível com IOutputResponseItem
-            const complementoOutput: IOutputResponseItem = {
-              type: "message",
-              id: output.id + "-faltantes",
-              status: "completed",
-              role: "assistant",
-              content: [
-                {
-                  type: "text",
-                  text: textoComplemento,
-                  annotations: [],
-                },
-              ],
-            };
-
-            // ✅ Adiciona no histórico visual
-            addOutput(complementoOutput);
-
-            // ✅ Atualiza o diálogo textual
-            setDialogo(
-              (prev) => (prev ? prev + "\n\n" : "") + textoComplemento
+            const complementoOutput = criarOutputItem(
+              `${output.id}-faltantes`,
+              textoComplemento
             );
 
+            addOutput(complementoOutput);
+            setDialogo((prev) =>
+              prev ? `${prev}\n\n${textoComplemento}` : textoComplemento
+            );
             setPrevId(output.id);
             break;
           }
 
+          // ==================================================
+          // 🔹 Texto genérico (outros tipos)
+          // ==================================================
+          case RAG_EVENTO_OUTROS: {
+            const resposta = rawObj.texto ?? "";
+            const complementoOutput = criarOutputItem(output.id, resposta);
+            addOutput(complementoOutput);
+            setDialogo((prev) => (prev ? `${prev}\n\n${resposta}` : resposta));
+            setPrevId(output.id);
+            break;
+          }
+
+          // ==================================================
+          // 🔹 Tipo desconhecido — exibe conteúdo bruto
+          // ==================================================
           default: {
-            // Tipo desconhecido → exibir texto bruto
             addOutput(output);
-            setDialogo(
-              (prev) => (prev ? prev + "\n\n" : "") + output.content[0].text
+            setDialogo((prev) =>
+              prev ? `${prev}\n\n${maybeText}` : maybeText
             );
             setPrevId(output.id);
           }
@@ -446,25 +467,18 @@ export const AnalisesMain = () => {
       } catch (err) {
         console.error("Erro ao processar resposta:", err);
 
-        // ⚠️ Em caso de erro no parsing, adiciona o texto bruto
-        const erroOutput: IOutputResponseItem = {
-          type: "message",
-          id: output.id + "-erro",
-          status: "error",
-          role: "assistant",
-          content: [
-            {
-              type: "text",
-              text:
-                "Erro ao processar resposta do servidor. Exibindo conteúdo bruto:\n\n" +
-                maybeText,
-              annotations: [],
-            },
-          ],
-        };
+        const erroMsg =
+          "⚠️ Erro ao processar resposta do servidor. Exibindo conteúdo bruto:\n\n" +
+          maybeText;
+
+        const erroOutput = criarOutputItem(
+          `${output.id}-erro`,
+          erroMsg,
+          "error"
+        );
 
         addOutput(erroOutput);
-        setDialogo((prev) => (prev ? prev + "\n\n" : "") + maybeText);
+        setDialogo((prev) => (prev ? `${prev}\n\n${maybeText}` : maybeText));
         setPrevId(output.id);
       }
     },
@@ -920,13 +934,13 @@ export const AnalisesMain = () => {
                   disabled={isLoading || isSending}
                   value={prompt}
                   onChange={(e) => setPrompt(e.target.value)}
-                  // onKeyDown={(e) => {
-                  //   // Enter envia; Shift+Enter quebra linha
-                  //   if (e.key === "Enter" && !e.shiftKey) {
-                  //     e.preventDefault();
-                  //     if (!isSending && !isLoading) handleSendPrompt();
-                  //   }
-                  // }}
+                  onKeyDown={(e) => {
+                    // Enter envia; Shift+Enter quebra linha
+                    if (e.key === "Enter" && !e.shiftKey) {
+                      e.preventDefault();
+                      if (!isSending && !isLoading) handleSendPrompt();
+                    }
+                  }}
                   placeholder="Digite o prompt aqui..."
                   sx={{
                     "& .MuiOutlinedInput-root": { borderRadius: 2 }, // 16px

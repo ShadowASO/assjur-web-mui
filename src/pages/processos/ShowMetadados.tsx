@@ -6,16 +6,22 @@
  */
 
 import { Box, Typography, Stack } from "@mui/material";
-import type { MetadadosProcessoCnj } from "../../shared/types/cnjTypes";
+import type {
+  //  MetadadosProcessoCnj,
+  ProcessoSource,
+} from "../../shared/types/cnjTypes";
 
-interface ShowMetadadosCnjProps {
-  processoCnj?: MetadadosProcessoCnj | null;
+// interface ShowMetadadosCnjProps {
+//   processoCnj?: MetadadosProcessoCnj | null;
+// }
+
+interface ShowSourceCnjProps {
+  processoCnj?: ProcessoSource | null;
 }
 
-export default function ShowMetadadosCnj({
-  processoCnj,
-}: ShowMetadadosCnjProps) {
-  const hit = processoCnj?.hits.hits[0]?._source;
+export default function ShowMetadadosCnj({ processoCnj }: ShowSourceCnjProps) {
+  //const hit = processoCnj?.hits.hits[0]?._source;
+  const hit = processoCnj;
 
   if (!hit) {
     return (
