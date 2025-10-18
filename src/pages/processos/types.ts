@@ -75,6 +75,7 @@ export interface AnaliseJuridica {
    * Compatível com o índice OpenSearch `rag_doc_embedding`
    */
   rag_embedding: number[];
+  data_geracao: string;
 }
 
 export interface TRag {
@@ -97,7 +98,7 @@ export interface MinutaSentenca {
   fundamentacao?: Fundamentacao;
   dispositivo?: Dispositivo;
   observacoes?: string[];
-  //assinatura?: Assinatura;
+  data_geracao?: string;
 }
 
 export interface Tipo {
@@ -143,11 +144,6 @@ export interface Dispositivo {
   custas?: string;
 }
 
-// export interface Assinatura {
-//   juiz?: string;
-//   cargo?: string;
-// }
-
 //SentencaAutos
 export interface SentencaAutos {
   tipo?: {
@@ -157,6 +153,8 @@ export interface SentencaAutos {
 
   processo: string;
   id_pje: string;
+  assinatura_data: string;
+  assinatura_por: string;
   metadados?: Metadados;
 
   questoes: Questao[];
@@ -169,11 +167,6 @@ export interface Metadados {
   juizo: string;
   partes?: TPartes;
 }
-
-// export interface Partes {
-//   autor: string;
-//   reu: string;
-// }
 
 export interface Questao {
   tipo: string; // "preliminar" ou "mérito"

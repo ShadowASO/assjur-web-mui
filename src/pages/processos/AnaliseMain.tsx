@@ -63,6 +63,7 @@ import { useDrawerContext } from "../../shared/contexts/DrawerProvider";
 import { describeApiError } from "../../shared/services/api/erros/errosApi";
 import { MinutaViewer } from "./MinutasViewer";
 import {
+  RAG_EVENTO_ADD_BASE,
   RAG_EVENTO_ANALISE,
   RAG_EVENTO_COMPLEMENTO,
   RAG_EVENTO_CONFIRMACAO,
@@ -383,6 +384,7 @@ export const AnalisesMain = () => {
 
       try {
         const rawObj = JSON.parse(maybeText);
+        // console.log(rawObj);
 
         if (!rawObj?.tipo?.evento) {
           throw new Error("Objeto não contém campo tipo.evento");
@@ -441,11 +443,20 @@ export const AnalisesMain = () => {
             break;
           }
 
+          case RAG_EVENTO_ADD_BASE: {
+            const resposta = rawObj.conteudo ?? "";
+            const complementoOutput = criarOutputItem(output.id, resposta);
+            addOutput(complementoOutput);
+            setDialogo((prev) => (prev ? `${prev}\n\n${resposta}` : resposta));
+            setPrevId(output.id);
+            break;
+          }
+
           // ==================================================
           // 🔹 Texto genérico (outros tipos)
           // ==================================================
           case RAG_EVENTO_OUTROS: {
-            const resposta = rawObj.texto ?? "";
+            const resposta = rawObj.conteudo ?? "";
             const complementoOutput = criarOutputItem(output.id, resposta);
             addOutput(complementoOutput);
             setDialogo((prev) => (prev ? `${prev}\n\n${resposta}` : resposta));
@@ -838,8 +849,12 @@ export const AnalisesMain = () => {
               flexDirection: "column",
               flex: 1,
               minHeight: "calc(100vh - 180px)",
+              height: "calc(100vh - 180px)", // 🔹 define altura do grid / não retirar
               p: 2,
               gap: 2,
+              overflowY: "auto", // ✅ permite rolagem vertical
+              overflowX: "hidden", // opcional, evita barra horizontal
+              maxHeight: "100%", // 🔹 garante que respeite o container
             }}
           >
             <Paper

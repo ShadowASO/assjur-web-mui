@@ -77,6 +77,10 @@ export function RenderMinutaSentenca({
   if (modoDocumento) {
     return (
       <Box sx={{ px: 1 }}>
+        <Typography variant="body2" align="right" gutterBottom>
+          Data de geração: {obj.data_geracao}
+        </Typography>
+        <Divider sx={{ my: 2 }} />
         {/* ====================== IDENTIFICAÇÃO ====================== */}
         <Typography variant="subtitle1">
           <strong>Processos nº:</strong> {obj.processo?.numero ?? "—"}

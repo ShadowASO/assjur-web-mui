@@ -5,7 +5,7 @@
  * Janela para formação do contexto processual.
  */
 
-import { useParams } from "react-router-dom";
+import { useNavigate, useParams } from "react-router-dom";
 import {
   Alert,
   Box,
@@ -35,7 +35,13 @@ import {
   uploadFileToServer,
 } from "../../shared/services/api/fetch/apiTools";
 import { ListaDocumentos } from "./ListaDocumentos";
-import { Close, ContentCopy, Delete, PostAdd } from "@mui/icons-material";
+import {
+  Balance,
+  Close,
+  ContentCopy,
+  Delete,
+  PostAdd,
+} from "@mui/icons-material";
 import {
   TIME_FLASH_ALERTA_SEC,
   useFlash,
@@ -76,6 +82,9 @@ export const UploadProcesso = () => {
   const mountedRef = useRef(true);
   const callLockRef = useRef(false); // trava síncrona para lote
   const recentlyProcessedIdsRef = useRef<Set<string>>(new Set()); // cache sessão
+
+  // dentro do componente UploadProcesso
+  const navigate = useNavigate(); // ✅ instância de navegação
 
   useEffect(() => {
     mountedRef.current = true;
@@ -386,6 +395,10 @@ export const UploadProcesso = () => {
     }
   }
 
+  const handleAnalisesClick = () => {
+    if (idCtxt) navigate(`/processos/analises/${idCtxt}`);
+  };
+
   const isAutuandoAtual = !!(idDoc && autuandoIds[idDoc]);
 
   return (
@@ -439,6 +452,12 @@ export const UploadProcesso = () => {
             }}
           >
             <Typography variant="subtitle1">Peças processuais</Typography>
+            {/* ✅ Botão para abrir janela de análise */}
+            <Tooltip title="Análise Jurídica">
+              <IconButton color="inherit" onClick={handleAnalisesClick}>
+                <Balance /> {/* ou outro ícone, como <Send /> */}
+              </IconButton>
+            </Tooltip>
           </Paper>
 
           <Paper sx={{ p: 2, mb: 2, maxHeight: 720, overflow: "hidden" }}>

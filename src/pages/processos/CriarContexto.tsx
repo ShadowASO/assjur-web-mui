@@ -198,10 +198,10 @@ export const CriarContexto = ({
       }
     } catch (error) {
       const { userMsg, techMsg } = describeApiError(error);
-      console.error("Erro de API (CNJ):", techMsg);
-      setFieldError(userMsg || "Não foi possível consultar o CNJ agora.");
-      showFlashMessage(userMsg, "error", TIME_FLASH_ALERTA_SEC * 5, {
-        title: "Erro ao consultar CNJ",
+      console.error("Erro de API (CNJ):", userMsg);
+      setFieldError("Número de processo não é válido.");
+      showFlashMessage(techMsg, "error", TIME_FLASH_ALERTA_SEC * 5, {
+        title: "Número do processo não é válido!",
         details: techMsg,
       });
     } finally {

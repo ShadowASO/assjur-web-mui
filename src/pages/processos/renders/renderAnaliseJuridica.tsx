@@ -152,6 +152,9 @@ export function RenderAnaliseJuridica({
         >
           {obj.tipo.descricao}
         </Typography>
+        <Typography variant="body2" align="right" gutterBottom>
+          Data de geração: {obj.data_geracao}
+        </Typography>
 
         <Divider sx={{ my: 2 }} />
         <Box sx={{ px: 1 }}>
