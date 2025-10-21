@@ -352,6 +352,24 @@ export async function insertContexto(
   return getRow<ContextoRow>(rsp, "/contexto");
 }
 
+export async function updateContexto(
+  idContexto: number,
+  juizo: string,
+  classe: string,
+  assunto: string
+): Promise<ContextoRow | null> {
+  const rsp = await apiPut<RowsPayload<ContextoRow>>(
+    `/contexto/${idContexto}`,
+    {
+      IdCtxt: idContexto,
+      Juizo: juizo,
+      Classe: classe,
+      Assunto: assunto,
+    }
+  );
+  return getRow<ContextoRow>(rsp, "/contexto");
+}
+
 export async function getContexto(
   strProcesso: string
 ): Promise<ContextoRow | null> {

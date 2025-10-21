@@ -41,6 +41,7 @@ import {
 import type { ContextoRow } from "../../shared/types/tabelas";
 import { CriarContexto } from "./CriarContexto";
 import { describeApiError } from "../../shared/services/api/erros/errosApi";
+import { AlterarContexto } from "./AlterarContexto";
 
 export const ListaProcessos = () => {
   const [searchParams, setSearchParams] = useSearchParams();
@@ -55,6 +56,9 @@ export const ListaProcessos = () => {
   const [selectedId, setSelectedId] = useState<number | null>(null);
 
   const [dialogOpen, setDialogOpen] = useState(false);
+  const [dialogEditOpen, setDialogEditOpen] = useState(false);
+  const [contextoSelecionado, setContextoSelecionado] =
+    useState<ContextoRow | null>(null);
 
   const busca = searchParams.get("busca") || "";
   const pagina = Number(searchParams.get("pagina") || "1");
@@ -111,6 +115,17 @@ export const ListaProcessos = () => {
 
   const handleAnalisesClick = () => {
     if (selectedId) navigate(`/processos/analises/${selectedId}`);
+    handleMenuClose();
+  };
+
+  const handleEditarClick = () => {
+    if (!selectedId) return;
+
+    const ctx = rows.find((r) => r.id_ctxt === selectedId);
+    if (ctx) {
+      setContextoSelecionado(ctx);
+      setDialogEditOpen(true);
+    }
     handleMenuClose();
   };
 
@@ -247,6 +262,7 @@ export const ListaProcessos = () => {
               <MenuItem onClick={handleAnalisesClick}>
                 Análise Jurídica
               </MenuItem>
+              <MenuItem onClick={handleEditarClick}>Alterar Contexto</MenuItem>
               <MenuItem
                 onClick={() => {
                   if (selectedId) handleDelete(selectedId);
@@ -264,6 +280,17 @@ export const ListaProcessos = () => {
         onClose={() => setDialogOpen(false)}
         onSuccess={handleReloadContextos}
       />
+      {contextoSelecionado && (
+        <AlterarContexto
+          open={dialogEditOpen}
+          onClose={() => setDialogEditOpen(false)}
+          idContexto={String(contextoSelecionado.id_ctxt)}
+          juizoAtual={contextoSelecionado.juizo}
+          classeAtual={contextoSelecionado.classe}
+          assuntoAtual={contextoSelecionado.assunto}
+          onSuccess={handleReloadContextos}
+        />
+      )}
     </PageBaseLayout>
   );
 };
