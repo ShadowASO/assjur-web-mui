@@ -72,6 +72,7 @@ import {
   RAG_EVENTO_OUTROS,
   RAG_EVENTO_SENTENCA,
 } from "./consts";
+//import type { ErrorDetail } from "../../shared/services/api/fetch/ApiCliente";
 
 /* ============== Hook simples de infinite slice com IntersectionObserver ============== */
 function useInfiniteSlice<T>(items: T[], step = 30) {
@@ -545,14 +546,26 @@ export const AnalisesMain = () => {
 
         //Aqui é que eu verifico o formato
         await formataRespostaRAG(output);
-
         setRefreshPecas((p) => p + 1);
       } else {
-        showFlashMessage("Resposta inválida da API.", "error");
+        // ⚠️ Aqui tratamos o erro vindo do servidor
+        const err = response.error;
+        if (err) {
+          const fullMsg = `${err.message}${
+            err.description ? " — " + err.description : ""
+          }`;
+          console.log(fullMsg);
+          showFlashMessage(fullMsg, "error", TIME_FLASH_ALERTA_SEC * 5);
+        } else {
+          showFlashMessage(
+            "Erro desconhecido ao processar a solicitação.",
+            "error"
+          );
+        }
       }
-    } catch (error) {
-      console.error("Erro ao acessar a API:", error);
-      showFlashMessage("Erro ao consultar a IA.", "error");
+    } catch (error: unknown) {
+      const msg = error instanceof Error ? error.message : String(error);
+      showFlashMessage(`Falha de rede ou erro inesperado: ${msg}`, "error");
     } finally {
       setIsSending(false);
     }

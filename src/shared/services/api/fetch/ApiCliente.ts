@@ -13,7 +13,7 @@ interface RequestOptions {
   signal?: AbortSignal; // <— novo
 }
 
-interface ErrorDetail {
+export interface ErrorDetail {
   code: number;
   message: string;
   description?: string;
@@ -83,7 +83,14 @@ export class ApiCliente {
 
     let body: StandardBodyResponse = {};
     if (internalResponse.status !== 204) {
-      body = await internalResponse.json();
+      try {
+        //console.log(internalResponse);
+        const text = await internalResponse.text(); // veja o corpo cru
+        //console.log("Resposta bruta:", text);
+        body = JSON.parse(text); // tente converter manualmente
+      } catch (err) {
+        console.error("Erro ao parsear JSON:", err);
+      }
     } else {
       body = { data: null, ok: internalResponse.ok };
     }
