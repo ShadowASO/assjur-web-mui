@@ -4,7 +4,7 @@
  * Finalidade: Exibir minutas em três modos — renderizada, documento e JSON, com exportação PDF aprimorada
  */
 
-import React, { useMemo, useState, useRef, useCallback } from "react";
+import React, { useMemo, useState, useRef } from "react";
 import {
   Box,
   Paper,
@@ -17,9 +17,8 @@ import {
 } from "@mui/material";
 import {
   Code,
-  Article,
   Print,
-  PictureAsPdf,
+  //PictureAsPdf,
   ContentCopy,
   WarningAmber,
   Description,
@@ -31,7 +30,7 @@ import { RenderAnaliseJuridica } from "./renders/renderAnaliseJuridica";
 import { RenderMinutaSentenca } from "./renders/renderMinutaSentenca";
 import style from "../../shared/styles/printformat.module.css";
 
-import { exportPDFEnriquecido } from "./exportPDFEnriquecido";
+//import { exportPDFEnriquecido } from "./exportPDFEnriquecido";
 
 // ============================================================================
 // Tipos
@@ -157,11 +156,11 @@ export const MinutaViewer: React.FC<{
 
   // ================== Exportação PDF com margens ==================
 
-  const handleExportPDF = useCallback(async () => {
-    if (!renderRef.current) return;
-    const html = renderRef.current.innerHTML;
-    await exportPDFEnriquecido(html, "Minuta de Sentença");
-  }, []);
+  // const handleExportPDF = useCallback(async () => {
+  //   if (!renderRef.current) return;
+  //   const html = renderRef.current.innerHTML;
+  //   await exportPDFEnriquecido(html, "Minuta de Sentença");
+  // }, []);
 
   // ========================================================================
   // Render
@@ -191,13 +190,13 @@ export const MinutaViewer: React.FC<{
           >
             Documento
           </Button>
-          <Button
+          {/* <Button
             startIcon={<Article />}
             onClick={() => setViewMode("renderizada")}
             variant={viewMode === "renderizada" ? "contained" : "outlined"}
           >
             Renderizada
-          </Button>
+          </Button> */}
 
           <Button
             startIcon={<Code />}
@@ -216,11 +215,11 @@ export const MinutaViewer: React.FC<{
                   <Print fontSize="small" />
                 </IconButton>
               </Tooltip>
-              <Tooltip title="Exportar como PDF">
+              {/* <Tooltip title="Exportar como PDF">
                 <IconButton size="small" onClick={handleExportPDF}>
                   <PictureAsPdf fontSize="small" />
                 </IconButton>
-              </Tooltip>
+              </Tooltip> */}
             </>
           )}
           <Tooltip title="Copiar conteúdo">

@@ -176,7 +176,7 @@ export const ListaProcessos = () => {
         setLoading(false);
       }
     });
-  }, [busca, pagina, debounce]);
+  }, [busca, pagina, debounce, showFlashMessage]);
 
   return (
     <PageBaseLayout

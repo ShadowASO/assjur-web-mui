@@ -406,8 +406,10 @@ export async function getContextosAll(): Promise<ContextoRow[] | null> {
 export async function getContextoTokensUso(
   idCtxt: number
 ): Promise<ContextoRow | null> {
-  const rsp = await apiGet<RowsPayload<ContextoRow>>(`/tokens/${idCtxt}`);
-  return getRow<ContextoRow>(rsp, "/tokens/:id");
+  const rsp = await apiGet<RowsPayload<ContextoRow>>(
+    `/contexto/tokens/uso/${idCtxt}`
+  );
+  return getRow<ContextoRow>(rsp, "/contexto/tokens/uso/:id");
 }
 
 export async function deleteContexto(idCtxt: string): Promise<boolean> {

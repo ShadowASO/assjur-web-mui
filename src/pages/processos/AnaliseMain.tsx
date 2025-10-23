@@ -2,11 +2,8 @@
  * File: AnaliseMain.tsx
  * Atualização: 12/08/2025
  */
-import { ContentCopy, Delete, Send } from "@mui/icons-material";
+import { ContentCopy, Delete } from "@mui/icons-material";
 import {
-  Accordion,
-  AccordionDetails,
-  AccordionSummary,
   Box,
   Button,
   Chip,
@@ -28,12 +25,8 @@ import {
   TableRow,
   Tooltip,
   Typography,
-  useMediaQuery,
   useTheme,
-  TextField,
-  CircularProgress,
 } from "@mui/material";
-import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import ReactMarkdown from "react-markdown";
 import { useParams } from "react-router-dom";
@@ -42,6 +35,7 @@ import {
   deleteEvento,
   formatNumeroProcesso,
   getContextoById,
+  getContextoTokensUso,
   refreshAutos,
   refreshEventos,
 } from "../../shared/services/api/fetch/apiTools";
@@ -72,7 +66,7 @@ import {
   RAG_EVENTO_OUTROS,
   RAG_EVENTO_SENTENCA,
 } from "./consts";
-//import type { ErrorDetail } from "../../shared/services/api/fetch/ApiCliente";
+import { PromptInput } from "./PromptInput";
 
 /* ============== Hook simples de infinite slice com IntersectionObserver ============== */
 function useInfiniteSlice<T>(items: T[], step = 30) {
@@ -110,7 +104,7 @@ export const AnalisesMain = () => {
   const { id: idCtxt } = useParams();
   const { showFlashMessage } = useFlash();
   const theme = useTheme();
-  const mdUp = useMediaQuery(theme.breakpoints.up("md"));
+
   const Api = useApi();
   const { setTituloJanela } = useDrawerContext();
 
@@ -122,9 +116,11 @@ export const AnalisesMain = () => {
 
   const [minuta, setMinuta] = useState("");
   const [dialogo, setDialogo] = useState("");
-  const [prompt, setPrompt] = useState("");
+
   const [prevId, setPrevId] = useState("");
+
   const [refreshPecas, setRefreshPecas] = useState(0);
+  const [refreshTokens, setRefreshTokens] = useState(0);
   // estado só para envio do prompt (sem travar toda a tela)
   const [isSending, setIsSending] = useState(false);
 
@@ -156,7 +152,6 @@ export const AnalisesMain = () => {
   // Seleciona e exibe a minuta correspondente a um evento
   const handleSelectEvento = useCallback((evento: EventosRow) => {
     if (!evento) return;
-    //setSelectedIdsEventos([evento.id]);
 
     if (evento.doc_json_raw) {
       const raw =
@@ -240,6 +235,26 @@ export const AnalisesMain = () => {
       }
     })();
   }, [idCtxt]);
+
+  // Atualiza o consumo de tokens
+  useEffect(() => {
+    (async () => {
+      try {
+        //setLoading(true);
+        if (!idCtxt) return;
+        const rsp = await getContextoTokensUso(Number(idCtxt));
+        if (rsp) {
+          setPtUso(rsp.prompt_tokens ?? 0);
+          setCtUso(rsp.completion_tokens ?? 0);
+        }
+      } catch (error) {
+        const { userMsg } = describeApiError(error);
+        showFlashMessage(userMsg, "error", TIME_FLASH_ALERTA_SEC * 5);
+      } finally {
+        //setLoading(false);
+      }
+    })();
+  }, [idCtxt, refreshTokens]);
 
   useEffect(() => setTtUso((ptUso ?? 0) + (ctUso ?? 0)), [ptUso, ctUso]);
 
@@ -497,90 +512,97 @@ export const AnalisesMain = () => {
     [addOutput, setDialogo, setMinuta, setPrevId]
   );
 
-  const handleSendPrompt = useCallback(async () => {
-    const text = prompt.trim();
-    if (!text) {
-      showFlashMessage("Digite um prompt antes de enviar.", "warning", 3);
-      return;
-    }
-    if (isSending) return; // evita duplo envio
-    setIsSending(true);
-
-    const userQuery: IMessageResponseItem = {
-      id: prevId,
-      role: "user",
-      text,
-    };
-
-    setPrompt("");
-    addMessage(userQuery.id, userQuery.role, userQuery.text);
-
-    try {
-      const msg = getMessages();
-      const payload = { id_ctxt: idCtxt, messages: msg, previd: prevId };
-      const response = await Api.post("/contexto/query/rag", payload);
-
-      if (response.ok && response.data) {
-        const respOutput = response.data as IResponseOutput;
-
-        if (!respOutput?.output || !Array.isArray(respOutput.output)) {
-          console.log(respOutput);
-          showFlashMessage(
-            "Resposta da API não está no formato esperado (sem output).",
-            "error"
-          );
-          return;
-        }
-        //Extraio o primeiro  output com tipo "message"
-        const output = getOutputMessage(respOutput.output);
-        if (!output) {
-          console.log(output);
-          showFlashMessage(
-            "Resposta da API não contém mensagem válida.",
-            "error"
-          );
-          return;
-        }
-
-        //console.log(output);
-
-        //Aqui é que eu verifico o formato
-        await formataRespostaRAG(output);
-        setRefreshPecas((p) => p + 1);
-      } else {
-        // ⚠️ Aqui tratamos o erro vindo do servidor
-        const err = response.error;
-        if (err) {
-          const fullMsg = `${err.message}${
-            err.description ? " — " + err.description : ""
-          }`;
-          console.log(fullMsg);
-          showFlashMessage(fullMsg, "error", TIME_FLASH_ALERTA_SEC * 5);
-        } else {
-          showFlashMessage(
-            "Erro desconhecido ao processar a solicitação.",
-            "error"
-          );
-        }
+  const handleSendPrompt = useCallback(
+    async (sendPrompt: string) => {
+      //const text = prompt.trim();
+      const text = sendPrompt.trim();
+      if (!text) {
+        showFlashMessage("Digite um prompt antes de enviar.", "warning", 3);
+        return;
       }
-    } catch (error: unknown) {
-      const msg = error instanceof Error ? error.message : String(error);
-      showFlashMessage(`Falha de rede ou erro inesperado: ${msg}`, "error");
-    } finally {
-      setIsSending(false);
-    }
-  }, [
-    Api,
-    addMessage,
-    formataRespostaRAG,
-    getOutputMessage,
-    getMessages,
-    idCtxt,
-    prevId,
-    prompt,
-    showFlashMessage,
-    isSending,
-  ]);
+      if (isSending) return; // evita duplo envio
+      setIsSending(true);
+
+      const userQuery: IMessageResponseItem = {
+        id: prevId,
+        role: "user",
+        text,
+      };
+
+      //setPrompt("");
+      addMessage(userQuery.id, userQuery.role, userQuery.text);
+
+      try {
+        const msg = getMessages();
+        const payload = { id_ctxt: idCtxt, messages: msg, previd: prevId };
+        const response = await Api.post("/contexto/query/rag", payload);
+
+        //Atualiza tokens
+        setRefreshTokens((p) => p + 1);
+
+        if (response.ok && response.data) {
+          const respOutput = response.data as IResponseOutput;
+
+          if (!respOutput?.output || !Array.isArray(respOutput.output)) {
+            console.log(respOutput);
+            showFlashMessage(
+              "Resposta da API não está no formato esperado (sem output).",
+              "error"
+            );
+            return;
+          }
+          //Extraio o primeiro  output com tipo "message"
+          const output = getOutputMessage(respOutput.output);
+          if (!output) {
+            console.log(output);
+            showFlashMessage(
+              "Resposta da API não contém mensagem válida.",
+              "error"
+            );
+            return;
+          }
+
+          //console.log(output);
+
+          //Aqui é que eu verifico o formato
+          await formataRespostaRAG(output);
+          setRefreshPecas((p) => p + 1);
+        } else {
+          // ⚠️ Aqui tratamos o erro vindo do servidor
+          const err = response.error;
+          if (err) {
+            const fullMsg = `${err.message}${
+              err.description ? " — " + err.description : ""
+            }`;
+            console.log(fullMsg);
+            showFlashMessage(fullMsg, "error", TIME_FLASH_ALERTA_SEC * 5);
+          } else {
+            showFlashMessage(
+              "Erro desconhecido ao processar a solicitação.",
+              "error"
+            );
+          }
+        }
+      } catch (error: unknown) {
+        const msg = error instanceof Error ? error.message : String(error);
+        showFlashMessage(`Falha de rede ou erro inesperado: ${msg}`, "error");
+      } finally {
+        setIsSending(false);
+      }
+    },
+    [
+      Api,
+      addMessage,
+      formataRespostaRAG,
+      getOutputMessage,
+      getMessages,
+      idCtxt,
+      prevId,
+
+      showFlashMessage,
+      isSending,
+    ]
+  );
 
   return (
     <Box
@@ -601,144 +623,146 @@ export const AnalisesMain = () => {
         margin={1}
         sx={{ alignItems: "stretch" }}
       >
-        {/* COL-01: AUTOS + MINUTAS (Accordion para Minutas) */}
-        <Grid
-          size={{ xs: 12, sm: 6, md: 2, lg: 2, xl: 2 }}
-          sx={{
-            display: "flex",
-            flexDirection: "column",
-            flex: 1,
-
-            p: 2,
-            gap: 2,
-          }}
-          component={Paper}
-          elevation={3}
-        >
-          {/* AUTOS */}
-          <Box
+        {/* COL-01: AUTOS + MINUTAS */}
+        <Grid size={{ xs: 12, sm: 6, md: 2, lg: 2, xl: 2 }}>
+          <Paper
+            elevation={3}
             sx={{
-              flex: 1,
-              overflow: "hidden",
               display: "flex",
               flexDirection: "column",
+              height: "calc(100vh - 180px)", // 🔹 mesma altura das outras colunas
+              p: 2,
+              gap: 2,
+              overflow: "hidden", // evita que o Paper em si gere scrollbar
             }}
           >
-            <TableContainer sx={{ flex: 1, overflow: "auto" }}>
-              <Table stickyHeader size="small" aria-label="Tabela de Autos">
-                <TableHead>
-                  <TableRow>
-                    <TableCell padding="checkbox" sx={{ p: 1, width: 42 }}>
-                      <Checkbox
-                        checked={autosAllChecked}
-                        //indeterminate={autosIndeterminate}
-                        onChange={(e) => handleToggleAllAutos(e.target.checked)}
-                        disabled={isLoading || autos.length === 0}
-                        inputProps={{
-                          "aria-label": "Selecionar todos os Autos",
-                        }}
-                      />
-                    </TableCell>
-                    <TableCell sx={{ p: 1 }}>
-                      <Box display="flex" alignItems="center" gap={1}>
-                        <Typography variant="h6" fontWeight="bold">
-                          Autos
-                        </Typography>
-                        <Tooltip
-                          title={
-                            selectedIdsAutos.length
-                              ? `Excluir ${selectedIdsAutos.length} selecionado(s)`
-                              : "Selecione itens para excluir"
-                          }
-                        >
-                          <span>
-                            <IconButton
-                              size="small"
-                              color="error"
-                              onClick={() => setConfirmOpen("autos")}
-                              disabled={
-                                selectedIdsAutos.length === 0 || isLoading
-                              }
-                              aria-label="Excluir autos selecionados"
-                            >
-                              <Delete fontSize="small" />
-                            </IconButton>
-                          </span>
-                        </Tooltip>
-                      </Box>
-                    </TableCell>
-                  </TableRow>
-                </TableHead>
-                <TableBody>
-                  {autosVisiveis.map((reg) => (
-                    <TableRow key={reg.id} hover>
-                      <TableCell padding="checkbox">
+            {/* ===================== AUTOS ===================== */}
+            <Box
+              sx={{
+                flex: 1,
+                display: "flex",
+                flexDirection: "column",
+                minHeight: 0,
+              }}
+            >
+              <Box
+                display="flex"
+                alignItems="center"
+                justifyContent="space-between"
+                mb={1}
+              >
+                <Typography variant="h6" fontWeight="bold" mb={1}>
+                  Autos
+                </Typography>
+                <Tooltip
+                  title={
+                    selectedIdsAutos.length
+                      ? `Excluir ${selectedIdsAutos.length} selecionado(s)`
+                      : "Selecione itens para excluir"
+                  }
+                >
+                  <span>
+                    <IconButton
+                      size="small"
+                      color="error"
+                      onClick={() => setConfirmOpen("autos")}
+                      disabled={selectedIdsAutos.length === 0 || isLoading}
+                    >
+                      <Delete fontSize="small" />
+                    </IconButton>
+                  </span>
+                </Tooltip>
+              </Box>
+
+              <TableContainer sx={{ flex: 1, overflowY: "auto" }}>
+                <Table stickyHeader size="small" aria-label="Tabela de Autos">
+                  <TableHead>
+                    <TableRow>
+                      <TableCell padding="checkbox" sx={{ p: 1, width: 42 }}>
                         <Checkbox
-                          checked={selectedIdsAutos.includes(reg.id)}
+                          checked={autosAllChecked}
                           onChange={(e) =>
-                            handleSelectRowAutos(reg.id, e.target.checked)
+                            handleToggleAllAutos(e.target.checked)
                           }
-                          disabled={isLoading}
+                          disabled={isLoading || autos.length === 0}
+                          inputProps={{
+                            "aria-label": "Selecionar todos os Autos",
+                          }}
                         />
                       </TableCell>
-                      <TableCell
-                        onClick={() => {
-                          if (reg.doc_json_raw) {
-                            setMinuta(
-                              typeof reg.doc_json_raw === "string"
-                                ? reg.doc_json_raw
-                                : JSON.stringify(reg.doc_json_raw, null, 4)
-                            );
-                          } else {
-                            setMinuta("");
-                          }
-                        }}
-                        sx={{ cursor: "pointer" }}
-                      >
-                        {getDocumentoName(reg.id_natu)}
-                      </TableCell>
+                      <TableCell sx={{ p: 1 }}>Todas</TableCell>
                     </TableRow>
-                  ))}
-                  {/* sentinel para autos */}
-                  {autosHasMore && (
-                    <TableRow>
-                      <TableCell colSpan={2} sx={{ p: 0 }}>
-                        <div ref={autosSentinel} style={{ height: 1 }} />
-                      </TableCell>
-                    </TableRow>
-                  )}
-                  {autos.length === 0 && (
-                    <TableRow>
-                      <TableCell colSpan={2}>
-                        <Typography variant="body2" color="text.secondary">
-                          Nenhum auto listado.
-                        </Typography>
-                      </TableCell>
-                    </TableRow>
-                  )}
-                </TableBody>
-              </Table>
-            </TableContainer>
-          </Box>
+                  </TableHead>
+                  <TableBody>
+                    {autosVisiveis.map((reg) => (
+                      <TableRow key={reg.id} hover>
+                        <TableCell padding="checkbox">
+                          <Checkbox
+                            checked={selectedIdsAutos.includes(reg.id)}
+                            onChange={(e) =>
+                              handleSelectRowAutos(reg.id, e.target.checked)
+                            }
+                            disabled={isLoading}
+                          />
+                        </TableCell>
+                        <TableCell
+                          onClick={() => {
+                            if (reg.doc_json_raw) {
+                              setMinuta(
+                                typeof reg.doc_json_raw === "string"
+                                  ? reg.doc_json_raw
+                                  : JSON.stringify(reg.doc_json_raw, null, 4)
+                              );
+                            } else {
+                              setMinuta("");
+                            }
+                          }}
+                          sx={{ cursor: "pointer" }}
+                        >
+                          {getDocumentoName(reg.id_natu)}
+                        </TableCell>
+                      </TableRow>
+                    ))}
 
-          {/* MINUTAS: Accordion (fechado em telas pequenas, aberto em md+) */}
-          <Accordion
-            defaultExpanded={mdUp}
-            disableGutters
-            sx={{ flex: 1, minHeight: 0 }}
-          >
-            <AccordionSummary
-              expandIcon={<ExpandMoreIcon />}
-              aria-controls="minutas-content"
-              id="minutas-header"
+                    {autosHasMore && (
+                      <TableRow>
+                        <TableCell colSpan={2} sx={{ p: 0 }}>
+                          <div ref={autosSentinel} style={{ height: 1 }} />
+                        </TableCell>
+                      </TableRow>
+                    )}
+                    {autos.length === 0 && (
+                      <TableRow>
+                        <TableCell colSpan={2}>
+                          <Typography variant="body2" color="text.secondary">
+                            Nenhum auto listado.
+                          </Typography>
+                        </TableCell>
+                      </TableRow>
+                    )}
+                  </TableBody>
+                </Table>
+              </TableContainer>
+            </Box>
+
+            {/* ===================== MINUTAS ===================== */}
+            <Box
+              sx={{
+                flex: 1,
+                display: "flex",
+                flexDirection: "column",
+                minHeight: 0,
+              }}
             >
-              <Box display="flex" alignItems="center" gap={1} width="100%">
-                <Typography variant="h6" fontWeight="bold">
+              <Box
+                display="flex"
+                alignItems="center"
+                justifyContent="space-between"
+                mb={1}
+              >
+                <Typography variant="h6" fontWeight="bold" mb={1}>
                   Minutas
                 </Typography>
-
-                {/* empurra o ícone para a direita (opcional) */}
-                <Box sx={{ flex: 1 }} />
 
                 <Tooltip
                   title={
@@ -747,52 +771,31 @@ export const AnalisesMain = () => {
                       : "Selecione itens para excluir"
                   }
                 >
-                  {/* Use <span> para evitar nested <button> e manter Tooltip quando disabled */}
-                  <span
-                    onClick={(e) => {
-                      // evita abrir/fechar o accordion ao clicar no ícone
-                      e.stopPropagation();
-                      e.preventDefault();
-                    }}
-                  >
+                  <span>
                     <IconButton
-                      component="span" // <-- rende como <span>, não <button>
                       size="small"
                       color="error"
                       onClick={() => setConfirmOpen("rag")}
                       disabled={selectedIdsEventos.length === 0 || isLoading}
-                      aria-label="Excluir minutas selecionadas"
                     >
                       <Delete fontSize="small" />
                     </IconButton>
                   </span>
                 </Tooltip>
               </Box>
-            </AccordionSummary>
-            <AccordionDetails
-              sx={{
-                p: 0,
-                display: "flex",
-                flexDirection: "column",
-                minHeight: 0,
-              }}
-            >
-              <TableContainer sx={{ flex: 1, overflow: "auto" }}>
+
+              <TableContainer sx={{ flex: 1, overflowY: "auto" }}>
                 <Table stickyHeader size="small" aria-label="Tabela de Minutas">
                   <TableHead>
                     <TableRow>
                       <TableCell padding="checkbox" sx={{ p: 1, width: 42 }}>
                         <Checkbox
                           checked={eventosAllChecked}
-                          //indeterminate={ragIndeterminate}
                           onChange={(e) => handleToggleAllRag(e.target.checked)}
                           disabled={isLoading || eventos.length === 0}
-                          inputProps={{
-                            "aria-label": "Selecionar todas as Minutas",
-                          }}
                         />
                       </TableCell>
-                      <TableCell sx={{ p: 1 }}>Itens</TableCell>
+                      <TableCell sx={{ p: 1 }}>Todos</TableCell>
                     </TableRow>
                   </TableHead>
                   <TableBody>
@@ -803,7 +806,7 @@ export const AnalisesMain = () => {
                           key={reg.id}
                           hover
                           selected={isSelected}
-                          onClick={() => handleSelectEvento(reg)} // 👈 uso da função centralizada
+                          onClick={() => handleSelectEvento(reg)}
                           sx={{
                             cursor: "pointer",
                             bgcolor: isSelected
@@ -829,7 +832,6 @@ export const AnalisesMain = () => {
                       );
                     })}
 
-                    {/* sentinel para rag */}
                     {eventosHasMore && (
                       <TableRow>
                         <TableCell colSpan={2} sx={{ p: 0 }}>
@@ -841,7 +843,7 @@ export const AnalisesMain = () => {
                       <TableRow>
                         <TableCell colSpan={2}>
                           <Typography variant="body2" color="text.secondary">
-                            Nenhuma resposta disponível.
+                            Nenhuma minuta disponível.
                           </Typography>
                         </TableCell>
                       </TableRow>
@@ -849,8 +851,8 @@ export const AnalisesMain = () => {
                   </TableBody>
                 </Table>
               </TableContainer>
-            </AccordionDetails>
-          </Accordion>
+            </Box>
+          </Paper>
         </Grid>
 
         {/* COL-02: COMPLETION + PROMPT */}
@@ -954,113 +956,11 @@ export const AnalisesMain = () => {
             <Box>
               {/* Wrapper do campo para permitir overlay sem afetar a barra */}
               <Box position="relative">
-                <TextField
-                  label="Prompt"
-                  multiline
-                  minRows={4}
-                  fullWidth
-                  disabled={isLoading || isSending}
-                  value={prompt}
-                  onChange={(e) => setPrompt(e.target.value)}
-                  onKeyDown={(e) => {
-                    // Enter envia; Shift+Enter quebra linha
-                    if (e.key === "Enter" && !e.shiftKey) {
-                      e.preventDefault();
-                      if (!isSending && !isLoading) handleSendPrompt();
-                    }
-                  }}
-                  placeholder="Digite o prompt aqui..."
-                  sx={{
-                    "& .MuiOutlinedInput-root": { borderRadius: 2 }, // 16px
-                    "& .MuiInputBase-root": {
-                      maxHeight: 220,
-                      overflow: "auto",
-                      // padding interno consistente (sem endAdornment em multiline)
-                      alignItems: "start",
-                    },
-                    "& textarea": {
-                      height: "100% !important",
-                      overflow: "auto",
-                    },
-                  }}
-                  slotProps={{
-                    input: { style: { padding: 24 } },
-                    inputLabel: { shrink: true },
-                  }}
+                <PromptInput
+                  onSubmit={handleSendPrompt}
+                  isLoading={isLoading}
+                  isSending={isSending}
                 />
-
-                {/* Overlay de carregamento apenas sobre o campo */}
-                {isSending && (
-                  <Box
-                    role="status"
-                    aria-live="polite"
-                    sx={{
-                      position: "absolute",
-                      inset: 0,
-                      display: "flex",
-                      alignItems: "center",
-                      justifyContent: "center",
-                      bgcolor: "rgba(255,255,255,0.6)",
-                      backdropFilter: "blur(2px)",
-                      borderRadius: 2,
-                      zIndex: 1,
-                    }}
-                  >
-                    <CircularProgress size={28} />
-                    <Typography variant="body2" ml={1.5}>
-                      Processando…
-                    </Typography>
-                  </Box>
-                )}
-              </Box>
-
-              {/* Barra de ações EXTERNA, alinhada à direita, sem sobrepor o campo */}
-
-              <Box
-                mt={0.5}
-                display="flex"
-                justifyContent="flex-end"
-                gap={0.5}
-                aria-label="Ações do prompt"
-              >
-                <Tooltip title="Enviar">
-                  <span>
-                    <IconButton
-                      size="small"
-                      onClick={handleSendPrompt}
-                      disabled={isLoading || isSending || !prompt.trim()}
-                      aria-label="Enviar prompt"
-                    >
-                      <Send fontSize="small" />
-                    </IconButton>
-                  </span>
-                </Tooltip>
-
-                <Tooltip title="Copiar prompt">
-                  <span>
-                    <IconButton
-                      size="small"
-                      onClick={() => copyToClipboard(prompt, "Prompt copiado!")}
-                      disabled={isLoading || isSending || !prompt}
-                      aria-label="Copiar prompt"
-                    >
-                      <ContentCopy fontSize="small" />
-                    </IconButton>
-                  </span>
-                </Tooltip>
-
-                <Tooltip title="Limpar">
-                  <span>
-                    <IconButton
-                      size="small"
-                      onClick={() => setPrompt("")}
-                      disabled={isLoading || isSending || !prompt}
-                      aria-label="Limpar prompt"
-                    >
-                      <Delete fontSize="small" />
-                    </IconButton>
-                  </span>
-                </Tooltip>
               </Box>
             </Box>
           </Paper>

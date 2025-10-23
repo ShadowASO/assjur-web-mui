@@ -137,11 +137,20 @@ export const AlterarContexto: React.FC<AlterarContextoProps> = ({
         <Typography variant="body2" color="text.secondary" mb={2}>
           Atualize as informações do contexto abaixo.
         </Typography>
+        <TextField
+          fullWidth
+          label="Juízo"
+          value={juizo}
+          onChange={(e) => setJuizo(e.target.value)}
+          size="small"
+          margin="normal"
+          placeholder="Ex: 3ª Vara Cível da Comarca de Sobral"
+        />
 
         <TextField
           fullWidth
           label="Classe"
-          value={juizo}
+          value={classe}
           onChange={(e) => setClasse(e.target.value)}
           size="small"
           margin="normal"
@@ -156,15 +165,6 @@ export const AlterarContexto: React.FC<AlterarContextoProps> = ({
           size="small"
           margin="normal"
           placeholder="Ex: Contratos Bancários, Tarifas..."
-        />
-        <TextField
-          fullWidth
-          label="Juízo"
-          value={juizo}
-          onChange={(e) => setJuizo(e.target.value)}
-          size="small"
-          margin="normal"
-          placeholder="Ex: 3ª Vara Cível da Comarca de Sobral"
         />
       </DialogContent>
 
