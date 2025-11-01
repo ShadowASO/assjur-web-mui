@@ -37,6 +37,8 @@ import {
 import { ListaDocumentos } from "./ListaDocumentos";
 import {
   Balance,
+  ChevronLeft,
+  ChevronRight,
   Close,
   ContentCopy,
   Delete,
@@ -66,6 +68,11 @@ export const UploadProcesso = () => {
   const [snackbarOpen, setSnackbarOpen] = useState(false);
   const [snackbarError, setSnackbarError] = useState(false);
 
+  const [docsList, setDocsList] = useState<
+    { id: string; pje: string; texto: string }[]
+  >([]);
+  const [currentIndex, setCurrentIndex] = useState<number>(-1);
+
   // Refresh das listas
   const [refreshKeyPecas, setRefreshKeyPecas] = useState(0);
   const [refreshKeyOCR, setRefreshKeyOCR] = useState(0);
@@ -85,6 +92,12 @@ export const UploadProcesso = () => {
 
   // dentro do componente UploadProcesso
   const navigate = useNavigate(); // ✅ instância de navegação
+
+  useEffect(() => {
+    if (currentIndex >= docsList.length) {
+      setCurrentIndex(docsList.length - 1);
+    }
+  }, [docsList]);
 
   useEffect(() => {
     mountedRef.current = true;
@@ -201,6 +214,8 @@ export const UploadProcesso = () => {
       if (mountedRef.current) {
         if (ok) {
           setRefreshKeyOCR((prev) => prev + 1);
+          handleNext();
+
           showFlashMessage("Texto OCR excluído com sucesso!", "success");
         }
       }
@@ -224,6 +239,7 @@ export const UploadProcesso = () => {
       if (mountedRef.current) {
         if (ok) {
           setRefreshKeyPecas((prev) => prev + 1);
+
           showFlashMessage("PDF excluído com sucesso!", "success");
         } else {
           showFlashMessage("Erro ao excluir PDF!", "error");
@@ -242,15 +258,26 @@ export const UploadProcesso = () => {
   }
 
   // Abrir/fechar dialog
+  // function handleAbrirDialog(idDocX: string, pje: string, texto: string) {
+  //   setIdDoc(idDocX);
+  //   setTextoOCR(texto);
+  //   setIdPJE(pje);
+  //   setDialogOpen(true);
+  // }
   function handleAbrirDialog(idDocX: string, pje: string, texto: string) {
     setIdDoc(idDocX);
     setTextoOCR(texto);
     setIdPJE(pje);
+
+    const index = docsList.findIndex((d) => d.id === idDocX);
+    setCurrentIndex(index);
+
     setDialogOpen(true);
   }
+
   function handleFecharDialog() {
     setDialogOpen(false);
-    setTextoOCR("");
+    //setTextoOCR("");
   }
 
   // Copiar/fechar snackbar
@@ -399,6 +426,31 @@ export const UploadProcesso = () => {
     if (idCtxt) navigate(`/processos/analises/${idCtxt}`);
   };
 
+  //Janela Dialog
+  function handleNext() {
+    if (docsList.length === 0) return;
+    const next = currentIndex + 1;
+    if (next < 0 || next >= docsList.length) return;
+    const d = docsList[next];
+    if (!d) return;
+    setCurrentIndex(next);
+    setIdDoc(d.id);
+    setIdPJE(d.pje);
+    setTextoOCR(d.texto);
+  }
+  //Janela Dialog
+  function handlePrev() {
+    if (docsList.length === 0) return;
+    const prev = currentIndex - 1;
+    if (prev < 0 || prev >= docsList.length) return;
+    const d = docsList[prev];
+    if (!d) return;
+    setCurrentIndex(prev);
+    setIdDoc(d.id);
+    setIdPJE(d.pje);
+    setTextoOCR(d.texto);
+  }
+
   const isAutuandoAtual = !!(idDoc && autuandoIds[idDoc]);
 
   return (
@@ -469,6 +521,8 @@ export const UploadProcesso = () => {
               onDelete={handleDeleteOCR}
               refreshKey={refreshKeyOCR}
               loading={isLoading}
+              onLoadList={setDocsList} // ✅ Adicionado
+              currentId={idDoc} // ✅ Aqui
             />
           </Paper>
         </Grid>
@@ -478,10 +532,21 @@ export const UploadProcesso = () => {
       <Dialog
         open={dialogOpen}
         onClose={handleFecharDialog}
-        maxWidth="md"
-        fullWidth
-        aria-labelledby="ocr-dialog-title"
-        aria-describedby="ocr-dialog-content"
+        maxWidth={false} // ❗ importante para permitir largura customizada
+        fullWidth={false} // evita que ocupe a tela toda
+        PaperProps={{
+          sx: {
+            position: "fixed",
+            left: 0,
+            top: 0,
+            height: "100vh",
+            width: "55vw",
+            m: 5,
+            borderRadius: 0,
+            transform: dialogOpen ? "translateX(0)" : "translateX(-100%)",
+            transition: "transform 0.3s ease-in-out",
+          },
+        }}
       >
         <DialogTitle id="ocr-dialog-title" sx={{ pr: 2 }}>
           <Stack direction="row" alignItems="center" spacing={1}>
@@ -491,6 +556,21 @@ export const UploadProcesso = () => {
             <Typography variant="body1" sx={{ fontWeight: 600 }}>
               {idPJE}
             </Typography>
+            <IconButton
+              onClick={handlePrev}
+              disabled={currentIndex <= 0 || docsList.length === 0}
+            >
+              <ChevronLeft />
+            </IconButton>
+
+            <IconButton
+              onClick={handleNext}
+              disabled={
+                currentIndex === -1 || currentIndex >= docsList.length - 1
+              }
+            >
+              <ChevronRight />
+            </IconButton>
           </Stack>
 
           {/* Ações no título */}

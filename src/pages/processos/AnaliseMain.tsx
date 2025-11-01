@@ -116,8 +116,13 @@ export const AnalisesMain = () => {
 
   const [minuta, setMinuta] = useState("");
   const [dialogo, setDialogo] = useState("");
-
   const [prevId, setPrevId] = useState("");
+  const [eventoSelecionadoId, setEventoSelecionadoId] = useState<string | null>(
+    null
+  );
+  const [autoSelecionadoId, setAutoSelecionadoId] = useState<string | null>(
+    null
+  );
 
   const [refreshPecas, setRefreshPecas] = useState(0);
   const [refreshTokens, setRefreshTokens] = useState(0);
@@ -152,6 +157,8 @@ export const AnalisesMain = () => {
   // Seleciona e exibe a minuta correspondente a um evento
   const handleSelectEvento = useCallback((evento: EventosRow) => {
     if (!evento) return;
+
+    setEventoSelecionadoId(evento.id); // 🔥 Guarda qual está ativo
 
     if (evento.doc_json_raw) {
       const raw =
@@ -695,7 +702,34 @@ export const AnalisesMain = () => {
                   </TableHead>
                   <TableBody>
                     {autosVisiveis.map((reg) => (
-                      <TableRow key={reg.id} hover>
+                      <TableRow
+                        key={reg.id}
+                        hover
+                        sx={{
+                          cursor: "pointer",
+                          transition: "0.25s",
+
+                          // 🔥 linha ativa (exibida na minuta)
+                          bgcolor:
+                            autoSelecionadoId === reg.id
+                              ? "rgba(25, 118, 210, 0.15)"
+                              : selectedIdsAutos.includes(reg.id)
+                              ? theme.palette.action.hover
+                              : "inherit",
+
+                          borderLeft:
+                            autoSelecionadoId === reg.id
+                              ? "4px solid #1976d2"
+                              : "4px solid transparent",
+
+                          "&:hover": {
+                            bgcolor:
+                              autoSelecionadoId === reg.id
+                                ? "rgba(25, 118, 210, 0.25)"
+                                : "rgba(0, 0, 0, 0.04)",
+                          },
+                        }}
+                      >
                         <TableCell padding="checkbox">
                           <Checkbox
                             checked={selectedIdsAutos.includes(reg.id)}
@@ -707,6 +741,7 @@ export const AnalisesMain = () => {
                         </TableCell>
                         <TableCell
                           onClick={() => {
+                            setAutoSelecionadoId(reg.id); // 🔥 marca qual Auto está ativo
                             if (reg.doc_json_raw) {
                               setMinuta(
                                 typeof reg.doc_json_raw === "string"
@@ -801,17 +836,28 @@ export const AnalisesMain = () => {
                   <TableBody>
                     {eventosVisiveis.map((reg) => {
                       const isSelected = selectedIdsEventos.includes(reg.id);
+                      const isActive = eventoSelecionadoId === reg.id; // 🔥 está sendo exibido na Minuta
                       return (
                         <TableRow
                           key={reg.id}
                           hover
-                          selected={isSelected}
                           onClick={() => handleSelectEvento(reg)}
                           sx={{
                             cursor: "pointer",
-                            bgcolor: isSelected
-                              ? theme.palette.action.hover
+                            transition: "0.25s",
+                            bgcolor: isActive
+                              ? "rgba(25, 118, 210, 0.15)" // Azul claro
+                              : isSelected
+                              ? theme.palette.action.hover // seleções múltiplas
                               : "inherit",
+                            borderLeft: isActive
+                              ? "4px solid #1976d2"
+                              : "4px solid transparent",
+                            "&:hover": {
+                              bgcolor: isActive
+                                ? "rgba(25, 118, 210, 0.25)"
+                                : "rgba(0, 0, 0, 0.04)",
+                            },
                           }}
                         >
                           <TableCell padding="checkbox">

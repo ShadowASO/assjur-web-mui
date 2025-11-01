@@ -20,7 +20,7 @@ import type { DocsOcrRow } from "../../shared/types/tabelas";
 import { getDocumentoName } from "../../shared/constants/autosDoc";
 import { describeApiError } from "../../shared/services/api/erros/errosApi";
 
-interface ListaPecasProps {
+interface ListaDocumentosProps {
   processoId: string;
   refreshKey: number;
   onView: (id_doc: string, id_pje: string, texto: string) => void;
@@ -28,6 +28,10 @@ interface ListaPecasProps {
   onJuntadaMultipla?: (fileIds: string[]) => void | Promise<void>;
   onDelete: (fileId: string) => void | Promise<void>;
   loading?: boolean;
+
+  /** ✅ Nova prop - envia lista carregada para o componente pai */
+  onLoadList?: (docs: { id: string; pje: string; texto: string }[]) => void;
+  currentId?: string; // ✅ ID atualmente exibido no Dialog
 }
 
 export const ListaDocumentos = ({
@@ -38,7 +42,9 @@ export const ListaDocumentos = ({
   onDelete,
   refreshKey,
   loading,
-}: ListaPecasProps) => {
+  onLoadList,
+  currentId,
+}: ListaDocumentosProps) => {
   const [rows, setRows] = useState<DocsOcrRow[]>([]);
   const [internalLoading, setInternalLoading] = useState(false);
   const [selected, setSelected] = useState<string[]>([]);
@@ -46,7 +52,7 @@ export const ListaDocumentos = ({
   const [batchBusy, setBatchBusy] = useState(false);
 
   const mountedRef = useRef(true);
-  const callLockRef = useRef(false); // trava de reentrância (duplo clique)
+  const callLockRef = useRef(false);
 
   const isLoading = loading ?? internalLoading;
 
@@ -64,32 +70,45 @@ export const ListaDocumentos = ({
       try {
         setInternalLoading(true);
         const rsp = await refreshOcrByContexto(Number(processoId));
+
         if (!cancelled && mountedRef.current) {
-          setRows(Array.isArray(rsp) && rsp.length > 0 ? rsp : []);
-          // revalida seleção
+          const novaLista = Array.isArray(rsp) ? rsp : [];
+
+          setRows(novaLista);
+
+          // Revalida seleção
           setSelected((prev) =>
-            prev.filter((id) =>
-              (rsp ?? []).some((r: DocsOcrRow) => r.id === id)
-            )
+            prev.filter((id) => novaLista.some((r: DocsOcrRow) => r.id === id))
           );
+
+          // ✅ Envia lista formatada para o pai (navegação no dialog)
+          if (onLoadList) {
+            const docsFormatados = novaLista.map((r) => ({
+              id: r.id,
+              pje: r.id_pje,
+              texto: r.doc ?? "",
+            }));
+            onLoadList(docsFormatados);
+          }
         }
       } catch (error) {
         const { techMsg } = describeApiError(error);
         console.error("Erro ao carregar documentos OCR:", techMsg);
+
         if (!cancelled && mountedRef.current) {
           setRows([]);
           setSelected([]);
+          if (onLoadList) onLoadList([]);
         }
       } finally {
         if (!cancelled && mountedRef.current) setInternalLoading(false);
       }
     })();
+
     return () => {
       cancelled = true;
     };
-  }, [processoId, refreshKey]);
-
-  // Handlers (sem useCallback)
+  }, [processoId, refreshKey, onLoadList]);
 
   function handleViewText(id: string) {
     const registro = rows.find((row) => row.id === id);
@@ -120,7 +139,6 @@ export const ListaDocumentos = ({
   }
 
   async function handleAutuarSelecionados() {
-    // trava síncrona anti duplo-clique
     if (callLockRef.current) return;
     callLockRef.current = true;
 
@@ -142,15 +160,13 @@ export const ListaDocumentos = ({
       }
 
       if (mountedRef.current) setSelected([]);
-      // cooldown curto para o índice refletir mudanças
+
       await new Promise((r) => setTimeout(r, 250));
     } finally {
       if (mountedRef.current) {
-        // usa snapshot para garantir simetria
         markBusy(initialSelected, false);
         setBatchBusy(false);
       }
-      // libera um pouco depois para segurar double-click muito rápido
       setTimeout(() => {
         callLockRef.current = false;
       }, 200);
@@ -175,6 +191,7 @@ export const ListaDocumentos = ({
       await Promise.all(pendentes.map((id) => onDelete(id)));
 
       if (mountedRef.current) setSelected([]);
+
       await new Promise((r) => setTimeout(r, 150));
     } finally {
       if (mountedRef.current) {
@@ -187,7 +204,6 @@ export const ListaDocumentos = ({
     }
   }
 
-  // Helpers de seleção
   const { allSelected, someSelected } = useMemo(() => {
     const all = rows.length > 0 && selected.length === rows.length;
     const some = selected.length > 0 && !all;
@@ -208,34 +224,24 @@ export const ListaDocumentos = ({
           variant="contained"
           color="primary"
           size="small"
-          disabled={
-            selected.length === 0 ||
-            isLoading ||
-            batchBusy ||
-            callLockRef.current
-          }
+          disabled={selected.length === 0 || isLoading || batchBusy}
           onClick={handleAutuarSelecionados}
-          onDoubleClick={(e) => e.preventDefault()}
           startIcon={<PostAdd />}
         >
           Autuar selecionados
         </Button>
+
         <Button
           variant="contained"
           color="error"
           size="small"
-          disabled={
-            selected.length === 0 ||
-            isLoading ||
-            batchBusy ||
-            callLockRef.current
-          }
+          disabled={selected.length === 0 || isLoading || batchBusy}
           onClick={handleDeleteSelecionados}
-          onDoubleClick={(e) => e.preventDefault()}
           startIcon={<Delete />}
         >
           Deletar selecionados
         </Button>
+
         {selected.length > 0 && (
           <Typography component="span" sx={{ fontSize: 12, opacity: 0.9 }}>
             {selected.length} documento(s) selecionado(s)
@@ -246,7 +252,6 @@ export const ListaDocumentos = ({
       <Box sx={{ position: "relative" }}>
         {isLoading && (
           <LinearProgress
-            variant="indeterminate"
             sx={{ position: "absolute", left: 0, right: 0, top: -2, zIndex: 1 }}
           />
         )}
@@ -260,12 +265,12 @@ export const ListaDocumentos = ({
                   checked={allSelected}
                   onChange={handleSelectAll}
                   disabled={isLoading || empty}
-                  inputProps={{ "aria-label": "Selecionar todos" }}
                 />
               </TableCell>
+
               <TableCell>ID</TableCell>
               <TableCell>Natureza</TableCell>
-              <TableCell align="right">Ações</TableCell>
+              <TableCell align="right">Exibir</TableCell>
             </TableRow>
           </TableHead>
 
@@ -273,7 +278,7 @@ export const ListaDocumentos = ({
             {empty ? (
               <TableRow>
                 <TableCell colSpan={4}>
-                  <Typography variant="body2" sx={{ opacity: 0.7, py: 1 }}>
+                  <Typography sx={{ opacity: 0.7, py: 1 }}>
                     Nenhum documento disponível.
                   </Typography>
                 </TableCell>
@@ -284,15 +289,33 @@ export const ListaDocumentos = ({
                 const disabled = isRowBusy(row.id);
 
                 return (
-                  <TableRow key={row.id} selected={checked}>
+                  <TableRow
+                    key={row.id}
+                    selected={checked}
+                    sx={{
+                      cursor: "pointer",
+                      transition: "0.2s",
+                      bgcolor:
+                        currentId === row.id
+                          ? "rgba(25, 118, 210, 0.15)"
+                          : "inherit",
+                      borderLeft:
+                        currentId === row.id
+                          ? "4px solid #1976d2"
+                          : "4px solid transparent",
+                      "&:hover": {
+                        bgcolor:
+                          currentId === row.id
+                            ? "rgba(25, 118, 210, 0.25)"
+                            : "rgba(0,0,0,0.04)",
+                      },
+                    }}
+                  >
                     <TableCell padding="checkbox">
                       <Checkbox
                         checked={checked}
                         onChange={() => handleCheckbox(row.id)}
                         disabled={disabled}
-                        inputProps={{
-                          "aria-label": `Selecionar ${row.id_pje}`,
-                        }}
                       />
                     </TableCell>
 
@@ -308,7 +331,6 @@ export const ListaDocumentos = ({
                           <IconButton
                             onClick={() => handleViewText(row.id)}
                             disabled={disabled}
-                            aria-label={`Visualizar documento ${row.id_pje}`}
                           >
                             <Visibility />
                           </IconButton>

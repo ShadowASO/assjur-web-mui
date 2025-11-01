@@ -50,6 +50,7 @@ export const itemsDocumento: Item[] = [
     description: "Manifestação do MP",
   },
   { key: NATU_DOC_AUTOS, description: "Autos Processuais" },
+  { key: NATU_DOC_OUTROS, description: "Outros Documentos" },
 
   //RAG
   { key: NATU_DOC_IA_PROMPT, description: "Prompt de IA" },
