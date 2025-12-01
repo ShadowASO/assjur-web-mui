@@ -23,6 +23,7 @@ type DocsOcrRow = {
   id_ctxt: number;
   id_natu: number;
   id_pje: string;
+  dt_inc: Date; // Data de inclusão do documento
   doc: string;
 };
 
