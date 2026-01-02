@@ -158,7 +158,7 @@ export async function getConsumoTokens(
 // ======================= Upload / OCR =======================
 
 export async function uploadFileToServer(
-  idContexto: number,
+  idContexto: string,
   file: File
 ): Promise<boolean> {
   if (!file) return false;
@@ -225,7 +225,7 @@ export async function deleteUploadFileById(id: number): Promise<boolean> {
 }
 
 export async function extractDocumentWithOCR( // (renomeado)
-  idCtxt: number,
+  idCtxt: string,
   idDoc: number
 ): Promise<boolean> {
   const body = [{ IdContexto: idCtxt, IdFile: idDoc }];
@@ -234,21 +234,22 @@ export async function extractDocumentWithOCR( // (renomeado)
 }
 
 export async function extractWithOCRByContexto( // (renomeado)
-  idContexto: number
+  idContexto: string
 ): Promise<boolean> {
   await apiPost<unknown>(`/contexto/documentos/${idContexto}`);
   return true;
 }
 
-export async function consolidarAutosByContexto( // (renomeado)
-  idContexto: number
+export async function consolidarAutosByContexto(
+  idContexto: string
 ): Promise<boolean> {
+  // (renomeado)
   await apiPost<unknown>(`/contexto/documentos/saneador/${idContexto}`);
   return true;
 }
 
 export async function refreshOcrByContexto(
-  idContexto: number,
+  idContexto: string,
   opts?: CallOptions
 ): Promise<DocsOcrRow[]> {
   if (!idContexto) throw new ApiError("ID do registro ausente.");
@@ -284,7 +285,7 @@ export interface DataAutuaDocumento {
 
 export async function autuarDocumentos(
   body: {
-    IdContexto: number;
+    IdContexto: string;
     IdDoc: string;
   }[]
 ): Promise<DataAutuaDocumento | null> {
@@ -298,7 +299,7 @@ export async function autuarDocumentos(
 
 // ======================= Autos =======================
 
-export async function refreshAutos(idContexto: number): Promise<AutosRow[]> {
+export async function refreshAutos(idContexto: string): Promise<AutosRow[]> {
   if (!idContexto) return [];
   const rsp = await apiGet<RowsPayload<AutosRow>>(
     `/contexto/autos/all/${idContexto}`
@@ -313,7 +314,7 @@ export async function selectAutos(idDoc: number): Promise<AutosRow | null> {
 }
 
 export async function insertDocumentoAutos(
-  IdCtxt: number,
+  IdCtxt: string,
   IdNatu: number,
   IdPje: string,
   Doc: string,
@@ -353,20 +354,17 @@ export async function insertContexto(
 }
 
 export async function updateContexto(
-  idContexto: number,
+  id: string,
   juizo: string,
   classe: string,
   assunto: string
 ): Promise<ContextoRow | null> {
-  const rsp = await apiPut<RowsPayload<ContextoRow>>(
-    `/contexto/${idContexto}`,
-    {
-      IdCtxt: idContexto,
-      Juizo: juizo,
-      Classe: classe,
-      Assunto: assunto,
-    }
-  );
+  const rsp = await apiPut<RowsPayload<ContextoRow>>(`/contexto/${id}`, {
+    Id: id,
+    Juizo: juizo,
+    Classe: classe,
+    Assunto: assunto,
+  });
   return getRow<ContextoRow>(rsp, "/contexto");
 }
 
@@ -398,23 +396,32 @@ export async function getContextoById(
   return getRow<ContextoRow>(rsp, "/contexto/:id");
 }
 
+export async function getContextoByIdCtxt(
+  idCtxt: string
+): Promise<ContextoRow[] | null> {
+  const rsp = await apiGet<RowsPayload<ContextoRow>>(
+    `/contexto/search/${idCtxt}`
+  );
+  return getRow<ContextoRow[]>(rsp, "/contexto/search/:id");
+}
+
 export async function getContextosAll(): Promise<ContextoRow[] | null> {
   const rsp = await apiGet<RowsPayload<ContextoRow>>(`/contexto`);
   return getRows<ContextoRow>(rsp, "/contexto");
 }
 
 export async function getContextoTokensUso(
-  idCtxt: number
-): Promise<ContextoRow | null> {
-  const rsp = await apiGet<RowsPayload<ContextoRow>>(
+  idCtxt: string
+): Promise<ContextoRow[] | null> {
+  const rsp = await apiGet<RowsPayload<ContextoRow[]>>(
     `/contexto/tokens/uso/${idCtxt}`
   );
-  return getRow<ContextoRow>(rsp, "/contexto/tokens/uso/:id");
+  return getRow<ContextoRow[]>(rsp, "/contexto/tokens/uso/:id");
 }
 
-export async function deleteContexto(idCtxt: string): Promise<boolean> {
+export async function deleteContexto(id: string): Promise<boolean> {
   try {
-    await apiDelete<unknown>(`/contexto/${idCtxt}`);
+    await apiDelete<unknown>(`/contexto/${id}`);
     return true;
   } catch (err) {
     console.error("Erro ao deletar contexto:", err);
@@ -624,7 +631,7 @@ export async function selectRAG(id: string): Promise<BaseRow | null> {
 
 // Busca todos os eventos de um contexto específico
 export async function refreshEventos(
-  idContexto: number
+  idContexto: string
 ): Promise<EventosRow[]> {
   if (!idContexto) return [];
   const rsp = await apiGet<RowsPayload<EventosRow>>(
@@ -644,7 +651,7 @@ export async function selectEvento(idDoc: number): Promise<EventosRow | null> {
 
 // Insere um novo evento no índice
 export async function insertEvento(
-  IdCtxt: number,
+  IdCtxt: string,
   IdNatu: number,
   IdEvento: string,
   Doc: string,
@@ -670,12 +677,13 @@ export async function deleteEvento(id: string): Promise<boolean> {
 // ======================= Utilitários =======================
 
 /** 99999 -> "099999" */
-export function formatContexto(contexto: number): string {
+export function formatContexto(contexto: string): string {
   return String(contexto).padStart(5, "0");
 }
 
 /** Formata CNJ: 9999999-99.9999.9.99.9999 */
 export function formatNumeroProcesso(numero: string): string {
+  //console.log(numero);
   const digits = (numero ?? "").replace(/\D/g, ""); // limpa tudo que não é dígito
   const numeroStr = digits.slice(-20).padStart(20, "0");
   return `${numeroStr.slice(0, 7)}-${numeroStr.slice(7, 9)}.${numeroStr.slice(

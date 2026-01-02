@@ -27,7 +27,7 @@ import { updateContexto } from "../../shared/services/api/fetch/apiTools"; // ðŸ
 interface AlterarContextoProps {
   open: boolean;
   onClose: () => void;
-  idContexto: string;
+  id: string;
   juizoAtual: string;
   classeAtual: string;
   assuntoAtual: string;
@@ -40,7 +40,7 @@ interface AlterarContextoProps {
 export const AlterarContexto: React.FC<AlterarContextoProps> = ({
   open,
   onClose,
-  idContexto,
+  id,
   juizoAtual,
   classeAtual,
   assuntoAtual,
@@ -76,12 +76,7 @@ export const AlterarContexto: React.FC<AlterarContextoProps> = ({
 
     setSaving(true);
     try {
-      const rsp = await updateContexto(
-        Number(idContexto),
-        juizo,
-        classe,
-        assunto
-      );
+      const rsp = await updateContexto(id, juizo, classe, assunto);
 
       if (rsp) {
         showFlashMessage("Contexto atualizado com sucesso!", "success");
@@ -100,15 +95,7 @@ export const AlterarContexto: React.FC<AlterarContextoProps> = ({
     } finally {
       setSaving(false);
     }
-  }, [
-    juizo,
-    classe,
-    assunto,
-    idContexto,
-    handleClose,
-    showFlashMessage,
-    onSuccess,
-  ]);
+  }, [juizo, classe, assunto, id, handleClose, showFlashMessage, onSuccess]);
 
   return (
     <Dialog

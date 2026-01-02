@@ -53,7 +53,10 @@ export const ListaProcessos = () => {
   const [totalPage, setTotalPage] = useState(0);
   const [isLoading, setLoading] = useState(true);
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
-  const [selectedId, setSelectedId] = useState<number | null>(null);
+  //const [selectedId, setSelectedId] = useState<string | null>(null);
+
+  const [selectedId, setSelectedId] = useState<string | null>(null); // PK do contexto (row.id)
+  const [selectedIdCtxt, setSelectedIdCtxt] = useState<string | null>(null); // FK (row.id_ctxt)
 
   const [dialogOpen, setDialogOpen] = useState(false);
   const [dialogEditOpen, setDialogEditOpen] = useState(false);
@@ -86,11 +89,11 @@ export const ListaProcessos = () => {
     }
   };
 
-  const handleDelete = async (id: number) => {
-    if (confirm("Realmente deseja apagar?")) {
+  const handleDelete = async (id: string) => {
+    if (confirm("Realmente deseja apagar?:" + id)) {
       const rsp = await deleteContexto(String(id));
       if (rsp) {
-        setRows((old) => old.filter((row) => row.id_ctxt !== id));
+        setRows((old) => old.filter((row) => row.id !== id));
         showFlashMessage("Registro apagado com sucesso", "success");
       } else {
         showFlashMessage("Erro ao deletar o registro", "error");
@@ -98,30 +101,46 @@ export const ListaProcessos = () => {
     }
   };
 
-  const handleMenuOpen = (event: React.MouseEvent<HTMLElement>, id: number) => {
+  // const handleMenuOpen = (event: React.MouseEvent<HTMLElement>, id: string) => {
+  //   setAnchorEl(event.currentTarget);
+  //   setSelectedId(id);
+  // };
+
+  const handleMenuOpen = (
+    event: React.MouseEvent<HTMLElement>,
+    id: string,
+    idCtxt: string
+  ) => {
     setAnchorEl(event.currentTarget);
     setSelectedId(id);
+    setSelectedIdCtxt(idCtxt);
   };
+
+  // const handleMenuClose = () => {
+  //   setAnchorEl(null);
+  //   setSelectedId(null);
+  // };
 
   const handleMenuClose = () => {
     setAnchorEl(null);
     setSelectedId(null);
+    setSelectedIdCtxt(null);
   };
 
   const handleUploadClick = () => {
-    if (selectedId) navigate(`/processos/upload/${selectedId}`);
+    if (selectedId) navigate(`/processos/upload/${selectedIdCtxt}`);
     handleMenuClose();
   };
 
   const handleAnalisesClick = () => {
-    if (selectedId) navigate(`/processos/analises/${selectedId}`);
+    if (selectedId) navigate(`/processos/analises/${selectedIdCtxt}`);
     handleMenuClose();
   };
 
   const handleEditarClick = () => {
     if (!selectedId) return;
 
-    const ctx = rows.find((r) => r.id_ctxt === selectedId);
+    const ctx = rows.find((r) => r.id === selectedId);
     if (ctx) {
       setContextoSelecionado(ctx);
       setDialogEditOpen(true);
@@ -142,6 +161,7 @@ export const ListaProcessos = () => {
 
         setLoading(false);
         if (rsp) {
+          //console.log(rsp);
           setRows(rsp);
         } else {
           setRows([]);
@@ -205,11 +225,13 @@ export const ListaProcessos = () => {
               <TableBody>
                 {Array.isArray(rows) &&
                   rows.map((row) => (
-                    <TableRow key={row.id_ctxt}>
+                    <TableRow key={row.id}>
                       <TableCell>
                         <IconButton
                           size="small"
-                          onClick={(e) => handleMenuOpen(e, row.id_ctxt)}
+                          onClick={(e) =>
+                            handleMenuOpen(e, row.id, row.id_ctxt)
+                          }
                         >
                           <MoreVert />
                         </IconButton>
@@ -284,7 +306,7 @@ export const ListaProcessos = () => {
         <AlterarContexto
           open={dialogEditOpen}
           onClose={() => setDialogEditOpen(false)}
-          idContexto={String(contextoSelecionado.id_ctxt)}
+          id={String(contextoSelecionado.id)}
           juizoAtual={contextoSelecionado.juizo}
           classeAtual={contextoSelecionado.classe}
           assuntoAtual={contextoSelecionado.assunto}

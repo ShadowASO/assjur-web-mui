@@ -31,7 +31,7 @@ import {
   deleteUploadFileById,
   extractDocumentWithOCR,
   formatNumeroProcesso,
-  getContextoById,
+  getContextoByIdCtxt,
   uploadFileToServer,
 } from "../../shared/services/api/fetch/apiTools";
 import { ListaDocumentos } from "./ListaDocumentos";
@@ -58,7 +58,7 @@ type AutuarResponse = {
 
 export const UploadProcesso = () => {
   const { id: idCtxt } = useParams();
-  const idCtxtNum = Number(idCtxt);
+  const idCtxtNum = idCtxt;
   const [processo, setProcesso] = useState("");
   const [dialogOpen, setDialogOpen] = useState(false);
   const [textoOCR, setTextoOCR] = useState("");
@@ -108,6 +108,7 @@ export const UploadProcesso = () => {
 
   // título
   useEffect(() => {
+    //console.log(processo);
     setTituloJanela(
       `Formação do Contexto - Processo ${formatNumeroProcesso(processo)}`
     );
@@ -131,9 +132,13 @@ export const UploadProcesso = () => {
           if (!cancelled && mountedRef.current) setProcesso("");
           return;
         }
-        const rsp = await getContextoById(idCtxt);
-        if (!cancelled && mountedRef.current) {
-          setProcesso(rsp?.nr_proc ?? "");
+        const rsp = await getContextoByIdCtxt(idCtxt);
+        //console.log(rsp);
+        if (rsp) {
+          if (!cancelled && mountedRef.current) {
+            //console.log(rsp[0].nr_proc);
+            setProcesso(rsp[0].nr_proc ?? "");
+          }
         }
       } catch (error) {
         const { userMsg, techMsg } = describeApiError(error);
@@ -162,6 +167,7 @@ export const UploadProcesso = () => {
   // Upload
   async function handleUpload(file: File) {
     try {
+      if (!idCtxtNum) return; // ✅ garante string
       setLoading(true);
       await uploadFileToServer(idCtxtNum, file);
       if (mountedRef.current) {
@@ -183,6 +189,7 @@ export const UploadProcesso = () => {
   // OCR
   async function handleExtrairTexto(fileId: number) {
     try {
+      if (!idCtxtNum) return; // ✅ garante string
       setLoading(true);
       const ok = await extractDocumentWithOCR(idCtxtNum, fileId);
       if (mountedRef.current) {
@@ -306,6 +313,7 @@ export const UploadProcesso = () => {
 
     markAutuando([idFile], true);
     try {
+      if (!idCtxtNum) return; // ✅ garante string
       setLoading(true);
       const payload = [{ IdContexto: idCtxtNum, IdDoc: idFile }];
       const rsp = (await autuarDocumentos(payload)) as AutuarResponse | null;
@@ -365,6 +373,16 @@ export const UploadProcesso = () => {
       );
       if (pendentes.length === 0) return;
 
+      // ✅ GARANTE que IdContexto é string
+      if (!idCtxtNum) {
+        showFlashMessage(
+          "Contexto inválido (id ausente).",
+          "error",
+          TIME_FLASH_ALERTA_SEC * 5
+        );
+        return;
+      }
+
       markAutuando(pendentes, true);
       setLoading(true);
 
@@ -372,6 +390,7 @@ export const UploadProcesso = () => {
         IdContexto: idCtxtNum,
         IdDoc: id,
       }));
+
       const rsp = (await autuarDocumentos(payload)) as AutuarResponse | null;
 
       if (!mountedRef.current) return;
@@ -514,7 +533,7 @@ export const UploadProcesso = () => {
 
           <Paper sx={{ p: 2, mb: 2, maxHeight: 720, overflow: "hidden" }}>
             <ListaDocumentos
-              processoId={idCtxt!}
+              idCtxt={idCtxt!}
               onView={handleAbrirDialog}
               onJuntada={handleAutuar}
               onJuntadaMultipla={handleAutuarMultipla}

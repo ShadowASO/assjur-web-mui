@@ -47,7 +47,8 @@ interface SessionRow {
 }
 
 type ContextoRow = {
-  id_ctxt: number; // ID do processo
+  id: string;
+  id_ctxt: string; // ID do processo
   nr_proc: string; // Número do processo (até 24 caracteres)
   juizo: string;
   classe: string;
@@ -55,6 +56,7 @@ type ContextoRow = {
   prompt_tokens: number;
   completion_tokens: number;
   dt_inc: Date; // Data de inclusão do processo
+  UsernameInc: string;
   status: string;
 };
 

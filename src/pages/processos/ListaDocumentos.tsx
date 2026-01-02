@@ -21,7 +21,8 @@ import { getDocumentoName } from "../../shared/constants/autosDoc";
 import { describeApiError } from "../../shared/services/api/erros/errosApi";
 
 interface ListaDocumentosProps {
-  processoId: string;
+  // processoId: string;
+  idCtxt: string;
   refreshKey: number;
   onView: (id_doc: string, id_pje: string, texto: string) => void;
   onJuntada: (fileId: string) => void | Promise<void>;
@@ -35,7 +36,8 @@ interface ListaDocumentosProps {
 }
 
 export const ListaDocumentos = ({
-  processoId,
+  //processoId,
+  idCtxt,
   onView,
   onJuntada,
   onJuntadaMultipla,
@@ -69,7 +71,7 @@ export const ListaDocumentos = ({
     (async () => {
       try {
         setInternalLoading(true);
-        const rsp = await refreshOcrByContexto(Number(processoId));
+        const rsp = await refreshOcrByContexto(idCtxt);
 
         if (!cancelled && mountedRef.current) {
           const novaLista = Array.isArray(rsp) ? rsp : [];
@@ -108,7 +110,7 @@ export const ListaDocumentos = ({
     return () => {
       cancelled = true;
     };
-  }, [processoId, refreshKey, onLoadList]);
+  }, [idCtxt, refreshKey, onLoadList]);
 
   function handleViewText(id: string) {
     const registro = rows.find((row) => row.id === id);

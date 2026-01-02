@@ -185,7 +185,7 @@ export const CriarContexto = ({
     setSourceCnj(null);
     try {
       const metaDados = await searchMetadadosCNJ(numeroProcessoLimpo);
-      console.log(metaDados);
+      //console.log(metaDados);
       if (metaDados) {
         const hit = metaDados.hits.hits[0]?._source;
         setSourceCnj(hit);

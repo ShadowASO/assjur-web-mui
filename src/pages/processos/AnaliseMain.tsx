@@ -34,7 +34,7 @@ import {
   deleteAutos,
   deleteEvento,
   formatNumeroProcesso,
-  getContextoById,
+  getContextoByIdCtxt,
   getContextoTokensUso,
   refreshAutos,
   refreshEventos,
@@ -182,8 +182,9 @@ export const AnalisesMain = () => {
   useEffect(() => {
     (async () => {
       try {
+        if (!idCtxt) return; // ✅ garante string
         setLoading(true);
-        const response = await refreshAutos(Number(idCtxt));
+        const response = await refreshAutos(idCtxt);
         setAutos(response?.length ? response : []);
       } catch (error) {
         const { userMsg, techMsg } = describeApiError(error);
@@ -201,8 +202,9 @@ export const AnalisesMain = () => {
   useEffect(() => {
     (async () => {
       try {
+        if (!idCtxt) return; // ✅ garante string
         setLoading(true);
-        const response = await refreshEventos(Number(idCtxt));
+        const response = await refreshEventos(idCtxt);
         const lista = response?.length ? response : [];
         setEventos(lista);
 
@@ -228,11 +230,13 @@ export const AnalisesMain = () => {
       try {
         setLoading(true);
         if (!idCtxt) return;
-        const rsp = await getContextoById(idCtxt);
+        const rsp = await getContextoByIdCtxt(idCtxt);
         if (rsp) {
-          setPtUso(rsp.prompt_tokens ?? 0);
-          setCtUso(rsp.completion_tokens ?? 0);
-          setProcesso(rsp.nr_proc ?? "");
+          //console.log(rsp);
+          //console.log(rsp[0].nr_proc);
+          setPtUso(rsp[0].prompt_tokens ?? 0);
+          setCtUso(rsp[0].completion_tokens ?? 0);
+          setProcesso(rsp[0].nr_proc ?? "");
         }
       } catch (error) {
         const { userMsg } = describeApiError(error);
@@ -249,10 +253,10 @@ export const AnalisesMain = () => {
       try {
         //setLoading(true);
         if (!idCtxt) return;
-        const rsp = await getContextoTokensUso(Number(idCtxt));
+        const rsp = await getContextoTokensUso(idCtxt);
         if (rsp) {
-          setPtUso(rsp.prompt_tokens ?? 0);
-          setCtUso(rsp.completion_tokens ?? 0);
+          setPtUso(rsp[0].prompt_tokens ?? 0);
+          setCtUso(rsp[0].completion_tokens ?? 0);
         }
       } catch (error) {
         const { userMsg } = describeApiError(error);
