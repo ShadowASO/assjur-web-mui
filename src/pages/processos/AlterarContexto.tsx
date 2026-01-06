@@ -19,7 +19,7 @@ import {
   useMediaQuery,
 } from "@mui/material";
 import CloseIcon from "@mui/icons-material/Close";
-import LoadingButton from "@mui/lab/LoadingButton";
+//import LoadingButton from "@mui/lab/LoadingButton";
 import { useFlash } from "../../shared/contexts/FlashProvider";
 import { describeApiError } from "../../shared/services/api/erros/errosApi";
 import { updateContexto } from "../../shared/services/api/fetch/apiTools"; // 🔁 nova rota de atualização esperada
@@ -156,13 +156,9 @@ export const AlterarContexto: React.FC<AlterarContextoProps> = ({
       </DialogContent>
 
       <DialogActions sx={{ gap: 1, px: 3, py: 2 }}>
-        <LoadingButton
-          variant="contained"
-          onClick={handleSalvar}
-          loading={saving}
-        >
+        <Button variant="contained" onClick={handleSalvar} loading={saving}>
           Salvar Alterações
-        </LoadingButton>
+        </Button>
         <Button variant="text" onClick={handleClose}>
           Cancelar
         </Button>

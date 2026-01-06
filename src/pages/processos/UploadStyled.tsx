@@ -46,7 +46,7 @@ export const UploadStyled = ({
             startIcon={<UploadIcon />}
             disabled={isLoading}
           >
-            Escolher Arquivos
+            Escolher Arquivo
             <input
               hidden
               type="file"
@@ -58,7 +58,7 @@ export const UploadStyled = ({
           </Button>
 
           <Typography variant="body2" color="text.secondary">
-            Você pode selecionar múltiplos arquivos PDF para envio.
+            Selecione o arquivos PDF baixado do PJe.
           </Typography>
         </Box>
       </Stack>

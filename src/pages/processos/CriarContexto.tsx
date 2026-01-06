@@ -21,13 +21,8 @@ import {
   type OutlinedInputProps,
 } from "@mui/material";
 import CloseIcon from "@mui/icons-material/Close";
-//import { LoadingButton } from "@mui/lab";
 
-import LoadingButton from "@mui/lab/LoadingButton";
-import type {
-  // MetadadosProcessoCnj,
-  ProcessoSource,
-} from "../../shared/types/cnjTypes";
+import type { ProcessoSource } from "../../shared/types/cnjTypes";
 import {
   insertContexto,
   searchMetadadosCNJ,
@@ -368,23 +363,23 @@ export const CriarContexto = ({
       </DialogContent>
 
       <DialogActions sx={{ gap: 1, px: 3, py: 2 }}>
-        <LoadingButton
+        <Button
           variant="outlined"
           onClick={handleBuscarMetadadosCnj}
           loading={isLoading}
           disabled={!canConsultar}
         >
           Consultar CNJ
-        </LoadingButton>
+        </Button>
 
-        <LoadingButton
+        <Button
           variant="contained"
           onClick={handleCriarContexto}
           loading={creating}
           disabled={!canCriar}
         >
           Criar Contexto
-        </LoadingButton>
+        </Button>
 
         <Button variant="text" onClick={handleClose}>
           Fechar

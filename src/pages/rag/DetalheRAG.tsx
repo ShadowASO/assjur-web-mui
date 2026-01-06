@@ -4,13 +4,8 @@
  * Finalidade: Cadastro e edição de registros RAG (índice rag_doc_embedding)
  */
 
-import { PageBaseLayout } from "../../shared/layouts";
-import { BarraDetalhes } from "../../shared/components/BarraDetalhes";
-import { useEffect, useRef, useState } from "react";
-import {
-  TIME_FLASH_ALERTA_SEC,
-  useFlash,
-} from "../../shared/contexts/FlashProvider";
+import { useEffect, useRef, useState, useCallback } from "react";
+import { useLocation, useNavigate, useParams } from "react-router-dom";
 import { Controller, useForm } from "react-hook-form";
 import {
   Box,
@@ -22,15 +17,23 @@ import {
   Tooltip,
   Typography,
 } from "@mui/material";
+import { ContentCopy } from "@mui/icons-material";
+
+import { PageBaseLayout } from "../../shared/layouts";
+import { BarraDetalhes } from "../../shared/components/BarraDetalhes";
+import { TiptapEditor } from "../../shared/components/TiptapEditor";
+
 import {
   deleteRAG,
   insertRAG,
   selectRAG,
   updateRAG,
 } from "../../shared/services/api/fetch/apiTools";
-import { ContentCopy } from "@mui/icons-material";
-import { TiptapEditor } from "../../shared/components/TiptapEditor";
-import { useNavigate, useParams, useLocation } from "react-router-dom";
+
+import {
+  TIME_FLASH_ALERTA_SEC,
+  useFlash,
+} from "../../shared/contexts/FlashProvider";
 import { describeApiError } from "../../shared/services/api/erros/errosApi";
 
 interface IRagForm {
@@ -44,141 +47,157 @@ interface IRagForm {
   data_texto: string;
 }
 
+const EMPTY_FORM: IRagForm = {
+  id_pje: "",
+  classe: "",
+  assunto: "",
+  natureza: "",
+  tipo: "",
+  tema: "",
+  fonte: "",
+  data_texto: "",
+};
+
 export const DetalheRAG = () => {
   const { id: idReg = "nova" } = useParams<"id">();
   const navigate = useNavigate();
   const location = useLocation();
   const { showFlashMessage } = useFlash();
 
+  const isNew = idReg === "nova";
+
   const [isLoading, setLoading] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [mode, setMode] = useState<"view" | "edit" | "create">(
-    idReg === "nova" ? "create" : "view"
+    isNew ? "create" : "view"
   );
 
   const RForm = useForm<IRagForm>({
-    defaultValues: {
-      id_pje: "",
-      classe: "",
-      assunto: "",
-      natureza: "",
-      tipo: "",
-      tema: "",
-      fonte: "",
-      data_texto: "",
-    },
+    defaultValues: EMPTY_FORM,
+    mode: "onChange",
   });
 
-  const { control, reset, getValues, formState } = RForm;
-  const originalRef = useRef<IRagForm>(getValues());
+  //const { control, reset, getValues, formState, watch } = RForm;
+  const { control, reset, formState, watch } = RForm;
+  const dataTexto = watch("data_texto");
 
-  // Navegação e retorno
-  const goBackToList = () => {
+  // Mantém o "snapshot" original para Cancelar
+  const originalRef = useRef<IRagForm>(EMPTY_FORM);
+
+  const goBackToList = useCallback(() => {
     const fromSearch =
       (location.state as { fromSearch?: string } | undefined)?.fromSearch ?? "";
     navigate(`/rag${fromSearch}`, { replace: true });
-  };
+  }, [location.state, navigate]);
 
-  // Carregamento inicial
+  // Carregamento inicial / troca de id
   useEffect(() => {
     let active = true;
-    (async () => {
-      setMode(idReg === "nova" ? "create" : "view");
-      if (idReg !== "nova") {
-        try {
-          setLoading(true);
-          const rsp = await selectRAG(idReg);
 
-          if (!rsp || rsp instanceof Error) {
-            if (!active) return;
-            const msg =
-              rsp instanceof Error ? rsp.message : "Registro não encontrado";
-            showFlashMessage(msg, "error");
-            navigate("/rag");
-            return;
-          }
+    const run = async () => {
+      setMode(isNew ? "create" : "view");
 
-          const dados: IRagForm = {
-            id_pje: rsp.id_pje ?? "",
-            classe: rsp.classe ?? "",
-            assunto: rsp.assunto ?? "",
-            natureza: rsp.natureza ?? "",
-            tipo: rsp.tipo ?? "",
-            tema: rsp.tema ?? "",
-            fonte: rsp.fonte ?? "",
-            data_texto: rsp.data_texto ?? "",
-          };
-
-          if (!active) return;
-          originalRef.current = dados;
-          reset(dados, { keepDirty: false, keepTouched: false });
-        } catch (error) {
-          const { userMsg, techMsg } = describeApiError(error);
-          console.error("Erro de API:", techMsg);
-          showFlashMessage(userMsg, "error", TIME_FLASH_ALERTA_SEC * 5, {
-            title: "Erro",
-            details: techMsg,
-          });
-        } finally {
-          setLoading(false);
-        }
-      } else {
-        const vazio: IRagForm = {
-          id_pje: "",
-          classe: "",
-          assunto: "",
-          natureza: "",
-          tipo: "",
-          tema: "",
-          fonte: "",
-          data_texto: "",
-        };
-        originalRef.current = vazio;
-        reset(vazio);
+      if (isNew) {
+        originalRef.current = EMPTY_FORM;
+        reset(EMPTY_FORM, { keepDirty: false, keepTouched: false });
+        return;
       }
-    })();
+
+      try {
+        setLoading(true);
+
+        const rsp = await selectRAG(idReg);
+
+        if (!active) return;
+
+        if (!rsp || rsp instanceof Error) {
+          const msg =
+            rsp instanceof Error ? rsp.message : "Registro não encontrado";
+          showFlashMessage(msg, "error");
+          navigate("/rag", { replace: true });
+          return;
+        }
+
+        const dados: IRagForm = {
+          id_pje: rsp.id_pje ?? "",
+          classe: rsp.classe ?? "",
+          assunto: rsp.assunto ?? "",
+          natureza: rsp.natureza ?? "",
+          tipo: rsp.tipo ?? "",
+          tema: rsp.tema ?? "",
+          fonte: rsp.fonte ?? "",
+          data_texto: rsp.data_texto ?? "",
+        };
+
+        originalRef.current = dados;
+        reset(dados, { keepDirty: false, keepTouched: false });
+      } catch (error) {
+        if (!active) return;
+        const { userMsg, techMsg } = describeApiError(error);
+        console.error("Erro de API:", techMsg);
+        showFlashMessage(userMsg, "error", TIME_FLASH_ALERTA_SEC * 5, {
+          title: "Erro",
+          details: techMsg,
+        });
+      } finally {
+        if (active) setLoading(false);
+      }
+    };
+
+    run();
+
     return () => {
       active = false;
     };
-  }, [idReg, navigate, reset, showFlashMessage]);
+  }, [idReg, isNew, navigate, reset, showFlashMessage]);
 
-  // Copiar texto
-  const copiarParaClipboard = async (texto: string) => {
-    try {
-      if (!texto) return;
-      await navigator.clipboard.writeText(texto);
-      showFlashMessage("Texto copiado!", "success", 3);
-    } catch {
-      showFlashMessage("Não foi possível copiar o texto.", "error", 3);
-    }
-  };
+  const copiarParaClipboard = useCallback(
+    async (texto: string) => {
+      try {
+        if (!texto) return;
+        await navigator.clipboard.writeText(texto);
+        showFlashMessage("Texto copiado!", "success", 3);
+      } catch {
+        showFlashMessage("Não foi possível copiar o texto.", "error", 3);
+      }
+    },
+    [showFlashMessage]
+  );
 
-  // Salvar registro (sem validação)
-  const handleSave = async (data: IRagForm): Promise<boolean> => {
-    try {
-      setIsSaving(true);
+  const handleSave = useCallback(
+    async (data: IRagForm): Promise<boolean> => {
+      try {
+        setIsSaving(true);
 
-      if (idReg === "nova") {
-        const rsp = await insertRAG(
-          data.id_pje,
-          data.classe,
-          data.assunto,
-          data.natureza,
-          data.tipo,
-          data.tema,
-          data.fonte,
-          data.data_texto
-        );
-        if (rsp instanceof Error) {
-          showFlashMessage(rsp.message, "error");
-          return false;
+        if (isNew) {
+          const rsp = await insertRAG(
+            data.id_pje,
+            data.classe,
+            data.assunto,
+            data.natureza,
+            data.tipo,
+            data.tema,
+            data.fonte,
+            data.data_texto
+          );
+
+          if (rsp instanceof Error) {
+            showFlashMessage(rsp.message, "error");
+            return false;
+          }
+
+          showFlashMessage("Registro salvo com sucesso", "success");
+
+          // snapshot original passa a ser o estado salvo
+          originalRef.current = data;
+          reset(data, { keepDirty: false, keepTouched: false });
+
+          // navega para o id criado (usa replace pra evitar voltar pra /nova)
+          navigate(`/rag/detalhes/${rsp?.id}`, { replace: true });
+          setMode("view");
+          return true;
         }
-        showFlashMessage("Registro salvo com sucesso", "success");
-        reset(data);
-        navigate(`/rag/detalhes/${rsp?.id}`);
-        setMode("view");
-        return true;
-      } else {
+
         const rsp = await updateRAG(
           idReg,
           data.id_pje,
@@ -190,37 +209,46 @@ export const DetalheRAG = () => {
           data.fonte,
           data.data_texto
         );
+
         if (rsp instanceof Error) {
           showFlashMessage(rsp.message, "error");
           return false;
         }
+
         showFlashMessage("Registro atualizado", "success");
-        reset(data);
+
+        originalRef.current = data;
+        reset(data, { keepDirty: false, keepTouched: false });
         setMode("view");
         return true;
+      } catch (error) {
+        const { userMsg, techMsg } = describeApiError(error);
+        console.error("Erro de API:", techMsg);
+        showFlashMessage(userMsg, "error", TIME_FLASH_ALERTA_SEC * 5, {
+          title: "Erro",
+          details: techMsg,
+        });
+        return false;
+      } finally {
+        setIsSaving(false);
       }
-    } catch (error) {
-      const { userMsg, techMsg } = describeApiError(error);
-      console.error("Erro de API:", techMsg);
-      showFlashMessage(userMsg, "error", TIME_FLASH_ALERTA_SEC * 5, {
-        title: "Erro",
-        details: techMsg,
-      });
-      return false;
-    } finally {
-      setIsSaving(false);
-    }
-  };
+    },
+    [idReg, isNew, navigate, reset, showFlashMessage]
+  );
 
-  const handleSaveFechar = async (data: IRagForm) => {
-    const ok = await handleSave(data);
-    if (ok) goBackToList();
-  };
+  const handleSaveFechar = useCallback(
+    async (data: IRagForm) => {
+      const ok = await handleSave(data);
+      if (ok) goBackToList();
+    },
+    [goBackToList, handleSave]
+  );
 
-  // Excluir registro
-  const handleDelete = async (id: string) => {
-    if (id === "nova") return;
-    if (confirm("Deseja realmente excluir o registro RAG?")) {
+  const handleDelete = useCallback(
+    async (id: string) => {
+      if (id === "nova") return;
+      if (!confirm("Deseja realmente excluir o registro RAG?")) return;
+
       setLoading(true);
       try {
         const rsp = await deleteRAG(id);
@@ -240,23 +268,25 @@ export const DetalheRAG = () => {
       } finally {
         setLoading(false);
       }
-    }
-  };
+    },
+    [goBackToList, showFlashMessage]
+  );
 
-  const enterEdit = () => setMode("edit");
-  const cancelEdit = () => {
+  const enterEdit = useCallback(() => setMode("edit"), []);
+  const cancelEdit = useCallback(() => {
     reset(originalRef.current, { keepDirty: false, keepTouched: false });
     setMode("view");
-  };
-  const confirmDiscard = (proceed: () => void) => {
+  }, [reset]);
+
+  const confirmDiscard = useCallback((proceed: () => void) => {
     if (window.confirm("Descartar alterações não salvas?")) proceed();
-  };
+  }, []);
 
   const disabled = isLoading || mode === "view";
 
   return (
     <PageBaseLayout
-      title={idReg === "nova" ? "Novo Registro RAG" : "Detalhe do Registro RAG"}
+      title={isNew ? "Novo Registro RAG" : "Detalhe do Registro RAG"}
       toolBar={
         <BarraDetalhes
           mode={mode}
@@ -266,8 +296,8 @@ export const DetalheRAG = () => {
           saving={isSaving}
           confirmDiscard={confirmDiscard}
           showButtonSalvarFechar
-          showButtonNovo={mode === "view" && idReg !== "nova"}
-          showButtonApagar={mode === "view" && idReg !== "nova"}
+          showButtonNovo={mode === "view" && !isNew}
+          showButtonApagar={mode === "view" && !isNew}
           onClickButtonSalvar={RForm.handleSubmit(handleSave)}
           onClickButtonSalvarFechar={RForm.handleSubmit(handleSaveFechar)}
           onClickButtonApagar={() => handleDelete(idReg)}
@@ -292,10 +322,9 @@ export const DetalheRAG = () => {
                 control={control}
                 render={({ field }) => (
                   <TextField
+                    {...field}
                     label="ID PJe"
                     fullWidth
-                    value={field.value}
-                    onChange={field.onChange}
                     disabled={disabled}
                     margin="dense"
                   />
@@ -306,10 +335,9 @@ export const DetalheRAG = () => {
                 control={control}
                 render={({ field }) => (
                   <TextField
+                    {...field}
                     label="Classe"
                     fullWidth
-                    value={field.value}
-                    onChange={field.onChange}
                     disabled={disabled}
                     margin="dense"
                   />
@@ -320,10 +348,9 @@ export const DetalheRAG = () => {
                 control={control}
                 render={({ field }) => (
                   <TextField
+                    {...field}
                     label="Assunto"
                     fullWidth
-                    value={field.value}
-                    onChange={field.onChange}
                     disabled={disabled}
                     margin="dense"
                   />
@@ -334,10 +361,9 @@ export const DetalheRAG = () => {
                 control={control}
                 render={({ field }) => (
                   <TextField
+                    {...field}
                     label="Natureza"
                     fullWidth
-                    value={field.value}
-                    onChange={field.onChange}
                     disabled={disabled}
                     margin="dense"
                   />
@@ -348,10 +374,9 @@ export const DetalheRAG = () => {
                 control={control}
                 render={({ field }) => (
                   <TextField
+                    {...field}
                     label="Tipo"
                     fullWidth
-                    value={field.value}
-                    onChange={field.onChange}
                     disabled={disabled}
                     margin="dense"
                   />
@@ -385,6 +410,7 @@ export const DetalheRAG = () => {
                   />
                 )}
               />
+
               <Controller
                 name="data_texto"
                 control={control}
@@ -399,6 +425,7 @@ export const DetalheRAG = () => {
                 )}
               />
             </Paper>
+
             <Box
               display="flex"
               justifyContent="flex-end"
@@ -408,8 +435,8 @@ export const DetalheRAG = () => {
               <Tooltip title="Copiar texto">
                 <span>
                   <IconButton
-                    onClick={() => copiarParaClipboard(getValues("data_texto"))}
-                    disabled={isLoading || !getValues("data_texto")}
+                    onClick={() => copiarParaClipboard(dataTexto ?? "")}
+                    disabled={isLoading || !dataTexto}
                   >
                     <ContentCopy fontSize="small" />
                     <Typography variant="body2" ml={0.5}>

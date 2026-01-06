@@ -72,7 +72,7 @@ export const SelectPecas = ({ onUpload, loading }: SelectPecasProps) => {
                 <TableCell align="right">
                   <IconButton
                     onClick={() => handleUpload(file)}
-                    title="Enviar este arquivo"
+                    title="Subir arquivo"
                     disabled={isLoading}
                   >
                     <UploadIcon />

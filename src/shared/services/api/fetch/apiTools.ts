@@ -8,7 +8,7 @@ import type { StandardBodyResponse } from "./ApiCliente";
 import type {
   AutosRow,
   ContextoRow,
-  DocsOcrRow,
+  DocsRow,
   EventosRow,
   ModelosRow,
   PromptsRow,
@@ -155,7 +155,7 @@ export async function getConsumoTokens(
   }
 }
 
-// ======================= Upload / OCR =======================
+// ======================= Upload  =======================
 
 export async function uploadFileToServer(
   idContexto: string,
@@ -224,7 +224,7 @@ export async function deleteUploadFileById(id: number): Promise<boolean> {
   return true;
 }
 
-export async function extractDocumentWithOCR( // (renomeado)
+export async function extractDocument( // (renomeado)
   idCtxt: string,
   idDoc: number
 ): Promise<boolean> {
@@ -233,9 +233,8 @@ export async function extractDocumentWithOCR( // (renomeado)
   return true;
 }
 
-export async function extractWithOCRByContexto( // (renomeado)
-  idContexto: string
-): Promise<boolean> {
+export async function extractByContexto(idContexto: string): Promise<boolean> {
+  // (renomeado)
   await apiPost<unknown>(`/contexto/documentos/${idContexto}`);
   return true;
 }
@@ -248,36 +247,35 @@ export async function consolidarAutosByContexto(
   return true;
 }
 
-export async function refreshOcrByContexto(
+export async function refreshByContexto(
   idContexto: string,
   opts?: CallOptions
-): Promise<DocsOcrRow[]> {
+): Promise<DocsRow[]> {
   if (!idContexto) throw new ApiError("ID do registro ausente.");
-  const rsp = await apiGet<RowsPayload<DocsOcrRow>>(
+  const rsp = await apiGet<RowsPayload<DocsRow>>(
     `/contexto/documentos/all/${idContexto}`,
     opts
   );
-  return getRows<DocsOcrRow>(rsp, "/contexto/documentos/all/:id");
+  return getRows<DocsRow>(rsp, "/contexto/documentos/all/:id");
 }
 
-export async function deleteOcrdocByIdDoc(idDoc: string): Promise<boolean> {
+export async function deleteDocByIdDoc(idDoc: string): Promise<boolean> {
   await apiDelete<unknown>(`/contexto/documentos/${idDoc}`);
   return true;
 }
 
-export async function selectAutosTemp(
-  idDoc: number
-): Promise<DocsOcrRow | null> {
+export async function selectAutosTemp(idDoc: number): Promise<DocsRow | null> {
   if (!idDoc) throw new ApiError("ID do registro ausente.");
-  const rsp = await apiGet<RowsPayload<DocsOcrRow>>(
+  const rsp = await apiGet<RowsPayload<DocsRow>>(
     `/contexto/documentos/${idDoc}`
   );
-  return getRow<DocsOcrRow>(rsp, "/contexto/documentos/:id");
+  return getRow<DocsRow>(rsp, "/contexto/documentos/:id");
 }
 
 // ======================= Autuação =======================
 
 export interface DataAutuaDocumento {
+  sucesso: boolean;
   extractedFiles: string[];
   extractedErros: string[];
   message: string;

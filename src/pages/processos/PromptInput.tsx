@@ -131,7 +131,10 @@ export const PromptInput: React.FC<PromptInputProps> = React.memo(
             <span>
               <IconButton
                 size="small"
-                onClick={() => onSubmit(localPrompt)}
+                onClick={() => {
+                  onSubmit(localPrompt);
+                  setLocalPrompt("");
+                }}
                 disabled={isLoading || isSending || !localPrompt.trim()}
                 aria-label="Enviar prompt"
               >

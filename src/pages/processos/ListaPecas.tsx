@@ -2,7 +2,7 @@
  * File: ListaPecas.tsx
  * Data: 08-06-2025
  * Faz a listagem de todos os arquivos PDF que já foram transferidos para o servidor,
- * mas não sofreram a extração por OCR.
+ * mas não sofreram a extração.
  */
 import { useEffect, useState } from "react";
 import {
@@ -79,7 +79,7 @@ export const ListaPecas = ({
       <Table size="small">
         <TableHead>
           <TableRow>
-            <TableCell>Nome</TableCell>
+            <TableCell>Arquivo</TableCell>
             <TableCell>Ações</TableCell>
           </TableRow>
         </TableHead>
@@ -90,14 +90,14 @@ export const ListaPecas = ({
               <TableCell>
                 <IconButton
                   onClick={() => onExtract(row.id_file)}
-                  title="Extrair documentos"
+                  title="Extrair peças"
                   disabled={isLoading}
                 >
                   <DocumentScanner></DocumentScanner>
                 </IconButton>
                 <IconButton
                   onClick={() => onDelete(row.id_file)}
-                  title="Deletar o registro"
+                  title="Excluir arquivo"
                   disabled={isLoading}
                 >
                   <Delete />

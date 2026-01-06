@@ -1,3 +1,9 @@
+/**
+ * File: ListaDocumentos.tsx
+ * Criação:  14/06/2025
+ * Finalidade: Listar documentos (peças processuais) e permitir ações em lote
+ */
+
 import { useEffect, useMemo, useRef, useState } from "react";
 import {
   Table,
@@ -8,35 +14,38 @@ import {
   IconButton,
   LinearProgress,
   Box,
-  TableFooter,
   Checkbox,
   Button,
   Tooltip,
   Typography,
 } from "@mui/material";
 import { Delete, PostAdd, Visibility } from "@mui/icons-material";
-import { refreshOcrByContexto } from "../../shared/services/api/fetch/apiTools";
-import type { DocsOcrRow } from "../../shared/types/tabelas";
+import { refreshByContexto } from "../../shared/services/api/fetch/apiTools";
+import type { DocsRow } from "../../shared/types/tabelas";
 import { getDocumentoName } from "../../shared/constants/autosDoc";
 import { describeApiError } from "../../shared/services/api/erros/errosApi";
 
 interface ListaDocumentosProps {
-  // processoId: string;
   idCtxt: string;
   refreshKey: number;
+
   onView: (id_doc: string, id_pje: string, texto: string) => void;
+
   onJuntada: (fileId: string) => void | Promise<void>;
   onJuntadaMultipla?: (fileIds: string[]) => void | Promise<void>;
-  onDelete: (fileId: string) => void | Promise<void>;
+
+  // ✅ agora é estrito: sempre Promise<void>
+  onDelete: (fileId: string) => Promise<void>;
+
   loading?: boolean;
 
-  /** ✅ Nova prop - envia lista carregada para o componente pai */
+  /** ✅ envia lista carregada para o componente pai (navegação no dialog) */
   onLoadList?: (docs: { id: string; pje: string; texto: string }[]) => void;
-  currentId?: string; // ✅ ID atualmente exibido no Dialog
+
+  currentId?: string; // ✅ ID atualmente exibido no Dialog (para highlight)
 }
 
 export const ListaDocumentos = ({
-  //processoId,
   idCtxt,
   onView,
   onJuntada,
@@ -47,7 +56,7 @@ export const ListaDocumentos = ({
   onLoadList,
   currentId,
 }: ListaDocumentosProps) => {
-  const [rows, setRows] = useState<DocsOcrRow[]>([]);
+  const [rows, setRows] = useState<DocsRow[]>([]);
   const [internalLoading, setInternalLoading] = useState(false);
   const [selected, setSelected] = useState<string[]>([]);
   const [busyIds, setBusyIds] = useState<Record<string, boolean>>({});
@@ -55,6 +64,7 @@ export const ListaDocumentos = ({
 
   const mountedRef = useRef(true);
   const callLockRef = useRef(false);
+  const rowsRef = useRef<DocsRow[]>([]);
 
   const isLoading = loading ?? internalLoading;
 
@@ -65,42 +75,47 @@ export const ListaDocumentos = ({
     };
   }, []);
 
+  // ✅ aplica lista nova de forma consistente (rows + selected + onLoadList)
+  function applyNewList(novaLista: DocsRow[]) {
+    rowsRef.current = novaLista;
+
+    setRows(novaLista);
+
+    setSelected((prev) =>
+      prev.filter((id) => novaLista.some((r) => r.id === id))
+    );
+
+    if (onLoadList) {
+      onLoadList(
+        novaLista.map((r) => ({
+          id: r.id,
+          pje: r.id_pje,
+          texto: r.doc ?? "",
+        }))
+      );
+    }
+  }
+
   // Carregar documentos
   useEffect(() => {
     let cancelled = false;
+
     (async () => {
       try {
         setInternalLoading(true);
-        const rsp = await refreshOcrByContexto(idCtxt);
+
+        const rsp = await refreshByContexto(idCtxt);
+        const novaLista = Array.isArray(rsp) ? rsp : [];
 
         if (!cancelled && mountedRef.current) {
-          const novaLista = Array.isArray(rsp) ? rsp : [];
-
-          setRows(novaLista);
-
-          // Revalida seleção
-          setSelected((prev) =>
-            prev.filter((id) => novaLista.some((r: DocsOcrRow) => r.id === id))
-          );
-
-          // ✅ Envia lista formatada para o pai (navegação no dialog)
-          if (onLoadList) {
-            const docsFormatados = novaLista.map((r) => ({
-              id: r.id,
-              pje: r.id_pje,
-              texto: r.doc ?? "",
-            }));
-            onLoadList(docsFormatados);
-          }
+          applyNewList(novaLista);
         }
       } catch (error) {
         const { techMsg } = describeApiError(error);
-        console.error("Erro ao carregar documentos OCR:", techMsg);
+        console.error("Erro ao carregar documentos:", techMsg);
 
         if (!cancelled && mountedRef.current) {
-          setRows([]);
-          setSelected([]);
-          if (onLoadList) onLoadList([]);
+          applyNewList([]);
         }
       } finally {
         if (!cancelled && mountedRef.current) setInternalLoading(false);
@@ -113,7 +128,7 @@ export const ListaDocumentos = ({
   }, [idCtxt, refreshKey, onLoadList]);
 
   function handleViewText(id: string) {
-    const registro = rows.find((row) => row.id === id);
+    const registro = rowsRef.current.find((row) => row.id === id);
     if (registro) onView(registro.id, registro.id_pje, registro.doc);
     else onView("", id, "Texto não disponível");
   }
@@ -126,7 +141,7 @@ export const ListaDocumentos = ({
 
   function handleSelectAll(event: React.ChangeEvent<HTMLInputElement>) {
     if (event.target.checked) {
-      setSelected(rows.map((row) => row.id));
+      setSelected(rowsRef.current.map((row) => row.id));
     } else {
       setSelected([]);
     }
@@ -158,10 +173,17 @@ export const ListaDocumentos = ({
       if (onJuntadaMultipla) {
         await onJuntadaMultipla(pendentes);
       } else {
-        await Promise.all(pendentes.map((id) => onJuntada(id)));
+        await Promise.all(
+          pendentes.map((id) => Promise.resolve(onJuntada(id)))
+        );
       }
 
       if (mountedRef.current) setSelected([]);
+
+      // (Opcional) se quiser refletir rápido a juntada, recarregue:
+      // const rsp = await refreshByContexto(idCtxt);
+      // const novaLista = Array.isArray(rsp) ? rsp : [];
+      // if (mountedRef.current) applyNewList(novaLista);
 
       await new Promise((r) => setTimeout(r, 250));
     } finally {
@@ -175,6 +197,7 @@ export const ListaDocumentos = ({
     }
   }
 
+  // ✅ DELETE EM LOTE: sempre recarrega a lista determinísticamente
   async function handleDeleteSelecionados() {
     if (callLockRef.current) return;
     callLockRef.current = true;
@@ -190,9 +213,26 @@ export const ListaDocumentos = ({
       setBatchBusy(true);
       markBusy(pendentes, true);
 
-      await Promise.all(pendentes.map((id) => onDelete(id)));
+      await Promise.all(pendentes.map((id) => Promise.resolve(onDelete(id))));
 
       if (mountedRef.current) setSelected([]);
+
+      // ✅ força recarregar do backend
+      try {
+        const rsp = await refreshByContexto(idCtxt);
+        const novaLista = Array.isArray(rsp) ? rsp : [];
+        if (mountedRef.current) applyNewList(novaLista);
+      } catch (error) {
+        const { techMsg } = describeApiError(error);
+        console.error("Erro ao recarregar após deleção:", techMsg);
+
+        // fallback seguro: remove otimisticamente os deletados da UI atual
+        if (mountedRef.current) {
+          const atual = rowsRef.current;
+          const fallback = atual.filter((r) => !pendentes.includes(r.id));
+          applyNewList(fallback);
+        }
+      }
 
       await new Promise((r) => setTimeout(r, 150));
     } finally {
@@ -271,7 +311,7 @@ export const ListaDocumentos = ({
               </TableCell>
 
               <TableCell>ID</TableCell>
-              <TableCell>Natureza</TableCell>
+              <TableCell>Descrição</TableCell>
               <TableCell align="right">Exibir</TableCell>
             </TableRow>
           </TableHead>
@@ -345,11 +385,11 @@ export const ListaDocumentos = ({
             )}
           </TableBody>
 
-          <TableFooter>
+          {/* <TableFooter>
             <TableRow>
               <TableCell colSpan={4} />
             </TableRow>
-          </TableFooter>
+          </TableFooter> */}
         </Table>
       </Box>
     </Box>

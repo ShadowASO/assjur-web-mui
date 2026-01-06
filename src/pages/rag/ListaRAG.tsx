@@ -3,7 +3,6 @@ import { useNavigate, useSearchParams } from "react-router-dom";
 import { BarraListagem } from "../../shared/components/BarraListagem";
 import { PageBaseLayout } from "../../shared/layouts";
 import { deleteRAG, searchRAG } from "../../shared/services/api/fetch/apiTools";
-import { useDebounce } from "../../shared/hooks/UseDebounce";
 import {
   Box,
   Grid,
@@ -32,15 +31,22 @@ const SESSION_KEY = "ListaRAG.state";
 const SCROLL_KEY = "ListaRAG.scrollTop";
 
 type PersistedState = {
+  searchTexto: string;
+  selectedId: string | null;
   selectedContent: string;
+  updatedAt: number;
 };
+
+function isAbortError(err: unknown): boolean {
+  return err instanceof DOMException && err.name === "AbortError";
+}
 
 export const ListaRAG = () => {
   const navigate = useNavigate();
   const { showFlashMessage } = useFlash();
-  const { debounce } = useDebounce(500);
   const [searchParams, setSearchParams] = useSearchParams();
 
+  // Fonte de verdade inicial: URL
   const initialSearch = searchParams.get("q") ?? "";
   const initialSelectedId = searchParams.get("sid");
 
@@ -54,88 +60,150 @@ export const ListaRAG = () => {
 
   const containerRef = useRef<HTMLDivElement | null>(null);
   const savedScrollTop = useRef<number>(0);
-  const lastParamsRef = useRef<{ termo: string } | null>(null);
 
-  // Carrega estado salvo
+  // ✅ refs para evitar re-busca ao clicar
+  const selectedIdRef = useRef<string | null>(selectedId);
   useEffect(() => {
-    const persistedJson = sessionStorage.getItem(SESSION_KEY);
-    if (persistedJson) {
-      try {
-        const parsed = JSON.parse(persistedJson) as PersistedState;
-        if (parsed?.selectedContent) {
-          setSelectedContent(parsed.selectedContent);
-        }
-      } catch (err) {
-        console.warn("Falha ao restaurar estado salvo da sessão:", err);
-        sessionStorage.removeItem(SESSION_KEY); // limpa o item inválido
-      }
-    }
+    selectedIdRef.current = selectedId;
+  }, [selectedId]);
 
+  // ✅ debounce/abort robustos
+  const debounceTimerRef = useRef<number | null>(null);
+  const abortRef = useRef<AbortController | null>(null);
+
+  const persistState = useCallback(
+    (partial?: Partial<PersistedState>) => {
+      const next: PersistedState = {
+        searchTexto,
+        selectedId,
+        selectedContent,
+        updatedAt: Date.now(),
+        ...(partial ?? {}),
+      };
+      sessionStorage.setItem(SESSION_KEY, JSON.stringify(next));
+    },
+    [searchTexto, selectedContent, selectedId]
+  );
+
+  // Carrega estado salvo (somente quando há contexto na URL)
+  useEffect(() => {
+    // scroll
     const sTop = sessionStorage.getItem(SCROLL_KEY);
     if (sTop) {
       const n = Number(sTop);
       if (!Number.isNaN(n)) savedScrollTop.current = n;
     }
+
+    // Evita “texto órfão”: se não há contexto (q/sid) na URL, não restaura.
+    const hasUrlContext = Boolean(initialSearch) || Boolean(initialSelectedId);
+    if (!hasUrlContext) {
+      setSelectedContent("");
+      sessionStorage.removeItem(SESSION_KEY);
+      return;
+    }
+
+    const persistedJson = sessionStorage.getItem(SESSION_KEY);
+    if (!persistedJson) return;
+
+    try {
+      const parsed = JSON.parse(persistedJson) as Partial<PersistedState>;
+
+      // Preferir URL como fonte de verdade:
+      // - Se URL não tem q/sid, permite restaurar do storage
+      if (!initialSearch && typeof parsed.searchTexto === "string") {
+        setSearchTexto(parsed.searchTexto);
+      }
+      if (!initialSelectedId && typeof parsed.selectedId === "string") {
+        setSelectedId(parsed.selectedId);
+      }
+
+      // Texto pode ser restaurado como placeholder, mas será validado após a busca.
+      if (typeof parsed.selectedContent === "string") {
+        setSelectedContent(parsed.selectedContent);
+      }
+    } catch (err) {
+      console.warn("Falha ao restaurar estado salvo da sessão:", err);
+      sessionStorage.removeItem(SESSION_KEY);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // Atualiza parâmetros na URL
+  // Atualiza parâmetros na URL (sem depender do searchParams atual)
   useEffect(() => {
-    const next = new URLSearchParams(searchParams);
+    const next = new URLSearchParams();
     if (searchTexto) next.set("q", searchTexto);
-    else next.delete("q");
-
     if (selectedId) next.set("sid", selectedId);
-    else next.delete("sid");
+    setSearchParams(next, { replace: true });
+  }, [searchTexto, selectedId, setSearchParams]);
 
-    const nextStr = next.toString();
-    const curStr = searchParams.toString();
-    if (nextStr !== curStr) setSearchParams(next, { replace: true });
-  }, [searchTexto, selectedId]);
-
-  // Busca RAG
+  // Persistir automaticamente (mantém coerência ao voltar)
   useEffect(() => {
-    let cancelled = false;
-    const controller = new AbortController();
+    const hasSomething = Boolean(searchTexto.trim()) || Boolean(selectedId);
+    if (!hasSomething) {
+      sessionStorage.removeItem(SESSION_KEY);
+      return;
+    }
+    persistState();
+  }, [persistState, searchTexto, selectedId, selectedContent]);
 
-    debounce(async () => {
-      if (cancelled) return;
-      const termo = searchTexto.trim();
+  // ✅ Busca RAG: depende APENAS do termo (não do selectedId)
+  useEffect(() => {
+    // cancela debounce anterior
+    if (debounceTimerRef.current) {
+      window.clearTimeout(debounceTimerRef.current);
+      debounceTimerRef.current = null;
+    }
 
-      const sameParams =
-        lastParamsRef.current && lastParamsRef.current.termo === termo;
-      if (sameParams) return;
+    // aborta request anterior
+    if (abortRef.current) {
+      abortRef.current.abort();
+      abortRef.current = null;
+    }
 
-      lastParamsRef.current = { termo };
+    const termo = searchTexto.trim();
 
-      if (!termo) {
-        setRows([]);
-        setSelectedContent("");
-        setSelectedId(null);
-        return;
-      }
+    // termo vazio => sem backend
+    if (!termo) {
+      setRows([]);
+      setSelectedId(null);
+      setSelectedContent("");
+      setLoading(false);
+      sessionStorage.removeItem(SESSION_KEY);
+      return;
+    }
+
+    debounceTimerRef.current = window.setTimeout(async () => {
+      const controller = new AbortController();
+      abortRef.current = controller;
 
       try {
         setLoading(true);
-        const rsp = await searchRAG(termo, "", {
-          signal: controller.signal,
-        });
 
-        setRows(rsp ?? []);
-        if (rsp?.length && selectedId) {
-          const found = rsp.find((r) => r.id === selectedId);
-          if (found) {
-            setSelectedContent(found.data_texto ?? "");
-          } else {
-            setSelectedId(null);
-            setSelectedContent("");
-          }
+        const rsp = await searchRAG(termo, "", { signal: controller.signal });
+        const list = rsp ?? [];
+        setRows(list);
+
+        // valida seleção (sem disparar nova busca)
+        const sid = selectedIdRef.current;
+        if (!sid) {
+          setSelectedContent("");
+          return;
         }
-      } catch (error) {
-        // @ts-expect-error Abort check
-        if (error?.name === "AbortError") return;
+
+        const found = list.find((r) => r.id === sid);
+        if (found) {
+          setSelectedContent(found.data_texto ?? "");
+        } else {
+          setSelectedId(null);
+          setSelectedContent("");
+        }
+      } catch (error: unknown) {
+        if (isAbortError(error)) return;
+
         setRows([]);
         setSelectedId(null);
         setSelectedContent("");
+
         const { userMsg, techMsg } = describeApiError(error);
         console.error("Erro de API:", techMsg);
         showFlashMessage(userMsg, "error", TIME_FLASH_ALERTA_SEC * 5, {
@@ -144,14 +212,23 @@ export const ListaRAG = () => {
         });
       } finally {
         setLoading(false);
+        if (abortRef.current === controller) abortRef.current = null;
       }
-    });
+    }, 500);
 
     return () => {
-      cancelled = true;
+      if (debounceTimerRef.current) {
+        window.clearTimeout(debounceTimerRef.current);
+        debounceTimerRef.current = null;
+      }
+      if (abortRef.current) {
+        abortRef.current.abort();
+        abortRef.current = null;
+      }
     };
-  }, [searchTexto, selectedId]);
+  }, [searchTexto, showFlashMessage]);
 
+  // Restaura scroll após a lista carregar
   useEffect(() => {
     if (containerRef.current && savedScrollTop.current > 0) {
       containerRef.current.scrollTop = savedScrollTop.current;
@@ -166,40 +243,51 @@ export const ListaRAG = () => {
 
   const goToDetalhe = useCallback(
     (id: string) => {
-      const persist: PersistedState = { selectedContent };
-      sessionStorage.setItem(SESSION_KEY, JSON.stringify(persist));
+      // Persiste estado completo antes de sair
+      persistState({
+        searchTexto,
+        selectedId,
+        selectedContent,
+      });
+
       if (containerRef.current) {
         sessionStorage.setItem(
           SCROLL_KEY,
           String(containerRef.current.scrollTop)
         );
       }
+
       navigate(`/rag/detalhes/${id}`, {
         state: { fromSearch: window.location.search },
       });
     },
-    [navigate, selectedContent]
+    [navigate, persistState, searchTexto, selectedId, selectedContent]
   );
 
   const handleDelete = useCallback(
     async (id: string) => {
       if (!confirm("Deseja realmente apagar o registro RAG?")) return;
+
       try {
         setLoading(true);
         const rsp = await deleteRAG(String(id));
+
         if (rsp) {
           setRows((old) => old.filter((item) => item.id !== id));
+
           if (selectedId === id) {
             setSelectedId(null);
             setSelectedContent("");
           }
+
           showFlashMessage("Registro excluído com sucesso", "success");
         } else {
           showFlashMessage("Erro ao excluir o registro", "error");
         }
-      } catch (error) {
+      } catch (error: unknown) {
         const { userMsg, techMsg } = describeApiError(error);
         console.error("Erro de API:", techMsg);
+
         showFlashMessage(userMsg, "error", TIME_FLASH_ALERTA_SEC * 5, {
           title: "Erro",
           details: techMsg,
@@ -232,7 +320,7 @@ export const ListaRAG = () => {
           buttonLabel="Novo"
           fieldValue={searchTexto}
           onButtonClick={() => navigate(`/rag/detalhes/novo`)}
-          onFieldChange={(txt) => setSearchTexto(txt)}
+          onFieldChange={(txt) => setSearchTexto(txt ?? "")}
         />
       }
     >
@@ -256,10 +344,11 @@ export const ListaRAG = () => {
                   <TableCell>ID PJe</TableCell>
                 </TableRow>
               </TableHead>
+
               <TableBody>
                 {rows.length === 0 && !isLoading ? (
                   <TableRow>
-                    <TableCell colSpan={4}>
+                    <TableCell colSpan={5}>
                       <Typography variant="body2" color="text.secondary">
                         Nenhum resultado.
                       </Typography>
@@ -289,6 +378,7 @@ export const ListaRAG = () => {
                             <Delete fontSize="small" />
                           </IconButton>
                         </Tooltip>
+
                         <Tooltip title="Editar">
                           <IconButton
                             size="small"
@@ -301,6 +391,7 @@ export const ListaRAG = () => {
                           </IconButton>
                         </Tooltip>
                       </TableCell>
+
                       <TableCell>{row.classe ?? "-"}</TableCell>
                       <TableCell>{row.assunto ?? "-"}</TableCell>
                       <TableCell>{row.tipo ?? "-"}</TableCell>
@@ -309,10 +400,11 @@ export const ListaRAG = () => {
                   ))
                 )}
               </TableBody>
+
               <TableFooter>
                 {isLoading && (
                   <TableRow>
-                    <TableCell colSpan={4} sx={{ p: 0 }}>
+                    <TableCell colSpan={5} sx={{ p: 0 }}>
                       <LinearProgress />
                     </TableCell>
                   </TableRow>
@@ -337,6 +429,7 @@ export const ListaRAG = () => {
           >
             <Typography
               variant="body2"
+              component="div"
               sx={{
                 whiteSpace: "pre-wrap",
                 textAlign: "justify",
@@ -346,12 +439,21 @@ export const ListaRAG = () => {
             >
               {selectedContent
                 ?.split(/\n+/)
-                .filter((p) => p.trim() !== "")
-                .map((p, idx) => (
-                  <p key={idx}>{p}</p>
+                .map((s) => s.trim())
+                .filter(Boolean)
+                .map((paragraph, idx) => (
+                  <Typography
+                    key={idx}
+                    component="p"
+                    variant="body2"
+                    sx={{ mb: 1 }}
+                  >
+                    {paragraph}
+                  </Typography>
                 ))}
             </Typography>
           </Paper>
+
           <Box
             display="flex"
             justifyContent="flex-end"
