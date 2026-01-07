@@ -54,9 +54,17 @@ export const ListaModelos = () => {
   const [searchParams, setSearchParams] = useSearchParams();
 
   // --- Estado controlado + URL --------------------------------------------
+  // const initialSearch = searchParams.get("q") ?? "";
+  // const initialNatureza = searchParams.get("n") ?? "Despacho";
+  // const initialSelectedId = searchParams.get("sid");
+
   const initialSearch = searchParams.get("q") ?? "";
   const initialNatureza = searchParams.get("n") ?? "Despacho";
-  const initialSelectedId = searchParams.get("sid");
+
+  // ✅ Só aceita sid se houver busca (q). Sem busca, não existe "seleção válida".
+  const initialSelectedId = initialSearch.trim()
+    ? searchParams.get("sid")
+    : null;
 
   const [searchTexto, setSearchTexto] = useState<string>(initialSearch);
   const [natureza, setNatureza] = useState<string>(initialNatureza);
@@ -78,21 +86,56 @@ export const ListaModelos = () => {
   );
 
   // Carrega conteúdo/scroll do sessionStorage na montagem
+  // useEffect(() => {
+  //   const persistedJson = sessionStorage.getItem(SESSION_KEY);
+  //   if (persistedJson) {
+  //     try {
+  //       const parsed = JSON.parse(persistedJson) as PersistedState;
+  //       if (parsed?.selectedContent) setSelectedContent(parsed.selectedContent);
+  //     } catch {
+  //       /* noop */
+  //     }
+  //   }
+  //   const sTop = sessionStorage.getItem(SCROLL_KEY);
+  //   if (sTop) {
+  //     const n = Number(sTop);
+  //     if (!Number.isNaN(n)) savedScrollTop.current = n;
+  //   }
+  // }, []);
+
   useEffect(() => {
-    const persistedJson = sessionStorage.getItem(SESSION_KEY);
-    if (persistedJson) {
-      try {
-        const parsed = JSON.parse(persistedJson) as PersistedState;
-        if (parsed?.selectedContent) setSelectedContent(parsed.selectedContent);
-      } catch {
-        /* noop */
+    const hasQuery = initialSearch.trim().length > 0;
+    const hasSelection = !!initialSelectedId;
+
+    // ✅ Se entrou "limpo" (sem busca), não rehidrata preview/scroll antigo
+    if (!hasQuery) {
+      sessionStorage.removeItem(SESSION_KEY);
+      sessionStorage.removeItem(SCROLL_KEY);
+      setSelectedContent("");
+      setSelectedId(null);
+      return;
+    }
+
+    // ✅ Só rehidrata conteúdo se houver busca + seleção (q + sid)
+    if (hasQuery && hasSelection) {
+      const persistedJson = sessionStorage.getItem(SESSION_KEY);
+      if (persistedJson) {
+        try {
+          const parsed = JSON.parse(persistedJson) as PersistedState;
+          if (parsed?.selectedContent)
+            setSelectedContent(parsed.selectedContent);
+        } catch {
+          /* noop */
+        }
       }
     }
+
     const sTop = sessionStorage.getItem(SCROLL_KEY);
     if (sTop) {
       const n = Number(sTop);
       if (!Number.isNaN(n)) savedScrollTop.current = n;
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // Sincroniza search/natureza/selectedId -> URL (replace para não poluir histórico)
@@ -411,7 +454,7 @@ export const ListaModelos = () => {
           </TableContainer>
         </Grid>
 
-        {/* COL-02 - Prévia à direita */}
+        {/* COL-02 - Preview à direita */}
         <Grid size={{ xs: 12, sm: 12, md: 5, lg: 5, xl: 5 }}>
           <Paper
             variant="outlined"
@@ -424,28 +467,35 @@ export const ListaModelos = () => {
               flexDirection: "column",
             }}
           >
-            <Typography
-              variant="body2"
-              component="div"
-              sx={{
-                whiteSpace: "pre-wrap",
-                textAlign: "justify",
-                wordBreak: "break-word",
-                lineHeight: 1.6,
-                "& p": {
-                  textIndent: "4em",
-                  marginTop: 0,
-                  marginBottom: "1em",
-                },
-              }}
-            >
-              {selectedContent
-                .split(/\n+/)
-                .filter((p) => p.trim() !== "")
-                .map((p, idx) => (
-                  <p key={idx}>{p}</p>
-                ))}
-            </Typography>
+            {!selectedId || !selectedContent ? (
+              <Typography variant="body2" color="text.secondary">
+                Faça uma busca e selecione um modelo na lista para visualizar o
+                conteúdo.
+              </Typography>
+            ) : (
+              <Typography
+                variant="body2"
+                component="div"
+                sx={{
+                  whiteSpace: "pre-wrap",
+                  textAlign: "justify",
+                  wordBreak: "break-word",
+                  lineHeight: 1.6,
+                  "& p": {
+                    textIndent: "4em",
+                    marginTop: 0,
+                    marginBottom: "1em",
+                  },
+                }}
+              >
+                {selectedContent
+                  .split(/\n+/)
+                  .filter((p) => p.trim() !== "")
+                  .map((p, idx) => (
+                    <p key={idx}>{p}</p>
+                  ))}
+              </Typography>
+            )}
           </Paper>
 
           <Box
