@@ -7,7 +7,7 @@
 
 import { PageBaseLayout } from "../../shared/layouts";
 import { BarraDetalhes } from "../../shared/components/BarraDetalhes";
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import {
   TIME_FLASH_ALERTA_SEC,
   useFlash,
@@ -40,9 +40,15 @@ import { describeApiError } from "../../shared/services/api/erros/errosApi";
 
 interface IFormData {
   natureza: string;
-  ementa: string; // armazenado como TEXTO
-  inteiro_teor: string; // armazenado como TEXTO
+  ementa: string;
+  inteiro_teor: string;
 }
+
+const EMPTY_FORM: IFormData = {
+  natureza: "",
+  ementa: "",
+  inteiro_teor: "",
+};
 
 const formValidationSchema: yup.ObjectSchema<IFormData> = yup.object({
   natureza: yup.string().required("Informe a natureza"),
@@ -56,165 +62,192 @@ export const DetalheModelos = () => {
   const location = useLocation();
   const { showFlashMessage } = useFlash();
 
-  const [isLoading, setLoading] = useState(false); // carregamento/IO em geral
-  const [isSaving, setIsSaving] = useState(false); // flag de salvar (trava botões)
+  // ✅ Padrão do DetalheRAG
+  const isNew = idReg === "nova";
+
+  const [isLoading, setLoading] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
+
   const [mode, setMode] = useState<"view" | "edit" | "create">(
-    idReg === "nova" ? "create" : "view"
+    isNew ? "create" : "view"
   );
 
-  // form
   const RForm = useForm<IFormData>({
-    defaultValues: { natureza: "", ementa: "", inteiro_teor: "" },
+    defaultValues: EMPTY_FORM,
+    mode: "onChange",
   });
+
   const { watch, setValue, control, formState, reset, getValues } = RForm;
   const natureza = watch("natureza");
 
-  // snapshot do que foi carregado/salvo por último (para cancelar edições)
-  const originalRef = useRef<IFormData>({
-    natureza: "",
-    ementa: "",
-    inteiro_teor: "",
-  });
+  const originalRef = useRef<IFormData>(EMPTY_FORM);
 
-  const goBackToList = () => {
-    if (window.history.length > 1) {
-      navigate(-1);
-      return;
-    }
+  const goBackToList = useCallback(() => {
     const fromSearch =
       (location.state as { fromSearch?: string } | undefined)?.fromSearch ?? "";
     navigate(`/modelos${fromSearch}`, { replace: true });
-  };
-  //const inflightRef = useRef<string | null>(null);
-  // Carrega dados quando entra no detalhe ou cria novo
+  }, [location.state, navigate]);
+
+  // Carregamento inicial / troca de id
   useEffect(() => {
     let active = true;
-    (async () => {
-      setMode(idReg === "nova" ? "create" : "view");
-      if (idReg !== "nova") {
-        try {
-          setLoading(true);
-          //inflightRef.current = idReg;
-          const rsp = await selectModelo(idReg);
-          //if (inflightRef.current !== idReg) return; // resposta antiga, ignore
-          if (rsp instanceof Error) {
-            if (!active) return;
-            showFlashMessage(rsp.message, "error");
-            navigate("/modelos");
-            return;
-          }
-          const dados: IFormData = {
-            natureza: rsp?.natureza ?? "",
-            ementa: rsp?.ementa ?? "",
-            inteiro_teor: rsp?.inteiro_teor ?? "",
-          };
-          if (!active) return;
-          originalRef.current = dados;
-          reset(dados, { keepDirty: false, keepTouched: false });
-        } catch (error) {
-          const { userMsg, techMsg } = describeApiError(error);
-          console.error("Erro de API:", techMsg);
-          showFlashMessage(userMsg, "error", TIME_FLASH_ALERTA_SEC * 5, {
-            title: "Erro",
-            details: techMsg, // aparece no botão (i)
-          });
-        } finally {
-          setLoading(false);
-        }
-      } else {
-        const vazios: IFormData = {
-          natureza: "",
-          ementa: "",
-          inteiro_teor: "",
-        };
-        originalRef.current = vazios;
-        reset(vazios, { keepDirty: false, keepTouched: false });
+
+    const run = async () => {
+      setMode(isNew ? "create" : "view");
+
+      if (isNew) {
+        originalRef.current = EMPTY_FORM;
+        reset(EMPTY_FORM, { keepDirty: false, keepTouched: false });
+        return;
       }
-    })();
+
+      try {
+        setLoading(true);
+
+        const rsp = await selectModelo(idReg);
+
+        if (!active) return;
+
+        if (!rsp || rsp instanceof Error) {
+          const msg =
+            rsp instanceof Error ? rsp.message : "Registro não encontrado";
+          showFlashMessage(msg, "error");
+          navigate("/modelos", { replace: true });
+          return;
+        }
+
+        const dados: IFormData = {
+          natureza: rsp?.natureza ?? "",
+          ementa: rsp?.ementa ?? "",
+          inteiro_teor: rsp?.inteiro_teor ?? "",
+        };
+
+        originalRef.current = dados;
+        reset(dados, { keepDirty: false, keepTouched: false });
+      } catch (error) {
+        if (!active) return;
+        const { userMsg, techMsg } = describeApiError(error);
+        console.error("Erro de API:", techMsg);
+        showFlashMessage(userMsg, "error", TIME_FLASH_ALERTA_SEC * 5, {
+          title: "Erro",
+          details: techMsg,
+        });
+      } finally {
+        if (active) setLoading(false);
+      }
+    };
+
+    run();
+
     return () => {
       active = false;
     };
-  }, [idReg, navigate, reset]);
+  }, [idReg, isNew, navigate, reset, showFlashMessage]);
 
-  const copiarParaClipboard = async (texto: string) => {
-    try {
-      if (!texto) return;
-      await navigator.clipboard.writeText(texto);
-      showFlashMessage(
-        "Texto copiado para a área de transferência!",
-        "success",
-        3
-      );
-    } catch {
-      showFlashMessage("Não foi possível copiar o texto.", "error", 3);
-    }
-  };
-
-  const handleSaveFechar = async (data: IFormData) => {
-    const ok = await handleSave(data);
-    if (ok) goBackToList();
-  };
-
-  // retorna boolean indicando sucesso (para decidir navegação/fechar)
-  const handleSave = async (data: IFormData): Promise<boolean> => {
-    try {
-      const valida = await formValidationSchema.validate(data, {
-        abortEarly: false,
-      });
-      setIsSaving(true);
-
-      if (idReg === "nova") {
-        const rsp = await insertModelos(
-          valida.natureza,
-          valida.ementa,
-          valida.inteiro_teor
+  const copiarParaClipboard = useCallback(
+    async (texto: string) => {
+      try {
+        if (!texto) return;
+        await navigator.clipboard.writeText(texto);
+        showFlashMessage(
+          "Texto copiado para a área de transferência!",
+          "success",
+          3
         );
-        if (rsp instanceof Error) {
-          showFlashMessage(rsp.message, "error");
-          return false;
+      } catch {
+        showFlashMessage("Não foi possível copiar o texto.", "error", 3);
+      }
+    },
+    [showFlashMessage]
+  );
+
+  const handleSave = useCallback(
+    async (data: IFormData): Promise<boolean> => {
+      try {
+        const valida = await formValidationSchema.validate(data, {
+          abortEarly: false,
+        });
+
+        setIsSaving(true);
+
+        if (isNew) {
+          const rsp = await insertModelos(
+            valida.natureza,
+            valida.ementa,
+            valida.inteiro_teor
+          );
+
+          if (rsp instanceof Error) {
+            showFlashMessage(rsp.message, "error");
+            return false;
+          }
+
+          showFlashMessage("Registro salvo com sucesso", "success");
+
+          originalRef.current = { ...valida };
+          reset(valida, { keepDirty: false, keepTouched: false });
+
+          // ✅ CRÍTICO: use replace para não “voltar” para /nova e bagunçar o modo
+          navigate(`/modelos/detalhes/${rsp?.id}`, { replace: true });
+          setMode("view");
+          return true;
         }
-        showFlashMessage("Registro salvo com sucesso", "success");
-        // snapshot e navega para o novo id em modo "view"
-        originalRef.current = { ...valida };
-        reset(valida, { keepDirty: false, keepTouched: false });
-        navigate(`/modelos/detalhes/${rsp?.id}`);
-        setMode("view");
-        return true;
-      } else {
+
         const rsp = await updateModelos(
           idReg,
           valida.natureza,
           valida.ementa,
           valida.inteiro_teor
         );
+
         if (rsp instanceof Error) {
           showFlashMessage(rsp.message, "error");
           return false;
         }
+
         showFlashMessage("Registro alterado com sucesso", "success");
-        // snapshot atualizado
+
         originalRef.current = { ...valida };
         reset(valida, { keepDirty: false, keepTouched: false });
         setMode("view");
         return true;
-      }
-    } catch (err) {
-      if (err instanceof yup.ValidationError) {
-        setFormErrors(RForm, err);
-        showFlashMessage(
-          "Preencha corretamente os campos obrigatórios",
-          "error"
-        );
-      }
-      return false;
-    } finally {
-      setIsSaving(false);
-    }
-  };
+      } catch (err) {
+        if (err instanceof yup.ValidationError) {
+          setFormErrors(RForm, err);
+          showFlashMessage(
+            "Preencha corretamente os campos obrigatórios",
+            "error"
+          );
+          return false;
+        }
 
-  const handleDelete = async (id: string) => {
-    if (id === "nova") return;
-    if (confirm("Deseja realmente excluir o modelo?")) {
+        const { userMsg, techMsg } = describeApiError(err);
+        console.error("Erro de API:", techMsg);
+        showFlashMessage(userMsg, "error", TIME_FLASH_ALERTA_SEC * 5, {
+          title: "Erro",
+          details: techMsg,
+        });
+        return false;
+      } finally {
+        setIsSaving(false);
+      }
+    },
+    [RForm, idReg, isNew, navigate, reset, showFlashMessage]
+  );
+
+  const handleSaveFechar = useCallback(
+    async (data: IFormData) => {
+      const ok = await handleSave(data);
+      if (ok) goBackToList();
+    },
+    [goBackToList, handleSave]
+  );
+
+  const handleDelete = useCallback(
+    async (id: string) => {
+      if (id === "nova") return;
+      if (!confirm("Deseja realmente excluir o modelo?")) return;
+
       setLoading(true);
       try {
         const rsp = await deleteModelos(id);
@@ -229,46 +262,45 @@ export const DetalheModelos = () => {
         console.error("Erro de API:", techMsg);
         showFlashMessage(userMsg, "error", TIME_FLASH_ALERTA_SEC * 5, {
           title: "Erro",
-          details: techMsg, // aparece no botão (i)
+          details: techMsg,
         });
       } finally {
         setLoading(false);
       }
-    }
-  };
+    },
+    [goBackToList, showFlashMessage]
+  );
 
-  const enterEdit = () => setMode("edit");
-
-  const cancelEdit = () => {
-    // restaura snapshot e volta para visualização
+  const enterEdit = useCallback(() => setMode("edit"), []);
+  const cancelEdit = useCallback(() => {
     reset(originalRef.current, { keepDirty: false, keepTouched: false });
     setMode("view");
-  };
+  }, [reset]);
 
-  const confirmDiscard = (proceed: () => void) => {
+  const confirmDiscard = useCallback((proceed: () => void) => {
     if (window.confirm("Descartar alterações não salvas?")) proceed();
-  };
+  }, []);
 
+  // (Mantive tua regra: natureza só muda na criação)
   const disabledNatureza = isLoading || mode !== "create";
   const editorsDisabled = isLoading || mode === "view";
 
   return (
     <PageBaseLayout
-      title={idReg === "nova" ? "Novo Modelo" : "Detalhe do Modelo"}
+      title={isNew ? "Novo Modelo" : "Detalhe do Modelo"}
       toolBar={
         <BarraDetalhes
-          // modo explícito (a barra ajusta quais botões exibir)
           mode={mode}
           onEnterEdit={enterEdit}
           onCancelEdit={cancelEdit}
           isDirty={formState.isDirty}
           saving={isSaving}
           confirmDiscard={confirmDiscard}
-          // ações
-          labelButtonNovo="Novo"
-          showButtonNovo={mode === "view" && idReg !== "nova"}
-          showButtonApagar={mode === "view" && idReg !== "nova"}
+          // ✅ Padrão do DetalheRAG
           showButtonSalvarFechar
+          showButtonNovo={mode === "view" && !isNew}
+          showButtonApagar={mode === "view" && !isNew}
+          labelButtonNovo="Novo"
           onClickButtonSalvar={RForm.handleSubmit(handleSave)}
           onClickButtonSalvarFechar={RForm.handleSubmit(handleSaveFechar)}
           onClickButtonApagar={() => handleDelete(idReg)}
@@ -341,9 +373,7 @@ export const DetalheModelos = () => {
                     <TiptapEditor
                       label="Ementa"
                       value={field.value ?? ""}
-                      onChange={(val) => {
-                        field.onChange(val);
-                      }}
+                      onChange={field.onChange}
                       disabled={editorsDisabled}
                       height="100%"
                     />
@@ -399,9 +429,7 @@ export const DetalheModelos = () => {
                   <TiptapEditor
                     label="Conteúdo"
                     value={field.value ?? ""}
-                    onChange={(val) => {
-                      field.onChange(val);
-                    }}
+                    onChange={field.onChange}
                     disabled={editorsDisabled}
                     height="100%"
                   />

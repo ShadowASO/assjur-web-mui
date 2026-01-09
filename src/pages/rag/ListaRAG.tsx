@@ -180,6 +180,7 @@ export const ListaRAG = () => {
         setLoading(true);
 
         const rsp = await searchRAG(termo, "", { signal: controller.signal });
+        //console.log(rsp);
         const list = rsp ?? [];
         setRows(list);
 
@@ -192,7 +193,7 @@ export const ListaRAG = () => {
 
         const found = list.find((r) => r.id === sid);
         if (found) {
-          setSelectedContent(found.data_texto ?? "");
+          setSelectedContent(found.texto ?? "");
         } else {
           setSelectedId(null);
           setSelectedContent("");
@@ -244,6 +245,7 @@ export const ListaRAG = () => {
   const goToDetalhe = useCallback(
     (id: string) => {
       // Persiste estado completo antes de sair
+      //console.log(id);
       persistState({
         searchTexto,
         selectedId,
@@ -362,7 +364,7 @@ export const ListaRAG = () => {
                       selected={selectedId === row.id}
                       onClick={() => {
                         setSelectedId(row.id);
-                        setSelectedContent(row.data_texto ?? "");
+                        setSelectedContent(row.texto ?? "");
                       }}
                       sx={{ cursor: "pointer" }}
                     >

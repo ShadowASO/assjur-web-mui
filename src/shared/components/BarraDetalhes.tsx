@@ -12,26 +12,25 @@ import {
 type BarraMode = "view" | "edit" | "create";
 
 interface IBarraDetalhesProps {
-  // existentes
   labelButtonNovo?: string;
   showButtonNovo?: boolean;
   showButtonVoltar?: boolean;
   showButtonApagar?: boolean;
   showButtonSalvar?: boolean;
   showButtonSalvarFechar?: boolean;
+
   onClickButtonNovo?: () => void;
   onClickButtonVoltar?: () => void;
   onClickButtonApagar?: () => void;
   onClickButtonSalvar?: () => void;
   onClickButtonSalvarFechar?: () => void;
 
-  // novos (modo explícito)
-  mode?: BarraMode; // "view" | "edit" | "create"
-  onEnterEdit?: () => void; // chamado ao clicar "Editar"
-  onCancelEdit?: () => void; // chamado ao clicar "Cancelar"
-  isDirty?: boolean; // tem alterações pendentes?
-  confirmDiscard?: (cb: () => void) => void; // confirma descarte (opcional)
-  saving?: boolean; // desabilita botões durante save
+  mode?: BarraMode;
+  onEnterEdit?: () => void;
+  onCancelEdit?: () => void;
+  isDirty?: boolean;
+  confirmDiscard?: (cb: () => void) => void;
+  saving?: boolean;
 }
 
 export const BarraDetalhes = ({
@@ -41,6 +40,7 @@ export const BarraDetalhes = ({
   showButtonApagar = true,
   showButtonSalvar = true,
   showButtonSalvarFechar = false,
+
   onClickButtonNovo,
   onClickButtonVoltar,
   onClickButtonApagar,
@@ -56,18 +56,21 @@ export const BarraDetalhes = ({
 }: IBarraDetalhesProps) => {
   const theme = useTheme();
 
-  const handleCancel = () => {
-    if (!onCancelEdit) return;
-    const proceed = () => onCancelEdit();
-    if (isDirty && confirmDiscard) {
-      confirmDiscard(proceed);
-    } else {
-      proceed();
-    }
-  };
-
   const isView = mode === "view";
   const isEditing = mode === "edit" || mode === "create";
+
+  const runWithDiscardGuard = (action?: () => void) => {
+    if (!action) return;
+    const proceed = () => action();
+    if (isDirty && confirmDiscard) confirmDiscard(proceed);
+    else proceed();
+  };
+
+  const handleCancel = () => runWithDiscardGuard(onCancelEdit);
+  const handleNovo = () => runWithDiscardGuard(onClickButtonNovo);
+
+  // ✅ “Novo” pode existir também em edit (mas normalmente não em create)
+  const canShowNovo = showButtonNovo && mode !== "create";
 
   return (
     <Box
@@ -81,7 +84,7 @@ export const BarraDetalhes = ({
       component={Paper}
     >
       <Box flex={1} display="flex" justifyContent="flex-start" gap={0.5}>
-        {/* Modo edição/criação: mostrar ações de salvar */}
+        {/* Edição/criação: salvar */}
         {isEditing && showButtonSalvar && (
           <Button
             color="primary"
@@ -110,32 +113,35 @@ export const BarraDetalhes = ({
           </Button>
         )}
 
-        {/* Modo visualização: oferecer "Editar" */}
-        {isView && (
+        {/* View: editar (só se tiver handler) */}
+        {isView && !!onEnterEdit && (
           <Button
             color="primary"
             disableElevation
             variant="contained"
             startIcon={<Edit />}
             onClick={onEnterEdit}
+            disabled={saving}
           >
             Editar
           </Button>
         )}
 
-        {/* Sempre que fizer sentido, manter Novo/Apagar em view; em edit geralmente escondemos */}
-        {isView && showButtonNovo && (
+        {/* ✅ Novo agora pode aparecer em view e edit (com guarda de descarte) */}
+        {canShowNovo && (
           <Button
             color="primary"
             disableElevation
             variant="contained"
             startIcon={<Add />}
-            onClick={onClickButtonNovo}
+            onClick={handleNovo}
+            disabled={saving}
           >
             {labelButtonNovo}
           </Button>
         )}
 
+        {/* Apagar só faz sentido em view */}
         {isView && showButtonApagar && (
           <Button
             color="error"
@@ -143,6 +149,7 @@ export const BarraDetalhes = ({
             variant="contained"
             startIcon={<Delete />}
             onClick={onClickButtonApagar}
+            disabled={saving}
           >
             Apagar
           </Button>
@@ -150,7 +157,7 @@ export const BarraDetalhes = ({
 
         <Divider orientation="vertical" flexItem sx={{ mx: 1 }} />
 
-        {/* Voltar em view; Cancelar em edit */}
+        {/* View: voltar; Edit/Create: cancelar */}
         {isView && showButtonVoltar && (
           <Button
             color="inherit"
@@ -158,6 +165,7 @@ export const BarraDetalhes = ({
             variant="contained"
             startIcon={<ArrowBack />}
             onClick={onClickButtonVoltar}
+            disabled={saving}
           >
             Voltar
           </Button>

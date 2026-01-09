@@ -1,10 +1,14 @@
 /**
- * tools.ts
- * Refatorado: helpers genéricos, erros padronizados e retornos consistentes
+ * apiTools.ts (consolidado, sem any)
+ * - Helpers genéricos
+ * - Erros padronizados (ApiError)
+ * - Retornos consistentes
+ * - Inserts normalizados (sempre retorna id/message/row)
  */
 
 import { BASE_API_URL, getApiObjeto } from "./ApiCliente";
 import type { StandardBodyResponse } from "./ApiCliente";
+
 import type {
   AutosRow,
   ContextoRow,
@@ -14,9 +18,11 @@ import type {
   PromptsRow,
   UploadFilesRow,
 } from "./../../../types/tabelas";
+
 import { TokenStorage } from "./TokenStorage";
 import type { MetadadosProcessoCnj } from "../../../types/cnjTypes";
 import { ApiError } from "../erros/errosApi";
+
 import type { BaseRow, BodyBaseInsert } from "../../../../pages/rag/typeRAG";
 
 // ======================= Infra de API =======================
@@ -37,56 +43,154 @@ function ensureOk<T>(
   throw new ApiError(msg, code, endpoint);
 }
 
-type RowsPayload<T> = { rows?: T[]; row?: T | null; message?: string };
-type DocsPayload<T> = { docs?: T[]; doc?: T | null; message?: string };
+// Payloads comuns do backend
+export type RowsPayload<T> = { rows?: T[]; row?: T | null; message?: string };
+export type DocsPayload<T> = { docs?: T[]; doc?: T | null; message?: string };
+
+// Envelope típico de inserts (varia por endpoint)
+type InsertPayload<T> = {
+  message?: string;
+  id?: string;
+  row?: T | null;
+  doc?: T | null;
+  _id?: string;
+  id_doc?: string;
+  id_rag?: string;
+};
+
+export interface InsertResult<T> {
+  id: string;
+  message?: string;
+  row?: T | null;
+}
+
+/** type guard sem any */
+function isRecord(v: unknown): v is Record<string, unknown> {
+  return typeof v === "object" && v !== null;
+}
+
+function getStringProp(
+  obj: Record<string, unknown>,
+  key: string
+): string | null {
+  const v = obj[key];
+  return typeof v === "string" && v.trim() ? v.trim() : null;
+}
+
+function pickIdFromUnknown(data: unknown): string | null {
+  if (!isRecord(data)) return null;
+
+  // id na raiz
+  const id = getStringProp(data, "id");
+  if (id) return id;
+
+  // row.id
+  const row = data["row"];
+  if (isRecord(row)) {
+    const rid = getStringProp(row, "id");
+    if (rid) return rid;
+  }
+
+  // doc.id
+  const doc = data["doc"];
+  if (isRecord(doc)) {
+    const did = getStringProp(doc, "id");
+    if (did) return did;
+  }
+
+  // variações comuns
+  const _id = getStringProp(data, "_id");
+  if (_id) return _id;
+
+  const id_doc = getStringProp(data, "id_doc");
+  if (id_doc) return id_doc;
+
+  const id_rag = getStringProp(data, "id_rag");
+  if (id_rag) return id_rag;
+
+  return null;
+}
+
+function normalizeInsertResult<T>(
+  payload: InsertPayload<T>,
+  endpoint: string
+): InsertResult<T> {
+  const id = pickIdFromUnknown(payload);
+  if (!id) {
+    throw new ApiError(
+      "Registro inserido, mas a API não retornou o ID do novo registro.",
+      0,
+      endpoint
+    );
+  }
+
+  const row = (payload.row ?? payload.doc ?? null) as T | null;
+
+  return { id, message: payload.message, row };
+}
 
 function getRows<T>(rsp: StandardBodyResponse, endpoint: string): T[] {
   ensureOk<RowsPayload<T>>(rsp, endpoint);
-  const data = rsp.data as RowsPayload<T>;
-  return Array.isArray(data?.rows) ? data.rows! : [];
+  const data = rsp.data;
+  return Array.isArray(data?.rows) ? data.rows : [];
 }
 
 function getRow<T>(rsp: StandardBodyResponse, endpoint: string): T | null {
   ensureOk<RowsPayload<T>>(rsp, endpoint);
-  const data = rsp.data as RowsPayload<T>;
+  const data = rsp.data;
   return (data?.row ?? null) as T | null;
 }
 
 function getDocs<T>(rsp: StandardBodyResponse, endpoint: string): T[] {
   ensureOk<DocsPayload<T>>(rsp, endpoint);
-  const data = rsp.data as DocsPayload<T>;
-  return Array.isArray(data?.docs) ? data.docs! : [];
+  const data = rsp.data;
+  return Array.isArray(data?.docs) ? data.docs : [];
 }
 
 function getDoc<T>(rsp: StandardBodyResponse, endpoint: string): T | null {
   ensureOk<DocsPayload<T>>(rsp, endpoint);
-  const data = rsp.data as DocsPayload<T>;
+  const data = rsp.data;
   return (data?.doc ?? null) as T | null;
 }
 
 // Opcional: suporte a AbortController/timeout em buscas
-interface CallOptions {
+export interface CallOptions {
   signal?: AbortSignal;
 }
 
-async function apiGet<T>(url: string, opts?: CallOptions) {
+async function apiGet<T>(
+  url: string,
+  opts?: CallOptions
+): Promise<OkResponse<T>> {
   const rsp = await api.get(url, undefined, { signal: opts?.signal });
   ensureOk<T>(rsp, url);
   return rsp as OkResponse<T>;
 }
 
-async function apiPost<T>(url: string, body?: unknown, opts?: CallOptions) {
+async function apiPost<T>(
+  url: string,
+  body?: unknown,
+  opts?: CallOptions
+): Promise<OkResponse<T>> {
   const rsp = await api.post(url, body, { signal: opts?.signal });
-  //console.log(rsp);
   ensureOk<T>(rsp, url);
   return rsp as OkResponse<T>;
 }
-async function apiPut<T>(url: string, body?: unknown, opts?: CallOptions) {
+
+async function apiPut<T>(
+  url: string,
+  body?: unknown,
+  opts?: CallOptions
+): Promise<OkResponse<T>> {
   const rsp = await api.put(url, body, { signal: opts?.signal });
   ensureOk<T>(rsp, url);
   return rsp as OkResponse<T>;
 }
-async function apiDelete<T>(url: string, opts?: CallOptions) {
+
+async function apiDelete<T>(
+  url: string,
+  opts?: CallOptions
+): Promise<OkResponse<T>> {
   const rsp = await api.delete(url, { signal: opts?.signal });
   ensureOk<T>(rsp, url);
   return rsp as OkResponse<T>;
@@ -105,22 +209,16 @@ export async function searchMetadadosCNJ(
   opts?: CallOptions
 ): Promise<MetadadosProcessoCnj | null> {
   try {
-    const body = { numeroProcesso: strProcesso };
     const rsp = await apiPost<IResponseMetadadosCNJ>(
       "/cnj/processo",
-      body,
+      { numeroProcesso: strProcesso },
       opts
     );
-    const meta = rsp.data.metadados;
-    //console.log(rsp);
 
-    // defensivo: optional chaining
+    const meta = rsp.data.metadados;
     const total = meta?.hits?.total?.value ?? 0;
-    if (total > 0 && meta) {
-      console.debug("Processo confirmado no CNJ:", strProcesso);
-      return meta;
-    }
-    return null;
+
+    return total > 0 && meta ? meta : null;
   } catch (err) {
     console.error("Erro na busca do processo no CNJ!", err);
     throw new ApiError(
@@ -173,7 +271,6 @@ export async function uploadFileToServer(
       method: "POST",
       headers: {
         Authorization: `Bearer ${TokenStorage.accessToken ?? ""}`,
-        // NÃO defina Content-Type com FormData
       },
       body: formData,
     });
@@ -224,17 +321,17 @@ export async function deleteUploadFileById(id: number): Promise<boolean> {
   return true;
 }
 
-export async function extractDocument( // (renomeado)
+export async function extractDocument(
   idCtxt: string,
   idDoc: number
 ): Promise<boolean> {
-  const body = [{ IdContexto: idCtxt, IdFile: idDoc }];
-  await apiPost<unknown>("/contexto/documentos", body);
+  await apiPost<unknown>("/contexto/documentos", [
+    { IdContexto: idCtxt, IdFile: idDoc },
+  ]);
   return true;
 }
 
 export async function extractByContexto(idContexto: string): Promise<boolean> {
-  // (renomeado)
   await apiPost<unknown>(`/contexto/documentos/${idContexto}`);
   return true;
 }
@@ -242,7 +339,6 @@ export async function extractByContexto(idContexto: string): Promise<boolean> {
 export async function consolidarAutosByContexto(
   idContexto: string
 ): Promise<boolean> {
-  // (renomeado)
   await apiPost<unknown>(`/contexto/documentos/saneador/${idContexto}`);
   return true;
 }
@@ -282,10 +378,7 @@ export interface DataAutuaDocumento {
 }
 
 export async function autuarDocumentos(
-  body: {
-    IdContexto: string;
-    IdDoc: string;
-  }[]
+  body: { IdContexto: string; IdDoc: string }[]
 ): Promise<DataAutuaDocumento | null> {
   if (body.length === 0) return null;
   const rsp = await apiPost<DataAutuaDocumento>(
@@ -318,14 +411,13 @@ export async function insertDocumentoAutos(
   Doc: string,
   DocJson: string
 ): Promise<AutosRow | null> {
-  const body = {
+  const rsp = await apiPost<RowsPayload<AutosRow>>("/contexto/autos", {
     id_ctxt: IdCtxt,
     id_natu: IdNatu,
     id_pje: IdPje,
     doc: Doc,
     doc_json: DocJson,
-  };
-  const rsp = await apiPost<RowsPayload<AutosRow>>("/contexto/autos", body);
+  });
   return getRow<AutosRow>(rsp, "/contexto/autos");
 }
 
@@ -394,10 +486,14 @@ export async function getContextoById(
   return getRow<ContextoRow>(rsp, "/contexto/:id");
 }
 
+/**
+ * ✅ Mantida (como você pediu)
+ * Observação: seu backend aparentemente devolve "row" como um ARRAY aqui (por isso T = ContextoRow[])
+ */
 export async function getContextoByIdCtxt(
   idCtxt: string
 ): Promise<ContextoRow[] | null> {
-  const rsp = await apiGet<RowsPayload<ContextoRow>>(
+  const rsp = await apiGet<RowsPayload<ContextoRow[]>>(
     `/contexto/search/${idCtxt}`
   );
   return getRow<ContextoRow[]>(rsp, "/contexto/search/:id");
@@ -408,6 +504,10 @@ export async function getContextosAll(): Promise<ContextoRow[] | null> {
   return getRows<ContextoRow>(rsp, "/contexto");
 }
 
+/**
+ * ✅ Mantida (como você pediu)
+ * Mesmo padrão: "row" pode estar vindo como array
+ */
 export async function getContextoTokensUso(
   idCtxt: string
 ): Promise<ContextoRow[] | null> {
@@ -452,8 +552,11 @@ export async function updatePrompt(
   nmDesc: string,
   txtPrompt: string
 ): Promise<PromptsRow | null> {
-  const body = { id_prompt: idPrompt, nm_desc: nmDesc, txt_prompt: txtPrompt };
-  const rsp = await apiPut<RowsPayload<PromptsRow>>("/tabelas/prompts", body);
+  const rsp = await apiPut<RowsPayload<PromptsRow>>("/tabelas/prompts", {
+    id_prompt: idPrompt,
+    nm_desc: nmDesc,
+    txt_prompt: txtPrompt,
+  });
   return getRow<PromptsRow>(rsp, "/tabelas/prompts");
 }
 
@@ -470,33 +573,30 @@ export async function insertPrompt(
   nmDesc: string,
   txtPrompt: string
 ): Promise<PromptsRow | null> {
-  const body = {
+  const rsp = await apiPost<RowsPayload<PromptsRow>>("/tabelas/prompts", {
     id_nat: idNat,
     id_doc: idDoc,
     id_classe: idClasse,
     id_assunto: idAssunto,
     nm_desc: nmDesc,
     txt_prompt: txtPrompt,
-  };
-  const rsp = await apiPost<RowsPayload<PromptsRow>>("/tabelas/prompts", body);
+  });
   return getRow<PromptsRow>(rsp, "/tabelas/prompts");
 }
 
 // ======================= Modelos =======================
 
-export interface ResponseModelosInsert {
-  id: string;
-  message: string;
-}
-
 export async function insertModelos(
   natureza: string,
   ementa: string,
   inteiro_teor: string
-): Promise<ResponseModelosInsert | null> {
-  const body = { natureza, ementa, inteiro_teor };
-  const rsp = await apiPost<ResponseModelosInsert>("/tabelas/modelos", body);
-  return rsp.data ?? null;
+): Promise<InsertResult<ModelosRow>> {
+  const rsp = await apiPost<InsertPayload<ModelosRow>>("/tabelas/modelos", {
+    natureza,
+    ementa,
+    inteiro_teor,
+  });
+  return normalizeInsertResult<ModelosRow>(rsp.data, "/tabelas/modelos");
 }
 
 export async function updateModelos(
@@ -505,11 +605,11 @@ export async function updateModelos(
   ementa: string,
   inteiro_teor: string
 ): Promise<ModelosRow | null> {
-  const body = { natureza, ementa, inteiro_teor };
-  const rsp = await apiPut<DocsPayload<ModelosRow>>(
-    `/tabelas/modelos/${id}`,
-    body
-  );
+  const rsp = await apiPut<DocsPayload<ModelosRow>>(`/tabelas/modelos/${id}`, {
+    natureza,
+    ementa,
+    inteiro_teor,
+  });
   return getDoc<ModelosRow>(rsp, "/tabelas/modelos/:id");
 }
 
@@ -518,14 +618,13 @@ export async function searchModelos(
   natureza: string,
   opts?: CallOptions
 ): Promise<ModelosRow[]> {
-  const body = {
-    Index_name: "ml-modelos-msmarco",
-    Natureza: natureza,
-    Search_texto: consulta,
-  };
   const rsp = await apiPost<DocsPayload<ModelosRow>>(
     "/tabelas/modelos/search",
-    body,
+    {
+      Index_name: "ml-modelos-msmarco",
+      Natureza: natureza,
+      Search_texto: consulta,
+    },
     opts
   );
   return getDocs<ModelosRow>(rsp, "/tabelas/modelos/search");
@@ -543,12 +642,8 @@ export async function selectModelo(id: string): Promise<ModelosRow | null> {
 
 // ======================= RAG =======================
 
-export interface ResponseRAGInsert {
-  id: string;
-  message: string;
-}
-
 export async function insertRAG(
+  id_ctxt: string,
   id_pje: string,
   classe: string,
   assunto: string,
@@ -556,9 +651,10 @@ export async function insertRAG(
   tipo: string,
   tema: string,
   fonte: string,
-  data_texto: string
-): Promise<ResponseRAGInsert | null> {
+  texto: string
+): Promise<InsertResult<BaseRow>> {
   const body: BodyBaseInsert = {
+    id_ctxt,
     id_pje,
     classe,
     assunto,
@@ -566,11 +662,11 @@ export async function insertRAG(
     tipo,
     tema,
     fonte,
-    data_texto,
+    texto,
   };
 
-  const rsp = await apiPost<ResponseRAGInsert>("/tabelas/rag", body);
-  return rsp.data ?? null;
+  const rsp = await apiPost<InsertPayload<BaseRow>>("/tabelas/rag", body);
+  return normalizeInsertResult<BaseRow>(rsp.data, "/tabelas/rag");
 }
 
 export async function updateRAG(
@@ -582,9 +678,10 @@ export async function updateRAG(
   tipo: string,
   tema: string,
   fonte: string,
-  data_texto: string
+  texto: string
 ): Promise<BaseRow | null> {
-  const body = {
+  // ✅ padrão consistente: envia "texto". Se seu backend exige "data_texto", troque a chave.
+  const rsp = await apiPut<DocsPayload<BaseRow>>(`/tabelas/rag/${id}`, {
     id_pje,
     classe,
     assunto,
@@ -592,10 +689,9 @@ export async function updateRAG(
     tipo,
     tema,
     fonte,
-    data_texto,
-  };
+    texto,
+  });
 
-  const rsp = await apiPut<DocsPayload<BaseRow>>(`/tabelas/rag/${id}`, body);
   return getDoc<BaseRow>(rsp, "/tabelas/rag/:id");
 }
 
@@ -604,14 +700,13 @@ export async function searchRAG(
   natureza: string,
   opts?: CallOptions
 ): Promise<BaseRow[]> {
-  const body = {
-    Index_name: "ml-rag-msmarco",
-    Natureza: natureza,
-    Search_texto: consulta,
-  };
   const rsp = await apiPost<DocsPayload<BaseRow>>(
     "/tabelas/rag/search",
-    body,
+    {
+      Index_name: "ml-rag-msmarco",
+      Natureza: natureza,
+      Search_texto: consulta,
+    },
     opts
   );
   return getDocs<BaseRow>(rsp, "/tabelas/rag/search");
@@ -623,11 +718,22 @@ export async function deleteRAG(id: string): Promise<boolean> {
 }
 
 export async function selectRAG(id: string): Promise<BaseRow | null> {
-  const rsp = await apiGet<DocsPayload<BaseRow>>(`/tabelas/rag/${id}`);
+  const safeId = String(id ?? "").trim();
+  const lower = safeId.toLowerCase();
+  if (!safeId || lower === "undefined" || lower === "null") {
+    throw new ApiError(
+      "ID inválido para consulta do RAG.",
+      0,
+      "/tabelas/rag/:id"
+    );
+  }
+
+  const rsp = await apiGet<DocsPayload<BaseRow>>(`/tabelas/rag/${safeId}`);
   return getDoc<BaseRow>(rsp, "/tabelas/rag/:id");
 }
 
-// Busca todos os eventos de um contexto específico
+// ======================= Eventos =======================
+
 export async function refreshEventos(
   idContexto: string
 ): Promise<EventosRow[]> {
@@ -638,7 +744,6 @@ export async function refreshEventos(
   return getRows<EventosRow>(rsp, "/contexto/eventos/all/:id");
 }
 
-// Seleciona um evento específico pelo ID
 export async function selectEvento(idDoc: number): Promise<EventosRow | null> {
   if (!idDoc) throw new ApiError("ID do registro ausente.");
   const rsp = await apiGet<RowsPayload<EventosRow>>(
@@ -647,7 +752,6 @@ export async function selectEvento(idDoc: number): Promise<EventosRow | null> {
   return getRow<EventosRow>(rsp, "/contexto/eventos/:id");
 }
 
-// Insere um novo evento no índice
 export async function insertEvento(
   IdCtxt: string,
   IdNatu: number,
@@ -655,18 +759,16 @@ export async function insertEvento(
   Doc: string,
   DocJson: string
 ): Promise<EventosRow | null> {
-  const body = {
+  const rsp = await apiPost<RowsPayload<EventosRow>>("/contexto/eventos", {
     id_ctxt: IdCtxt,
     id_natu: IdNatu,
     id_evento: IdEvento,
     doc: Doc,
     doc_json_raw: DocJson,
-  };
-  const rsp = await apiPost<RowsPayload<EventosRow>>("/contexto/eventos", body);
+  });
   return getRow<EventosRow>(rsp, "/contexto/eventos");
 }
 
-// Deleta um evento do índice
 export async function deleteEvento(id: string): Promise<boolean> {
   await apiDelete<unknown>(`/contexto/eventos/${id}`);
   return true;
@@ -681,8 +783,7 @@ export function formatContexto(contexto: string): string {
 
 /** Formata CNJ: 9999999-99.9999.9.99.9999 */
 export function formatNumeroProcesso(numero: string): string {
-  //console.log(numero);
-  const digits = (numero ?? "").replace(/\D/g, ""); // limpa tudo que não é dígito
+  const digits = (numero ?? "").replace(/\D/g, "");
   const numeroStr = digits.slice(-20).padStart(20, "0");
   return `${numeroStr.slice(0, 7)}-${numeroStr.slice(7, 9)}.${numeroStr.slice(
     9,

@@ -546,7 +546,7 @@ export const AnalisesMain = () => {
       try {
         const msg = getMessages();
         const payload = { id_ctxt: idCtxt, messages: msg, previd: prevId };
-        const response = await Api.post("/contexto/query/rag", payload);
+        const response = await Api.post("/contexto/query/analise", payload);
 
         //Atualiza tokens
         setRefreshTokens((p) => p + 1);

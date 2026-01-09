@@ -4,7 +4,7 @@
  * Finalidade: Cadastro e edição de registros RAG (índice rag_doc_embedding)
  */
 
-import { useEffect, useRef, useState, useCallback } from "react";
+import { useEffect, useRef, useState, useCallback, useMemo } from "react";
 import { useLocation, useNavigate, useParams } from "react-router-dom";
 import { Controller, useForm } from "react-hook-form";
 import {
@@ -44,7 +44,7 @@ interface IRagForm {
   tipo: string;
   tema: string;
   fonte: string;
-  data_texto: string;
+  texto: string;
 }
 
 const EMPTY_FORM: IRagForm = {
@@ -55,16 +55,23 @@ const EMPTY_FORM: IRagForm = {
   tipo: "",
   tema: "",
   fonte: "",
-  data_texto: "",
+  texto: "",
 };
 
+// Aceita ambos para compatibilidade
+const NEW_IDS = new Set(["novo", "nova"]);
+
 export const DetalheRAG = () => {
+  //const { id } = useParams<"id">();
   const { id: idReg = "nova" } = useParams<"id">();
+  //console.log(idReg);
+  //const idReg = (id ?? "novo").trim(); // default padronizado
+
   const navigate = useNavigate();
   const location = useLocation();
   const { showFlashMessage } = useFlash();
 
-  const isNew = idReg === "nova";
+  const isNew = useMemo(() => NEW_IDS.has(idReg.toLowerCase()), [idReg]);
 
   const [isLoading, setLoading] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
@@ -77,11 +84,10 @@ export const DetalheRAG = () => {
     mode: "onChange",
   });
 
-  //const { control, reset, getValues, formState, watch } = RForm;
   const { control, reset, formState, watch } = RForm;
-  const dataTexto = watch("data_texto");
+  const dataTexto = watch("texto");
 
-  // Mantém o "snapshot" original para Cancelar
+  // Snapshot original para Cancelar
   const originalRef = useRef<IRagForm>(EMPTY_FORM);
 
   const goBackToList = useCallback(() => {
@@ -95,18 +101,29 @@ export const DetalheRAG = () => {
     let active = true;
 
     const run = async () => {
+      // Sempre sincroniza o mode com o tipo de tela
       setMode(isNew ? "create" : "view");
 
+      // Se for inclusão, NÃO chama API
       if (isNew) {
         originalRef.current = EMPTY_FORM;
         reset(EMPTY_FORM, { keepDirty: false, keepTouched: false });
         return;
       }
 
+      // Segurança extra: não buscar com id vazio/estranho
+      const safeId = idReg.trim();
+      if (!safeId) {
+        showFlashMessage("ID inválido.", "error");
+        navigate("/rag", { replace: true });
+        return;
+      }
+
       try {
         setLoading(true);
 
-        const rsp = await selectRAG(idReg);
+        const rsp = await selectRAG(safeId);
+        //console.log(rsp);
 
         if (!active) return;
 
@@ -126,7 +143,7 @@ export const DetalheRAG = () => {
           tipo: rsp.tipo ?? "",
           tema: rsp.tema ?? "",
           fonte: rsp.fonte ?? "",
-          data_texto: rsp.data_texto ?? "",
+          texto: rsp.texto ?? "",
         };
 
         originalRef.current = dados;
@@ -171,6 +188,7 @@ export const DetalheRAG = () => {
 
         if (isNew) {
           const rsp = await insertRAG(
+            "id_ctxt",
             data.id_pje,
             data.classe,
             data.assunto,
@@ -178,7 +196,7 @@ export const DetalheRAG = () => {
             data.tipo,
             data.tema,
             data.fonte,
-            data.data_texto
+            data.texto
           );
 
           if (rsp instanceof Error) {
@@ -188,12 +206,13 @@ export const DetalheRAG = () => {
 
           showFlashMessage("Registro salvo com sucesso", "success");
 
-          // snapshot original passa a ser o estado salvo
           originalRef.current = data;
           reset(data, { keepDirty: false, keepTouched: false });
 
-          // navega para o id criado (usa replace pra evitar voltar pra /nova)
-          navigate(`/rag/detalhes/${rsp?.id}`, { replace: true });
+          // navega para o id criado
+          //console.log(rsp);
+          //console.log(rsp?.id);
+          navigate(`/rag/detalhes/${rsp.id}`, { replace: true });
           setMode("view");
           return true;
         }
@@ -207,7 +226,7 @@ export const DetalheRAG = () => {
           data.tipo,
           data.tema,
           data.fonte,
-          data.data_texto
+          data.texto
         );
 
         if (rsp instanceof Error) {
@@ -246,7 +265,7 @@ export const DetalheRAG = () => {
 
   const handleDelete = useCallback(
     async (id: string) => {
-      if (id === "nova") return;
+      if (NEW_IDS.has((id ?? "").toLowerCase())) return;
       if (!confirm("Deseja realmente excluir o registro RAG?")) return;
 
       setLoading(true);
@@ -301,7 +320,8 @@ export const DetalheRAG = () => {
           onClickButtonSalvar={RForm.handleSubmit(handleSave)}
           onClickButtonSalvarFechar={RForm.handleSubmit(handleSaveFechar)}
           onClickButtonApagar={() => handleDelete(idReg)}
-          onClickButtonNovo={() => navigate("/rag/detalhes/nova")}
+          // padronizado para "novo"
+          onClickButtonNovo={() => navigate("/rag/detalhes/novo")}
           onClickButtonVoltar={goBackToList}
         />
       }
@@ -314,7 +334,6 @@ export const DetalheRAG = () => {
             </Grid>
           )}
 
-          {/* Campos principais */}
           <Grid size={{ xs: 12, md: 4 }}>
             <Paper variant="outlined" sx={{ p: 2 }}>
               <Controller
@@ -385,7 +404,6 @@ export const DetalheRAG = () => {
             </Paper>
           </Grid>
 
-          {/* Coluna direita: tema e texto principal */}
           <Grid size={{ xs: 12, md: 8 }}>
             <Paper
               variant="outlined"
@@ -412,7 +430,7 @@ export const DetalheRAG = () => {
               />
 
               <Controller
-                name="data_texto"
+                name="texto"
                 control={control}
                 render={({ field }) => (
                   <TiptapEditor
