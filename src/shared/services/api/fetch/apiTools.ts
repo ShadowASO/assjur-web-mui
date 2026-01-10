@@ -665,8 +665,8 @@ export async function insertRAG(
     texto,
   };
 
-  const rsp = await apiPost<InsertPayload<BaseRow>>("/tabelas/rag", body);
-  return normalizeInsertResult<BaseRow>(rsp.data, "/tabelas/rag");
+  const rsp = await apiPost<InsertPayload<BaseRow>>("/tabelas/base", body);
+  return normalizeInsertResult<BaseRow>(rsp.data, "/tabelas/base");
 }
 
 export async function updateRAG(
@@ -681,7 +681,7 @@ export async function updateRAG(
   texto: string
 ): Promise<BaseRow | null> {
   // ✅ padrão consistente: envia "texto". Se seu backend exige "data_texto", troque a chave.
-  const rsp = await apiPut<DocsPayload<BaseRow>>(`/tabelas/rag/${id}`, {
+  const rsp = await apiPut<DocsPayload<BaseRow>>(`/tabelas/base/${id}`, {
     id_pje,
     classe,
     assunto,
@@ -692,7 +692,7 @@ export async function updateRAG(
     texto,
   });
 
-  return getDoc<BaseRow>(rsp, "/tabelas/rag/:id");
+  return getDoc<BaseRow>(rsp, "/tabelas/base/:id");
 }
 
 export async function searchRAG(
@@ -701,7 +701,7 @@ export async function searchRAG(
   opts?: CallOptions
 ): Promise<BaseRow[]> {
   const rsp = await apiPost<DocsPayload<BaseRow>>(
-    "/tabelas/rag/search",
+    "/tabelas/base/search",
     {
       Index_name: "ml-rag-msmarco",
       Natureza: natureza,
@@ -709,11 +709,11 @@ export async function searchRAG(
     },
     opts
   );
-  return getDocs<BaseRow>(rsp, "/tabelas/rag/search");
+  return getDocs<BaseRow>(rsp, "/tabelas/base/search");
 }
 
 export async function deleteRAG(id: string): Promise<boolean> {
-  await apiDelete<unknown>(`/tabelas/rag/${id}`);
+  await apiDelete<unknown>(`/tabelas/base/${id}`);
   return true;
 }
 
@@ -724,12 +724,12 @@ export async function selectRAG(id: string): Promise<BaseRow | null> {
     throw new ApiError(
       "ID inválido para consulta do RAG.",
       0,
-      "/tabelas/rag/:id"
+      "/tabelas/base/:id"
     );
   }
 
-  const rsp = await apiGet<DocsPayload<BaseRow>>(`/tabelas/rag/${safeId}`);
-  return getDoc<BaseRow>(rsp, "/tabelas/rag/:id");
+  const rsp = await apiGet<DocsPayload<BaseRow>>(`/tabelas/base/${safeId}`);
+  return getDoc<BaseRow>(rsp, "/tabelas/base/:id");
 }
 
 // ======================= Eventos =======================

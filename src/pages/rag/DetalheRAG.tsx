@@ -188,7 +188,7 @@ export const DetalheRAG = () => {
 
         if (isNew) {
           const rsp = await insertRAG(
-            "id_ctxt",
+            "",
             data.id_pje,
             data.classe,
             data.assunto,
