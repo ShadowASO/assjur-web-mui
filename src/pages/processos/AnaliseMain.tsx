@@ -1,7 +1,11 @@
 /**
  * File: AnaliseMain.tsx
  * Atualização: 12/08/2025
+ *
+ * Adaptado para StandardResponse<PipelineData> + parsePipelineResponse
+ * (sem any; compatível com eslint no-implicit-any / no-explicit-any)
  */
+
 import { ContentCopy, Delete } from "@mui/icons-material";
 import {
   Box,
@@ -45,7 +49,6 @@ import {
   type IOutputResponseItem,
   type IMessageResponseItem,
   useMessageReponse,
-  type IResponseOutput,
 } from "../../shared/services/query/QueryResponse";
 import { getDocumentoName } from "../../shared/constants/autosDoc";
 
@@ -67,6 +70,21 @@ import {
   RAG_EVENTO_SENTENCA,
 } from "./consts";
 import { PromptInput } from "./PromptInput";
+import {
+  isPipelineStandardResponse,
+  parsePipelineResponse,
+  type AssistantOutputItem,
+  type PipelineData,
+  type StandardResponse,
+} from "../../shared/services/query/QueryAnalise";
+
+// ✅ NOVOS TYPES (crie esses arquivos conforme sugerido)
+//import type { StandardResponse } from "../../shared/types/response";
+// import type {
+//   PipelineData,
+//   AssistantOutputItem,
+// } from "../../shared/types/pipeline";
+// import { parsePipelineResponse } from "../../shared/utils/parsePipelineResponse";
 
 /* ============== Hook simples de infinite slice com IntersectionObserver ============== */
 function useInfiniteSlice<T>(items: T[], step = 30) {
@@ -74,7 +92,6 @@ function useInfiniteSlice<T>(items: T[], step = 30) {
   const sentinelRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
-    // reset quando a lista muda
     setCount(step);
   }, [items, step]);
 
@@ -84,9 +101,8 @@ function useInfiniteSlice<T>(items: T[], step = 30) {
     const io = new IntersectionObserver(
       (entries) => {
         const [entry] = entries;
-        if (entry.isIntersecting) {
+        if (entry.isIntersecting)
           setCount((prev) => Math.min(prev + step, items.length));
-        }
       },
       { root: el.parentElement, rootMargin: "200px", threshold: 0.01 }
     );
@@ -126,7 +142,6 @@ export const AnalisesMain = () => {
 
   const [refreshPecas, setRefreshPecas] = useState(0);
   const [refreshTokens, setRefreshTokens] = useState(0);
-  // estado só para envio do prompt (sem travar toda a tela)
   const [isSending, setIsSending] = useState(false);
 
   // tokens
@@ -154,11 +169,9 @@ export const AnalisesMain = () => {
     sentinelRef: eventosSentinel,
   } = useInfiniteSlice(eventos, 40);
 
-  // Seleciona e exibe a minuta correspondente a um evento
   const handleSelectEvento = useCallback((evento: EventosRow) => {
     if (!evento) return;
-
-    setEventoSelecionadoId(evento.id); // 🔥 Guarda qual está ativo
+    setEventoSelecionadoId(evento.id);
 
     if (evento.doc_json_raw) {
       const raw =
@@ -178,11 +191,11 @@ export const AnalisesMain = () => {
     );
   }, [processo, setTituloJanela]);
 
-  // carregar autos (peças)
+  // carregar autos
   useEffect(() => {
     (async () => {
       try {
-        if (!idCtxt) return; // ✅ garante string
+        if (!idCtxt) return;
         setLoading(true);
         const response = await refreshAutos(idCtxt);
         setAutos(response?.length ? response : []);
@@ -196,22 +209,18 @@ export const AnalisesMain = () => {
         setLoading(false);
       }
     })();
-  }, [idCtxt, refreshPecas]);
+  }, [idCtxt, refreshPecas, showFlashMessage]);
 
-  // ========================= CARREGAMENTO DE EVENTOS =========================
+  // 1) Fetch de eventos: NÃO depende de minuta/seleção
   useEffect(() => {
     (async () => {
       try {
-        if (!idCtxt) return; // ✅ garante string
+        if (!idCtxt) return;
         setLoading(true);
+
         const response = await refreshEventos(idCtxt);
         const lista = response?.length ? response : [];
         setEventos(lista);
-
-        // ✅ Seleciona automaticamente o primeiro evento da lista
-        if (lista.length > 0 && !minuta) {
-          handleSelectEvento(lista[0]);
-        }
       } catch (error) {
         const { userMsg, techMsg } = describeApiError(error);
         showFlashMessage(userMsg, "error", TIME_FLASH_ALERTA_SEC * 5, {
@@ -222,7 +231,13 @@ export const AnalisesMain = () => {
         setLoading(false);
       }
     })();
-  }, [idCtxt, refreshPecas, handleSelectEvento]);
+  }, [idCtxt, refreshPecas, showFlashMessage]);
+
+  useEffect(() => {
+    if (!eventos.length) return;
+    if (eventoSelecionadoId) return;
+    handleSelectEvento(eventos[0]);
+  }, [eventos, eventoSelecionadoId, handleSelectEvento]);
 
   // processo + tokens
   useEffect(() => {
@@ -232,8 +247,6 @@ export const AnalisesMain = () => {
         if (!idCtxt) return;
         const rsp = await getContextoByIdCtxt(idCtxt);
         if (rsp) {
-          //console.log(rsp);
-          //console.log(rsp[0].nr_proc);
           setPtUso(rsp[0].prompt_tokens ?? 0);
           setCtUso(rsp[0].completion_tokens ?? 0);
           setProcesso(rsp[0].nr_proc ?? "");
@@ -245,13 +258,12 @@ export const AnalisesMain = () => {
         setLoading(false);
       }
     })();
-  }, [idCtxt]);
+  }, [idCtxt, showFlashMessage]);
 
-  // Atualiza o consumo de tokens
+  // tokens refresh
   useEffect(() => {
     (async () => {
       try {
-        //setLoading(true);
         if (!idCtxt) return;
         const rsp = await getContextoTokensUso(idCtxt);
         if (rsp) {
@@ -261,11 +273,9 @@ export const AnalisesMain = () => {
       } catch (error) {
         const { userMsg } = describeApiError(error);
         showFlashMessage(userMsg, "error", TIME_FLASH_ALERTA_SEC * 5);
-      } finally {
-        //setLoading(false);
       }
     })();
-  }, [idCtxt, refreshTokens]);
+  }, [idCtxt, refreshTokens, showFlashMessage]);
 
   useEffect(() => setTtUso((ptUso ?? 0) + (ctUso ?? 0)), [ptUso, ctUso]);
 
@@ -305,13 +315,13 @@ export const AnalisesMain = () => {
     const results = await Promise.all(ids.map((id) => deleteAutos(id)));
     return { errors: results.filter((ok) => !ok).length };
   }, []);
+
   const deleteByIdsEventos = useCallback(async (ids: string[]) => {
     if (ids.length === 0) return { errors: 0 };
     const results = await Promise.all(ids.map((id) => deleteEvento(id)));
     return { errors: results.filter((ok) => !ok).length };
   }, []);
 
-  //********* */
   const handleDeleteSelectedAutos = useCallback(async () => {
     if (!selectedIdsAutos.length) return;
     setLoading(true);
@@ -361,79 +371,128 @@ export const AnalisesMain = () => {
     },
     [showFlashMessage]
   );
+
   const handlerCleanChat = () => {
     clearMessages();
     setPrevId("");
     setDialogo("");
   };
 
-  // OpenAI helpers
-  const getOutputMessage = useCallback(
-    (out?: IOutputResponseItem[]): IOutputResponseItem | undefined =>
-      Array.isArray(out) ? out.find((o) => o?.type === "message") : undefined,
+  // --------------------------------------------
+  // 🔁 Conversões: AssistantOutputItem -> IOutputResponseItem
+  // (para reaproveitar toda a sua lógica atual)
+  // --------------------------------------------
+  const extractContentText = (
+    content?: { type: string; text?: string }[]
+  ): string => {
+    if (!Array.isArray(content)) return "";
+
+    // 1) tenta achar tipos mais comuns primeiro
+    const preferred = content.find((c) => c?.type === "text" && c.text?.trim());
+    if (preferred?.text) return preferred.text.trim();
+
+    const outputText = content.find(
+      (c) => c?.type === "output_text" && c.text?.trim()
+    );
+    if (outputText?.text) return outputText.text.trim();
+
+    // 2) fallback: qualquer item que tenha text
+    const anyText = content.find(
+      (c) => typeof c?.text === "string" && c.text.trim()
+    );
+    return anyText?.text?.trim() ?? "";
+  };
+
+  const toIOutputResponseItem = useCallback(
+    (item: AssistantOutputItem): IOutputResponseItem | null => {
+      if (!item || item.type !== "message") return null;
+
+      const text = extractContentText(item.content);
+      if (!text) return null;
+
+      return {
+        type: "message",
+        id: item.id,
+        status: (item.status as "completed" | "error") ?? "completed",
+        role: "assistant",
+        content: [
+          {
+            type: "text",
+            text,
+            annotations: [],
+          },
+        ],
+      };
+    },
     []
   );
 
-  /**
-   * Formata a resposta recebida do servidor e faz a exibição no diálogo.
-   */
+  // ----------------------------------------------------------------
+  // 🧩 Output item padronizado (mantido)
+  // ----------------------------------------------------------------
+  const criarOutputItem = useCallback(
+    (
+      id: string,
+      texto: string,
+      status: "completed" | "error" = "completed"
+    ): IOutputResponseItem => {
+      return {
+        type: "message",
+        id,
+        status,
+        role: "assistant",
+        content: [{ type: "text", text: texto, annotations: [] }],
+      };
+    },
+    []
+  );
 
-  // ========================================================
-  // 🧩 Função utilitária: cria um IOutputResponseItem padronizado
-  // ========================================================
-  function criarOutputItem(
-    id: string,
-    texto: string,
-    status: "completed" | "error" = "completed"
-  ): IOutputResponseItem {
-    return {
-      type: "message",
-      id,
-      status,
-      role: "assistant",
-      content: [
-        {
-          type: "text",
-          text: texto,
-          annotations: [],
-        },
-      ],
-    };
-  }
+  const appendBackendMessageToHistory = useCallback(
+    (text: string) => {
+      const msg = (text ?? "").trim();
+      if (!msg) return;
 
-  // ========================================================
-  // 🧠 Função principal: formata e roteia respostas do modelo
-  // ========================================================
+      const localId = `srv_${Date.now()}`;
+
+      setDialogo((prev) => (prev ? `${prev}\n\n${msg}` : msg));
+      setPrevId(localId);
+      addMessage(localId, "assistant", msg);
+    },
+    [addMessage]
+  );
+
+  // ----------------------------------------------------------------
+  // 🧠 Roteamento RAG: recebe IOutputResponseItem (mantido)
+  // ----------------------------------------------------------------
   const formataRespostaRAG = useCallback(
     async (output: IOutputResponseItem) => {
       const maybeText = output?.content?.[0]?.text;
       if (!maybeText) return;
 
       try {
-        const rawObj = JSON.parse(maybeText);
-        // console.log(rawObj);
+        const rawObj: unknown = JSON.parse(maybeText);
 
-        if (!rawObj?.tipo?.evento) {
+        // type guard leve
+        const obj = rawObj as {
+          tipo?: { evento?: number };
+          confirmacao?: string;
+          faltantes?: string[];
+          conteudo?: string;
+        };
+
+        if (!obj?.tipo?.evento)
           throw new Error("Objeto não contém campo tipo.evento");
-        }
 
-        switch (rawObj.tipo.evento) {
-          // ==================================================
-          // 🔹 Casos que geram minuta completa
-          // ==================================================
+        switch (obj.tipo.evento) {
           case RAG_EVENTO_ANALISE:
           case RAG_EVENTO_SENTENCA:
           case RAG_EVENTO_DECISAO:
-          case RAG_EVENTO_DESPACHO: {
+          case RAG_EVENTO_DESPACHO:
             setMinuta(JSON.stringify(rawObj, null, 2));
             break;
-          }
 
-          // ==================================================
-          // 🔹 Confirmação de intenção
-          // ==================================================
           case RAG_EVENTO_CONFIRMACAO: {
-            const confirmacao = rawObj.confirmacao ?? "";
+            const confirmacao = obj.confirmacao ?? "";
             const complementoOutput = criarOutputItem(output.id, confirmacao);
             addOutput(complementoOutput);
             setDialogo((prev) =>
@@ -443,11 +502,8 @@ export const AnalisesMain = () => {
             break;
           }
 
-          // ==================================================
-          // 🔹 Solicitação de complementação (faltantes)
-          // ==================================================
           case RAG_EVENTO_COMPLEMENTO: {
-            const faltantes: string[] = rawObj.faltantes ?? [];
+            const faltantes = obj.faltantes ?? [];
             const textoComplemento =
               faltantes.length > 0
                 ? `Algumas questões controvertidas ainda não foram respondidas:\n\n${faltantes
@@ -461,7 +517,6 @@ export const AnalisesMain = () => {
               `${output.id}-faltantes`,
               textoComplemento
             );
-
             addOutput(complementoOutput);
             setDialogo((prev) =>
               prev ? `${prev}\n\n${textoComplemento}` : textoComplemento
@@ -471,7 +526,7 @@ export const AnalisesMain = () => {
           }
 
           case RAG_EVENTO_ADD_BASE: {
-            const resposta = rawObj.conteudo ?? "";
+            const resposta = obj.conteudo ?? "";
             const complementoOutput = criarOutputItem(output.id, resposta);
             addOutput(complementoOutput);
             setDialogo((prev) => (prev ? `${prev}\n\n${resposta}` : resposta));
@@ -479,11 +534,8 @@ export const AnalisesMain = () => {
             break;
           }
 
-          // ==================================================
-          // 🔹 Texto genérico (outros tipos)
-          // ==================================================
           case RAG_EVENTO_OUTROS: {
-            const resposta = rawObj.conteudo ?? "";
+            const resposta = obj.conteudo ?? "";
             const complementoOutput = criarOutputItem(output.id, resposta);
             addOutput(complementoOutput);
             setDialogo((prev) => (prev ? `${prev}\n\n${resposta}` : resposta));
@@ -491,16 +543,12 @@ export const AnalisesMain = () => {
             break;
           }
 
-          // ==================================================
-          // 🔹 Tipo desconhecido — exibe conteúdo bruto
-          // ==================================================
-          default: {
+          default:
             addOutput(output);
             setDialogo((prev) =>
               prev ? `${prev}\n\n${maybeText}` : maybeText
             );
             setPrevId(output.id);
-          }
         }
       } catch (err) {
         console.error("Erro ao processar resposta:", err);
@@ -514,89 +562,213 @@ export const AnalisesMain = () => {
           erroMsg,
           "error"
         );
-
         addOutput(erroOutput);
         setDialogo((prev) => (prev ? `${prev}\n\n${maybeText}` : maybeText));
         setPrevId(output.id);
       }
     },
-    [addOutput, setDialogo, setMinuta, setPrevId]
+    [addOutput]
+  );
+
+  // ----------------------------------------------------------------
+  // ✅ NOVO: processa PipelineData.output (AssistantOutputItem[]) sem any
+  // ----------------------------------------------------------------
+  const processPipelineOutput = useCallback(
+    async (pipelineData: PipelineData) => {
+      const outputArr = pipelineData.output;
+      if (pipelineData.output === null) {
+        const msg = (pipelineData.message ?? "").trim();
+        if (msg) {
+          const localId = `srv_${Date.now()}`;
+          const out = criarOutputItem(localId, msg, "completed");
+          addOutput(out);
+          setDialogo((prev) => (prev ? `${prev}\n\n${msg}` : msg));
+          setPrevId(localId);
+          addMessage(localId, "assistant", msg);
+        }
+        return;
+      }
+
+      if (!Array.isArray(outputArr) || outputArr.length === 0) {
+        // para invalid, isso é normal
+        return;
+      }
+
+      // 1) tenta primeiro "message"
+      const messageItem = pipelineData.output.find((o) => o.type === "message");
+      if (messageItem) {
+        const converted = toIOutputResponseItem(messageItem);
+        if (converted) {
+          await formataRespostaRAG(converted);
+          setRefreshPecas((p) => p + 1);
+          return;
+        }
+      }
+
+      // 2) fallback: qualquer item que tenha content com text
+      const fallbackItem = pipelineData.output.find((o) => {
+        const content = o.content;
+        return (
+          Array.isArray(content) &&
+          content.some((c) => typeof c?.text === "string" && c.text.trim())
+        );
+      });
+
+      if (!fallbackItem) {
+        showFlashMessage(
+          "Resposta da API não contém texto de mensagem.",
+          "error",
+          TIME_FLASH_ALERTA_SEC * 5
+        );
+        return;
+      }
+
+      // converte o fallback para IOutputResponseItem
+      const fallbackText = extractContentText(fallbackItem.content);
+      if (!fallbackText) {
+        showFlashMessage(
+          "Resposta da API não contém texto de mensagem.",
+          "error",
+          TIME_FLASH_ALERTA_SEC * 5
+        );
+        return;
+      }
+
+      const out: IOutputResponseItem = {
+        type: "message",
+        id: fallbackItem.id,
+        status: (fallbackItem.status as "completed" | "error") ?? "completed",
+        role: "assistant",
+        content: [{ type: "text", text: fallbackText, annotations: [] }],
+      };
+
+      await formataRespostaRAG(out);
+      setRefreshPecas((p) => p + 1);
+    },
+    [formataRespostaRAG, showFlashMessage, toIOutputResponseItem]
   );
 
   const handleSendPrompt = useCallback(
     async (sendPrompt: string) => {
-      //const text = prompt.trim();
       const text = sendPrompt.trim();
       if (!text) {
         showFlashMessage("Digite um prompt antes de enviar.", "warning", 3);
         return;
       }
-      if (isSending) return; // evita duplo envio
+
+      // ✅ idCtxt pode vir undefined do useParams()
+      if (!idCtxt) {
+        showFlashMessage(
+          "Contexto inválido (id_ctxt ausente).",
+          "error",
+          TIME_FLASH_ALERTA_SEC * 5
+        );
+        return;
+      }
+
+      if (isSending) return;
       setIsSending(true);
 
+      // ✅ mantém UX: registra a msg do usuário antes da chamada
       const userQuery: IMessageResponseItem = {
         id: prevId,
         role: "user",
         text,
       };
-
-      //setPrompt("");
       addMessage(userQuery.id, userQuery.role, userQuery.text);
 
       try {
         const msg = getMessages();
-        const payload = { id_ctxt: idCtxt, messages: msg, previd: prevId };
-        const response = await Api.post("/contexto/query/analise", payload);
 
-        //Atualiza tokens
+        // ✅ payload com nomes coerentes (idCtxt garantido string)
+        const payload = {
+          id_ctxt: idCtxt,
+          messages: msg,
+          previd: prevId,
+        };
+
+        const rawResp = await Api.post("/contexto/query/analise", payload);
+
+        //console.log(rawResp);
+
+        // ✅ valida o contrato sem any / casts inseguros
+        if (!isPipelineStandardResponse(rawResp)) {
+          console.log("Resposta inesperada do backend:", rawResp);
+          showFlashMessage(
+            "Resposta da API não está no formato esperado.",
+            "error",
+            TIME_FLASH_ALERTA_SEC * 5
+          );
+          return;
+        }
+
+        // ✅ tokens: atualiza apenas quando a resposta veio no contrato padrão
         setRefreshTokens((p) => p + 1);
 
-        if (response.ok && response.data) {
-          const respOutput = response.data as IResponseOutput;
+        const resp: StandardResponse<PipelineData> = rawResp;
+        const parsed = parsePipelineResponse(resp);
 
-          if (!respOutput?.output || !Array.isArray(respOutput.output)) {
-            console.log(respOutput);
+        //console.log(parsed);
+
+        switch (parsed.kind) {
+          case "error":
+            // ✅ adiciona no histórico
+            appendBackendMessageToHistory(parsed.message);
             showFlashMessage(
-              "Resposta da API não está no formato esperado (sem output).",
-              "error"
+              parsed.message,
+              "error",
+              TIME_FLASH_ALERTA_SEC * 5
             );
             return;
-          }
-          //Extraio o primeiro  output com tipo "message"
-          const output = getOutputMessage(respOutput.output);
-          if (!output) {
-            console.log(output);
+
+          case "invalid":
+            {
+              appendBackendMessageToHistory(
+                parsed.data.message || "Pré-condição não atendida."
+              );
+
+              showFlashMessage(
+                parsed.data.message || parsed.data.message,
+                "warning",
+                TIME_FLASH_ALERTA_SEC * 5
+              );
+            }
+            return;
+
+          case "blocked":
+            // ✅ normalmente já vem mensagem no output; se não vier, usa a mensagem do backend
+            if (
+              !Array.isArray(parsed.data.output) ||
+              parsed.data.output.length === 0
+            ) {
+              appendBackendMessageToHistory(
+                parsed.data.message || "Aguardando ação do usuário."
+              );
+              return;
+            }
+            // fluxo normal: sem toast vermelho
+            await processPipelineOutput(parsed.data);
+            return;
+
+          case "ok":
+            await processPipelineOutput(parsed.data);
+            return;
+
+          default:
+            // (defensivo) se alguém mudar o parser no futuro
             showFlashMessage(
-              "Resposta da API não contém mensagem válida.",
-              "error"
+              "Resposta inesperada do servidor.",
+              "error",
+              TIME_FLASH_ALERTA_SEC * 5
             );
             return;
-          }
-
-          //console.log(output);
-
-          //Aqui é que eu verifico o formato
-          await formataRespostaRAG(output);
-          setRefreshPecas((p) => p + 1);
-        } else {
-          // ⚠️ Aqui tratamos o erro vindo do servidor
-          const err = response.error;
-          if (err) {
-            const fullMsg = `${err.message}${
-              err.description ? " — " + err.description : ""
-            }`;
-            console.log(fullMsg);
-            showFlashMessage(fullMsg, "error", TIME_FLASH_ALERTA_SEC * 5);
-          } else {
-            showFlashMessage(
-              "Erro desconhecido ao processar a solicitação.",
-              "error"
-            );
-          }
         }
       } catch (error: unknown) {
-        const msg = error instanceof Error ? error.message : String(error);
-        showFlashMessage(`Falha de rede ou erro inesperado: ${msg}`, "error");
+        const msgErr = error instanceof Error ? error.message : String(error);
+        showFlashMessage(
+          `Falha de rede ou erro inesperado: ${msgErr}`,
+          "error"
+        );
       } finally {
         setIsSending(false);
       }
@@ -604,17 +776,17 @@ export const AnalisesMain = () => {
     [
       Api,
       addMessage,
-      formataRespostaRAG,
-      getOutputMessage,
       getMessages,
-      idCtxt,
+      idCtxt, // ✅ agora é realmente usado como guarda
       prevId,
-
       showFlashMessage,
       isSending,
+      processPipelineOutput,
+      setRefreshTokens, // (não estritamente necessário, mas ok)
     ]
   );
 
+  // ===================== render =====================
   return (
     <Box
       p={0}
@@ -634,20 +806,20 @@ export const AnalisesMain = () => {
         margin={1}
         sx={{ alignItems: "stretch" }}
       >
-        {/* COL-01: AUTOS + MINUTAS */}
+        {/* COL-01 */}
         <Grid size={{ xs: 12, sm: 6, md: 2, lg: 2, xl: 2 }}>
           <Paper
             elevation={3}
             sx={{
               display: "flex",
               flexDirection: "column",
-              height: "calc(100vh - 180px)", // 🔹 mesma altura das outras colunas
+              height: "calc(100vh - 180px)",
               p: 2,
               gap: 2,
-              overflow: "hidden", // evita que o Paper em si gere scrollbar
+              overflow: "hidden",
             }}
           >
-            {/* ===================== AUTOS ===================== */}
+            {/* AUTOS */}
             <Box
               sx={{
                 flex: 1,
@@ -712,20 +884,16 @@ export const AnalisesMain = () => {
                         sx={{
                           cursor: "pointer",
                           transition: "0.25s",
-
-                          // 🔥 linha ativa (exibida na minuta)
                           bgcolor:
                             autoSelecionadoId === reg.id
                               ? "rgba(25, 118, 210, 0.15)"
                               : selectedIdsAutos.includes(reg.id)
                               ? theme.palette.action.hover
                               : "inherit",
-
                           borderLeft:
                             autoSelecionadoId === reg.id
                               ? "4px solid #1976d2"
                               : "4px solid transparent",
-
                           "&:hover": {
                             bgcolor:
                               autoSelecionadoId === reg.id
@@ -745,16 +913,14 @@ export const AnalisesMain = () => {
                         </TableCell>
                         <TableCell
                           onClick={() => {
-                            setAutoSelecionadoId(reg.id); // 🔥 marca qual Auto está ativo
+                            setAutoSelecionadoId(reg.id);
                             if (reg.doc_json_raw) {
                               setMinuta(
                                 typeof reg.doc_json_raw === "string"
                                   ? reg.doc_json_raw
                                   : JSON.stringify(reg.doc_json_raw, null, 4)
                               );
-                            } else {
-                              setMinuta("");
-                            }
+                            } else setMinuta("");
                           }}
                           sx={{ cursor: "pointer" }}
                         >
@@ -770,6 +936,7 @@ export const AnalisesMain = () => {
                         </TableCell>
                       </TableRow>
                     )}
+
                     {autos.length === 0 && (
                       <TableRow>
                         <TableCell colSpan={2}>
@@ -784,7 +951,7 @@ export const AnalisesMain = () => {
               </TableContainer>
             </Box>
 
-            {/* ===================== MINUTAS ===================== */}
+            {/* MINUTAS */}
             <Box
               sx={{
                 flex: 1,
@@ -800,7 +967,7 @@ export const AnalisesMain = () => {
                 mb={1}
               >
                 <Typography variant="h6" fontWeight="bold" mb={1}>
-                  Minutas
+                  Análises
                 </Typography>
 
                 <Tooltip
@@ -837,10 +1004,11 @@ export const AnalisesMain = () => {
                       <TableCell sx={{ p: 1 }}>Todos</TableCell>
                     </TableRow>
                   </TableHead>
+
                   <TableBody>
                     {eventosVisiveis.map((reg) => {
                       const isSelected = selectedIdsEventos.includes(reg.id);
-                      const isActive = eventoSelecionadoId === reg.id; // 🔥 está sendo exibido na Minuta
+                      const isActive = eventoSelecionadoId === reg.id;
                       return (
                         <TableRow
                           key={reg.id}
@@ -850,9 +1018,9 @@ export const AnalisesMain = () => {
                             cursor: "pointer",
                             transition: "0.25s",
                             bgcolor: isActive
-                              ? "rgba(25, 118, 210, 0.15)" // Azul claro
+                              ? "rgba(25, 118, 210, 0.15)"
                               : isSelected
-                              ? theme.palette.action.hover // seleções múltiplas
+                              ? theme.palette.action.hover
                               : "inherit",
                             borderLeft: isActive
                               ? "4px solid #1976d2"
@@ -889,6 +1057,7 @@ export const AnalisesMain = () => {
                         </TableCell>
                       </TableRow>
                     )}
+
                     {eventos.length === 0 && (
                       <TableRow>
                         <TableCell colSpan={2}>
@@ -914,12 +1083,12 @@ export const AnalisesMain = () => {
               flexDirection: "column",
               flex: 1,
               minHeight: "calc(100vh - 180px)",
-              height: "calc(100vh - 180px)", // 🔹 define altura do grid / não retirar
+              height: "calc(100vh - 180px)",
               p: 2,
               gap: 2,
-              overflowY: "auto", // ✅ permite rolagem vertical
-              overflowX: "hidden", // opcional, evita barra horizontal
-              maxHeight: "100%", // 🔹 garante que respeite o container
+              overflowY: "auto",
+              overflowX: "hidden",
+              maxHeight: "100%",
             }}
           >
             <Paper
@@ -1004,7 +1173,6 @@ export const AnalisesMain = () => {
 
             {/* PROMPT (overlay só no campo + barra de ações externa, simétrica) */}
             <Box>
-              {/* Wrapper do campo para permitir overlay sem afetar a barra */}
               <Box position="relative">
                 <PromptInput
                   onSubmit={handleSendPrompt}

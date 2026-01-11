@@ -188,7 +188,7 @@ export const MinutaViewer: React.FC<{
             onClick={() => setViewMode("documento")}
             variant={viewMode === "documento" ? "contained" : "outlined"}
           >
-            Documento
+            Análise
           </Button>
           {/* <Button
             startIcon={<Article />}

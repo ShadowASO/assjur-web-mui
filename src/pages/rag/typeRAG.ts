@@ -1,14 +1,3 @@
-// export type BaseRow = {
-//   id: string;
-//   id_pje?: string;
-//   classe?: string;
-//   assunto?: string;
-//   natureza?: string;
-//   tipo?: string;
-//   tema?: string;
-//   fonte?: string;
-//   data_texto?: string;
-// };
 export interface BaseRow {
   id: string;
 
