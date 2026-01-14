@@ -82,6 +82,7 @@ export interface TRag {
   tema: string;
   descricao: string;
   relevancia: "alta" | "média" | "baixa" | string;
+  base: string;
 }
 
 export interface TQuestoesControvertidas {

@@ -64,6 +64,9 @@ const renderRag = (items?: TRag[]) => {
           <Typography variant="body2" sx={{ textIndent: "2em" }}>
             {item.descricao ?? "Descrição"}
           </Typography>
+          <Typography variant="body2" sx={{ textIndent: "2em" }}>
+            <strong>Base de Conhecimentos:</strong> {item.base ?? " "}
+          </Typography>
         </Box>
       ))}
     </Box>
