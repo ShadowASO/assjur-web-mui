@@ -27,12 +27,12 @@ export const AppRoutes = () => {
       {
         icon: HomeIcon,
         path: "/pagina-inicial",
-        label: "Página inicial",
+        label: "Início",
       },
       {
         icon: LocationCity,
         path: "/processos",
-        label: "Processos",
+        label: "Contextos",
       },
 
       {
@@ -40,21 +40,22 @@ export const AppRoutes = () => {
         path: "/modelos",
         label: "Modelos",
       },
+
+      {
+        icon: LocationCity,
+        path: "/rag",
+        label: "Precedentes",
+      },
       {
         icon: LocationCity,
         path: "/prompts",
         label: "Prompts",
       },
-      {
-        icon: LocationCity,
-        path: "/rag",
-        label: "RAG",
-      },
-      {
-        icon: LocationCity,
-        path: "/chat-ia",
-        label: "Bate-papo",
-      },
+      // {
+      //   icon: LocationCity,
+      //   path: "/chat-ia",
+      //   label: "Bate-papo",
+      // },
     ]);
   }, []);
 

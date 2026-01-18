@@ -90,14 +90,14 @@ export const ListaPecas = ({
               <TableCell>
                 <IconButton
                   onClick={() => onExtract(row.id_file)}
-                  title="Extrair peças"
+                  title="Extrair Peças"
                   disabled={isLoading}
                 >
                   <DocumentScanner></DocumentScanner>
                 </IconButton>
                 <IconButton
                   onClick={() => onDelete(row.id_file)}
-                  title="Excluir arquivo"
+                  title="Excluir Arquivo"
                   disabled={isLoading}
                 >
                   <Delete />
@@ -123,7 +123,7 @@ export const ListaPecas = ({
                   onChange={(_, newPage) =>
                     setSearchParams(
                       { busca, pagina: newPage.toString() },
-                      { replace: true }
+                      { replace: true },
                     )
                   }
                 />

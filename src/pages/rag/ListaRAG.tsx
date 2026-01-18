@@ -52,7 +52,7 @@ export const ListaRAG = () => {
 
   const [searchTexto, setSearchTexto] = useState<string>(initialSearch);
   const [selectedId, setSelectedId] = useState<string | null>(
-    initialSelectedId
+    initialSelectedId,
   );
   const [rows, setRows] = useState<BaseRow[]>([]);
   const [isLoading, setLoading] = useState(false);
@@ -82,7 +82,7 @@ export const ListaRAG = () => {
       };
       sessionStorage.setItem(SESSION_KEY, JSON.stringify(next));
     },
-    [searchTexto, selectedContent, selectedId]
+    [searchTexto, selectedContent, selectedId],
   );
 
   // Carrega estado salvo (somente quando há contexto na URL)
@@ -255,7 +255,7 @@ export const ListaRAG = () => {
       if (containerRef.current) {
         sessionStorage.setItem(
           SCROLL_KEY,
-          String(containerRef.current.scrollTop)
+          String(containerRef.current.scrollTop),
         );
       }
 
@@ -263,7 +263,7 @@ export const ListaRAG = () => {
         state: { fromSearch: window.location.search },
       });
     },
-    [navigate, persistState, searchTexto, selectedId, selectedContent]
+    [navigate, persistState, searchTexto, selectedId, selectedContent],
   );
 
   const handleDelete = useCallback(
@@ -298,7 +298,7 @@ export const ListaRAG = () => {
         setLoading(false);
       }
     },
-    [selectedId, showFlashMessage]
+    [selectedId, showFlashMessage],
   );
 
   const copiarParaClipboard = useCallback(
@@ -311,12 +311,12 @@ export const ListaRAG = () => {
         showFlashMessage("Não foi possível copiar o texto.", "error", 3);
       }
     },
-    [showFlashMessage]
+    [showFlashMessage],
   );
 
   return (
     <PageBaseLayout
-      title="Base de Conhecimento RAG"
+      title="Precedentes"
       toolBar={
         <BarraListagem
           buttonLabel="Novo"

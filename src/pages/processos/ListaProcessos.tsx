@@ -109,7 +109,7 @@ export const ListaProcessos = () => {
   const handleMenuOpen = (
     event: React.MouseEvent<HTMLElement>,
     id: string,
-    idCtxt: string
+    idCtxt: string,
   ) => {
     setAnchorEl(event.currentTarget);
     setSelectedId(id);
@@ -200,7 +200,7 @@ export const ListaProcessos = () => {
 
   return (
     <PageBaseLayout
-      title="Processos cadastrados"
+      title="Contextos Processuais"
       toolBar={
         <BarraListagem
           buttonLabel="Novo"
@@ -260,12 +260,12 @@ export const ListaProcessos = () => {
                       <Pagination
                         page={pagina}
                         count={Math.ceil(
-                          totalPage / Environment.LIMITE_DE_LINHAS
+                          totalPage / Environment.LIMITE_DE_LINHAS,
                         )}
                         onChange={(_, newPage) =>
                           setSearchParams(
                             { busca, pagina: newPage.toString() },
-                            { replace: true }
+                            { replace: true },
                           )
                         }
                       />
@@ -280,7 +280,7 @@ export const ListaProcessos = () => {
               open={Boolean(anchorEl)}
               onClose={handleMenuClose}
             >
-              <MenuItem onClick={handleUploadClick}>Formar contexto</MenuItem>
+              <MenuItem onClick={handleUploadClick}>Formar Contexto</MenuItem>
               <MenuItem onClick={handleAnalisesClick}>
                 Análise Jurídica
               </MenuItem>

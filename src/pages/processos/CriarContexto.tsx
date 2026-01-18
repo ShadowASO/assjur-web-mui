@@ -142,7 +142,7 @@ export const CriarContexto = ({
       }
       return "";
     },
-    [regexCNJ]
+    [regexCNJ],
   );
 
   // Aplica máscara ao perder o foco
@@ -160,7 +160,7 @@ export const CriarContexto = ({
       setNumeroProcesso(v);
       if (fieldError) setFieldError(""); // usuário está editando: limpe erro visual
     },
-    [fieldError]
+    [fieldError],
   );
 
   const handleBuscarMetadadosCnj = useCallback(async () => {
@@ -220,7 +220,7 @@ export const CriarContexto = ({
         numeroProcessoLimpo,
         juizo,
         classe,
-        assunto
+        assunto,
       );
 
       if (rsp) {
@@ -250,7 +250,7 @@ export const CriarContexto = ({
         void handleBuscarMetadadosCnj();
       }
     },
-    [handleBuscarMetadadosCnj, isLoading, creating]
+    [handleBuscarMetadadosCnj, isLoading, creating],
   );
 
   // Pressionar ESC fecha o diálogo (o MUI já faz isso por padrão; mantemos por clareza)
@@ -265,12 +265,12 @@ export const CriarContexto = ({
 
   const canConsultar = useMemo(
     () => !!normalizeCNJ(numeroProcesso).length && !isLoading && !creating,
-    [numeroProcesso, isLoading, creating]
+    [numeroProcesso, isLoading, creating],
   );
 
   const canCriar = useMemo(
     () => !!sourceCnj && !creating && !isLoading,
-    [sourceCnj, creating, isLoading]
+    [sourceCnj, creating, isLoading],
   );
 
   // const canLimpar = useMemo(
@@ -294,7 +294,7 @@ export const CriarContexto = ({
           justifyContent="space-between"
           gap={1}
         >
-          <Typography variant="h6">Criar contexto</Typography>
+          <Typography variant="h6">Criar Contexto</Typography>
           <IconButton aria-label="Fechar" onClick={handleClose}>
             <CloseIcon />
           </IconButton>

@@ -65,7 +65,7 @@ export const ListaPrompts = () => {
           showFlashMessage(
             "Nenhum registro retornado",
             "warning",
-            TIME_FLASH_ALERTA_SEC * 2
+            TIME_FLASH_ALERTA_SEC * 2,
           );
         }
       } catch (error) {
@@ -100,13 +100,13 @@ export const ListaPrompts = () => {
     showFlashMessage(
       "Texto copiado para a área de transferência!",
       "success",
-      3
+      3,
     );
   };
 
   return (
     <PageBaseLayout
-      title="Prompts cadastrados"
+      title="Prompts Cadastrados"
       toolBar={
         <BarraListagem
           buttonLabel="Novo"
@@ -179,12 +179,12 @@ export const ListaPrompts = () => {
                       <Pagination
                         page={pagina}
                         count={Math.ceil(
-                          totalPage / Environment.LIMITE_DE_LINHAS
+                          totalPage / Environment.LIMITE_DE_LINHAS,
                         )}
                         onChange={(_, newPage) =>
                           setSearchParams(
                             { busca, pagina: newPage.toString() },
-                            { replace: true }
+                            { replace: true },
                           )
                         }
                       />
