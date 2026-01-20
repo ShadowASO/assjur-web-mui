@@ -15,8 +15,8 @@ import { ListaPrompts } from "../pages/prompts/ListaPrompts";
 import { UploadProcesso } from "../pages/processos/UploadProcesso";
 import { DetalhePrompt } from "../pages/prompts/DetalhePrompt";
 import { AnalisesMain } from "../pages/processos/AnaliseMain";
-import { ListaRAG } from "../pages/rag/ListaRAG";
-import { DetalheRAG } from "../pages/rag/DetalheRAG";
+import { ListaPrecedentes } from "../pages/precedentes/ListaPrecedentes";
+import { DetalhePrecedentes } from "../pages/precedentes/DetalhePrecedentes";
 
 export const AppRoutes = () => {
   const { setDrawerOptions } = useDrawerContext();
@@ -132,7 +132,7 @@ export const AppRoutes = () => {
         path="/rag"
         element={
           <RequireAuth>
-            <ListaRAG></ListaRAG>
+            <ListaPrecedentes></ListaPrecedentes>
           </RequireAuth>
         }
       />
@@ -140,7 +140,7 @@ export const AppRoutes = () => {
         path="/rag/detalhes/:id"
         element={
           <RequireAuth>
-            <DetalheRAG></DetalheRAG>
+            <DetalhePrecedentes></DetalhePrecedentes>
           </RequireAuth>
         }
       />

@@ -1,5 +1,5 @@
 /**
- * File: ListaPecas.tsx
+ * File: ListaArquivos.tsx
  * Data: 08-06-2025
  * Faz a listagem de todos os arquivos PDF que já foram transferidos para o servidor,
  * mas não sofreram a extração.
@@ -24,7 +24,7 @@ import type { UploadFilesRow } from "../../shared/types/tabelas";
 import { Environment } from "../../shared/enviroments";
 import { useSearchParams } from "react-router-dom";
 
-interface ListaPecasProps {
+interface ListaArquivosProps {
   processoId: string;
   refreshKey: number;
   onView: (url: string) => void;
@@ -33,13 +33,13 @@ interface ListaPecasProps {
   loading?: boolean;
 }
 
-export const ListaPecas = ({
+export const ListaArquivos = ({
   processoId,
   onExtract,
   refreshKey,
   onDelete,
   loading,
-}: ListaPecasProps) => {
+}: ListaArquivosProps) => {
   const [rows, setRows] = useState<UploadFilesRow[]>([]);
   const [totalPage] = useState(0);
   const [isLoading, setIsLoading] = useState(false);

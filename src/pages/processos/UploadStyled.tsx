@@ -58,7 +58,7 @@ export const UploadStyled = ({
           </Button>
 
           <Typography variant="body2" color="text.secondary">
-            Selecione o arquivos PDF baixado do PJe.
+            Selecione o arquivos PDF.
           </Typography>
         </Box>
       </Stack>

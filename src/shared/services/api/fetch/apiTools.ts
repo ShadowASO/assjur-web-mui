@@ -23,7 +23,10 @@ import { TokenStorage } from "./TokenStorage";
 import type { MetadadosProcessoCnj } from "../../../types/cnjTypes";
 import { ApiError } from "../erros/errosApi";
 
-import type { BaseRow, BodyBaseInsert } from "../../../../pages/rag/typeRAG";
+import type {
+  BaseRow,
+  BodyBaseInsert,
+} from "../../../../pages/precedentes/typePrecedentes";
 
 // ======================= Infra de API =======================
 
@@ -33,7 +36,7 @@ type OkResponse<T> = StandardBodyResponse & { ok: true; data: T };
 
 function ensureOk<T>(
   rsp: StandardBodyResponse,
-  endpoint: string
+  endpoint: string,
 ): asserts rsp is StandardBodyResponse & { ok: true; data: T } {
   if (rsp?.ok === true) return;
 
@@ -71,7 +74,7 @@ function isRecord(v: unknown): v is Record<string, unknown> {
 
 function getStringProp(
   obj: Record<string, unknown>,
-  key: string
+  key: string,
 ): string | null {
   const v = obj[key];
   return typeof v === "string" && v.trim() ? v.trim() : null;
@@ -113,14 +116,14 @@ function pickIdFromUnknown(data: unknown): string | null {
 
 function normalizeInsertResult<T>(
   payload: InsertPayload<T>,
-  endpoint: string
+  endpoint: string,
 ): InsertResult<T> {
   const id = pickIdFromUnknown(payload);
   if (!id) {
     throw new ApiError(
       "Registro inserido, mas a API não retornou o ID do novo registro.",
       0,
-      endpoint
+      endpoint,
     );
   }
 
@@ -160,7 +163,7 @@ export interface CallOptions {
 
 async function apiGet<T>(
   url: string,
-  opts?: CallOptions
+  opts?: CallOptions,
 ): Promise<OkResponse<T>> {
   const rsp = await api.get(url, undefined, { signal: opts?.signal });
   ensureOk<T>(rsp, url);
@@ -170,7 +173,7 @@ async function apiGet<T>(
 async function apiPost<T>(
   url: string,
   body?: unknown,
-  opts?: CallOptions
+  opts?: CallOptions,
 ): Promise<OkResponse<T>> {
   const rsp = await api.post(url, body, { signal: opts?.signal });
   ensureOk<T>(rsp, url);
@@ -180,7 +183,7 @@ async function apiPost<T>(
 async function apiPut<T>(
   url: string,
   body?: unknown,
-  opts?: CallOptions
+  opts?: CallOptions,
 ): Promise<OkResponse<T>> {
   const rsp = await api.put(url, body, { signal: opts?.signal });
   ensureOk<T>(rsp, url);
@@ -189,7 +192,7 @@ async function apiPut<T>(
 
 async function apiDelete<T>(
   url: string,
-  opts?: CallOptions
+  opts?: CallOptions,
 ): Promise<OkResponse<T>> {
   const rsp = await api.delete(url, { signal: opts?.signal });
   ensureOk<T>(rsp, url);
@@ -206,13 +209,13 @@ interface IResponseMetadadosCNJ {
 /** Confirma se o processo existe e devolve metadados do CNJ */
 export async function searchMetadadosCNJ(
   strProcesso: string,
-  opts?: CallOptions
+  opts?: CallOptions,
 ): Promise<MetadadosProcessoCnj | null> {
   try {
     const rsp = await apiPost<IResponseMetadadosCNJ>(
       "/cnj/processo",
       { numeroProcesso: strProcesso },
-      opts
+      opts,
     );
 
     const meta = rsp.data.metadados;
@@ -224,7 +227,7 @@ export async function searchMetadadosCNJ(
     throw new ApiError(
       "Erro na busca do processo no CNJ!",
       undefined,
-      "/cnj/processo"
+      "/cnj/processo",
     );
   }
 }
@@ -238,7 +241,7 @@ export interface DataTokenUsage {
 }
 
 export async function getConsumoTokens(
-  opts?: CallOptions
+  opts?: CallOptions,
 ): Promise<DataTokenUsage> {
   try {
     const rsp = await apiGet<DataTokenUsage>("/sessions/uso", opts);
@@ -248,7 +251,7 @@ export async function getConsumoTokens(
     throw new ApiError(
       "Erro ao acessar consumo de tokens.",
       undefined,
-      "/sessions/uso"
+      "/sessions/uso",
     );
   }
 }
@@ -257,7 +260,7 @@ export async function getConsumoTokens(
 
 export async function uploadFileToServer(
   idContexto: string,
-  file: File
+  file: File,
 ): Promise<boolean> {
   if (!file) return false;
 
@@ -280,7 +283,7 @@ export async function uploadFileToServer(
       throw new ApiError(
         msg || "Falha no upload do arquivo.",
         rsp.status,
-        "/contexto/documentos/upload"
+        "/contexto/documentos/upload",
       );
     }
     return true;
@@ -291,7 +294,7 @@ export async function uploadFileToServer(
       : new ApiError(
           "Erro no upload do arquivo.",
           undefined,
-          "/contexto/documentos/upload"
+          "/contexto/documentos/upload",
         );
   }
 }
@@ -306,12 +309,12 @@ async function safeReadText(rsp: Response) {
 
 export async function refreshUploadFiles(
   idContexto: string,
-  opts?: CallOptions
+  opts?: CallOptions,
 ): Promise<UploadFilesRow[]> {
   if (!idContexto) throw new ApiError("ID do contexto ausente.");
   const rsp = await apiGet<RowsPayload<UploadFilesRow>>(
     `/contexto/documentos/upload/${idContexto}`,
-    opts
+    opts,
   );
   return getRows<UploadFilesRow>(rsp, "/contexto/documentos/upload/:id");
 }
@@ -323,7 +326,7 @@ export async function deleteUploadFileById(id: number): Promise<boolean> {
 
 export async function extractDocument(
   idCtxt: string,
-  idDoc: number
+  idDoc: number,
 ): Promise<boolean> {
   await apiPost<unknown>("/contexto/documentos", [
     { IdContexto: idCtxt, IdFile: idDoc },
@@ -337,7 +340,7 @@ export async function extractByContexto(idContexto: string): Promise<boolean> {
 }
 
 export async function consolidarAutosByContexto(
-  idContexto: string
+  idContexto: string,
 ): Promise<boolean> {
   await apiPost<unknown>(`/contexto/documentos/saneador/${idContexto}`);
   return true;
@@ -345,12 +348,12 @@ export async function consolidarAutosByContexto(
 
 export async function refreshByContexto(
   idContexto: string,
-  opts?: CallOptions
+  opts?: CallOptions,
 ): Promise<DocsRow[]> {
   if (!idContexto) throw new ApiError("ID do registro ausente.");
   const rsp = await apiGet<RowsPayload<DocsRow>>(
     `/contexto/documentos/all/${idContexto}`,
-    opts
+    opts,
   );
   return getRows<DocsRow>(rsp, "/contexto/documentos/all/:id");
 }
@@ -363,7 +366,7 @@ export async function deleteDocByIdDoc(idDoc: string): Promise<boolean> {
 export async function selectAutosTemp(idDoc: number): Promise<DocsRow | null> {
   if (!idDoc) throw new ApiError("ID do registro ausente.");
   const rsp = await apiGet<RowsPayload<DocsRow>>(
-    `/contexto/documentos/${idDoc}`
+    `/contexto/documentos/${idDoc}`,
   );
   return getRow<DocsRow>(rsp, "/contexto/documentos/:id");
 }
@@ -378,12 +381,12 @@ export interface DataAutuaDocumento {
 }
 
 export async function autuarDocumentos(
-  body: { IdContexto: string; IdDoc: string }[]
+  body: { IdContexto: string; IdDoc: string }[],
 ): Promise<DataAutuaDocumento | null> {
   if (body.length === 0) return null;
   const rsp = await apiPost<DataAutuaDocumento>(
     "/contexto/documentos/autua",
-    body
+    body,
   );
   return rsp.data ?? null;
 }
@@ -393,7 +396,7 @@ export async function autuarDocumentos(
 export async function refreshAutos(idContexto: string): Promise<AutosRow[]> {
   if (!idContexto) return [];
   const rsp = await apiGet<RowsPayload<AutosRow>>(
-    `/contexto/autos/all/${idContexto}`
+    `/contexto/autos/all/${idContexto}`,
   );
   return getRows<AutosRow>(rsp, "/contexto/autos/all/:id");
 }
@@ -409,7 +412,7 @@ export async function insertDocumentoAutos(
   IdNatu: number,
   IdPje: string,
   Doc: string,
-  DocJson: string
+  DocJson: string,
 ): Promise<AutosRow | null> {
   const rsp = await apiPost<RowsPayload<AutosRow>>("/contexto/autos", {
     id_ctxt: IdCtxt,
@@ -432,7 +435,7 @@ export async function insertContexto(
   nrProcesso: string,
   juizo: string,
   classe: string,
-  assunto: string
+  assunto: string,
 ): Promise<ContextoRow | null> {
   const rsp = await apiPost<RowsPayload<ContextoRow>>("/contexto", {
     NrProc: nrProcesso,
@@ -447,7 +450,7 @@ export async function updateContexto(
   id: string,
   juizo: string,
   classe: string,
-  assunto: string
+  assunto: string,
 ): Promise<ContextoRow | null> {
   const rsp = await apiPut<RowsPayload<ContextoRow>>(`/contexto/${id}`, {
     Id: id,
@@ -459,28 +462,28 @@ export async function updateContexto(
 }
 
 export async function getContexto(
-  strProcesso: string
+  strProcesso: string,
 ): Promise<ContextoRow | null> {
   const rsp = await apiGet<RowsPayload<ContextoRow>>(
-    `/contexto/processo/${strProcesso}`
+    `/contexto/processo/${strProcesso}`,
   );
   return getRow<ContextoRow>(rsp, "/contexto/processo/:nr");
 }
 
 export async function searchContexto(
   strProcesso: string,
-  opts?: CallOptions
+  opts?: CallOptions,
 ): Promise<ContextoRow[]> {
   const rsp = await apiPost<RowsPayload<ContextoRow>>(
     "/contexto/processo/search",
     { search_processo: strProcesso },
-    opts
+    opts,
   );
   return getRows<ContextoRow>(rsp, "/contexto/processo/search");
 }
 
 export async function getContextoById(
-  idCtxt: string
+  idCtxt: string,
 ): Promise<ContextoRow | null> {
   const rsp = await apiGet<RowsPayload<ContextoRow>>(`/contexto/${idCtxt}`);
   return getRow<ContextoRow>(rsp, "/contexto/:id");
@@ -491,10 +494,10 @@ export async function getContextoById(
  * Observação: seu backend aparentemente devolve "row" como um ARRAY aqui (por isso T = ContextoRow[])
  */
 export async function getContextoByIdCtxt(
-  idCtxt: string
+  idCtxt: string,
 ): Promise<ContextoRow[] | null> {
   const rsp = await apiGet<RowsPayload<ContextoRow[]>>(
-    `/contexto/search/${idCtxt}`
+    `/contexto/search/${idCtxt}`,
   );
   return getRow<ContextoRow[]>(rsp, "/contexto/search/:id");
 }
@@ -509,10 +512,10 @@ export async function getContextosAll(): Promise<ContextoRow[] | null> {
  * Mesmo padrão: "row" pode estar vindo como array
  */
 export async function getContextoTokensUso(
-  idCtxt: string
+  idCtxt: string,
 ): Promise<ContextoRow[] | null> {
   const rsp = await apiGet<RowsPayload<ContextoRow[]>>(
-    `/contexto/tokens/uso/${idCtxt}`
+    `/contexto/tokens/uso/${idCtxt}`,
   );
   return getRow<ContextoRow[]>(rsp, "/contexto/tokens/uso/:id");
 }
@@ -526,7 +529,7 @@ export async function deleteContexto(id: string): Promise<boolean> {
     throw new ApiError(
       "Exclusão rejeitada! Exclua primeiro os documentos autuados!",
       undefined,
-      "/contexto/:id"
+      "/contexto/:id",
     );
   }
 }
@@ -539,10 +542,10 @@ export async function refreshPrompts(): Promise<PromptsRow[]> {
 }
 
 export async function selectPrompt(
-  idPrompt: number
+  idPrompt: number,
 ): Promise<PromptsRow | null> {
   const rsp = await apiGet<RowsPayload<PromptsRow>>(
-    `/tabelas/prompts/${idPrompt}`
+    `/tabelas/prompts/${idPrompt}`,
   );
   return getRow<PromptsRow>(rsp, "/tabelas/prompts/:id");
 }
@@ -550,7 +553,7 @@ export async function selectPrompt(
 export async function updatePrompt(
   idPrompt: number,
   nmDesc: string,
-  txtPrompt: string
+  txtPrompt: string,
 ): Promise<PromptsRow | null> {
   const rsp = await apiPut<RowsPayload<PromptsRow>>("/tabelas/prompts", {
     id_prompt: idPrompt,
@@ -571,7 +574,7 @@ export async function insertPrompt(
   idClasse: number,
   idAssunto: number,
   nmDesc: string,
-  txtPrompt: string
+  txtPrompt: string,
 ): Promise<PromptsRow | null> {
   const rsp = await apiPost<RowsPayload<PromptsRow>>("/tabelas/prompts", {
     id_nat: idNat,
@@ -589,7 +592,7 @@ export async function insertPrompt(
 export async function insertModelos(
   natureza: string,
   ementa: string,
-  inteiro_teor: string
+  inteiro_teor: string,
 ): Promise<InsertResult<ModelosRow>> {
   const rsp = await apiPost<InsertPayload<ModelosRow>>("/tabelas/modelos", {
     natureza,
@@ -603,7 +606,7 @@ export async function updateModelos(
   id: string,
   natureza: string,
   ementa: string,
-  inteiro_teor: string
+  inteiro_teor: string,
 ): Promise<ModelosRow | null> {
   const rsp = await apiPut<DocsPayload<ModelosRow>>(`/tabelas/modelos/${id}`, {
     natureza,
@@ -616,7 +619,7 @@ export async function updateModelos(
 export async function searchModelos(
   consulta: string,
   natureza: string,
-  opts?: CallOptions
+  opts?: CallOptions,
 ): Promise<ModelosRow[]> {
   const rsp = await apiPost<DocsPayload<ModelosRow>>(
     "/tabelas/modelos/search",
@@ -625,7 +628,7 @@ export async function searchModelos(
       Natureza: natureza,
       Search_texto: consulta,
     },
-    opts
+    opts,
   );
   return getDocs<ModelosRow>(rsp, "/tabelas/modelos/search");
 }
@@ -651,7 +654,7 @@ export async function insertRAG(
   tipo: string,
   tema: string,
   fonte: string,
-  texto: string
+  texto: string,
 ): Promise<InsertResult<BaseRow>> {
   const body: BodyBaseInsert = {
     id_ctxt,
@@ -678,7 +681,7 @@ export async function updateRAG(
   tipo: string,
   tema: string,
   fonte: string,
-  texto: string
+  texto: string,
 ): Promise<BaseRow | null> {
   // ✅ padrão consistente: envia "texto". Se seu backend exige "data_texto", troque a chave.
   const rsp = await apiPut<DocsPayload<BaseRow>>(`/tabelas/base/${id}`, {
@@ -698,7 +701,7 @@ export async function updateRAG(
 export async function searchRAG(
   consulta: string,
   natureza: string,
-  opts?: CallOptions
+  opts?: CallOptions,
 ): Promise<BaseRow[]> {
   const rsp = await apiPost<DocsPayload<BaseRow>>(
     "/tabelas/base/search",
@@ -707,7 +710,7 @@ export async function searchRAG(
       Natureza: natureza,
       Search_texto: consulta,
     },
-    opts
+    opts,
   );
   return getDocs<BaseRow>(rsp, "/tabelas/base/search");
 }
@@ -724,7 +727,7 @@ export async function selectRAG(id: string): Promise<BaseRow | null> {
     throw new ApiError(
       "ID inválido para consulta do RAG.",
       0,
-      "/tabelas/base/:id"
+      "/tabelas/base/:id",
     );
   }
 
@@ -735,11 +738,11 @@ export async function selectRAG(id: string): Promise<BaseRow | null> {
 // ======================= Eventos =======================
 
 export async function refreshEventos(
-  idContexto: string
+  idContexto: string,
 ): Promise<EventosRow[]> {
   if (!idContexto) return [];
   const rsp = await apiGet<RowsPayload<EventosRow>>(
-    `/contexto/eventos/all/${idContexto}`
+    `/contexto/eventos/all/${idContexto}`,
   );
   return getRows<EventosRow>(rsp, "/contexto/eventos/all/:id");
 }
@@ -747,7 +750,7 @@ export async function refreshEventos(
 export async function selectEvento(idDoc: number): Promise<EventosRow | null> {
   if (!idDoc) throw new ApiError("ID do registro ausente.");
   const rsp = await apiGet<RowsPayload<EventosRow>>(
-    `/contexto/eventos/${idDoc}`
+    `/contexto/eventos/${idDoc}`,
   );
   return getRow<EventosRow>(rsp, "/contexto/eventos/:id");
 }
@@ -757,7 +760,7 @@ export async function insertEvento(
   IdNatu: number,
   IdEvento: string,
   Doc: string,
-  DocJson: string
+  DocJson: string,
 ): Promise<EventosRow | null> {
   const rsp = await apiPost<RowsPayload<EventosRow>>("/contexto/eventos", {
     id_ctxt: IdCtxt,
@@ -787,8 +790,8 @@ export function formatNumeroProcesso(numero: string): string {
   const numeroStr = digits.slice(-20).padStart(20, "0");
   return `${numeroStr.slice(0, 7)}-${numeroStr.slice(7, 9)}.${numeroStr.slice(
     9,
-    13
+    13,
   )}.${numeroStr.slice(13, 14)}.${numeroStr.slice(14, 16)}.${numeroStr.slice(
-    16
+    16,
   )}`;
 }

@@ -1,5 +1,5 @@
 /**
- * File: DetalheRAG.tsx
+ * File: DetalhePrecedentes.tsx
  * Criação:  05/10/2025
  * Finalidade: Cadastro e edição de registros RAG (índice rag_doc_embedding)
  */
@@ -61,11 +61,8 @@ const EMPTY_FORM: IRagForm = {
 // Aceita ambos para compatibilidade
 const NEW_IDS = new Set(["novo", "nova"]);
 
-export const DetalheRAG = () => {
-  //const { id } = useParams<"id">();
+export const DetalhePrecedentes = () => {
   const { id: idReg = "nova" } = useParams<"id">();
-  //console.log(idReg);
-  //const idReg = (id ?? "novo").trim(); // default padronizado
 
   const navigate = useNavigate();
   const location = useLocation();
@@ -76,7 +73,7 @@ export const DetalheRAG = () => {
   const [isLoading, setLoading] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [mode, setMode] = useState<"view" | "edit" | "create">(
-    isNew ? "create" : "view"
+    isNew ? "create" : "view",
   );
 
   const RForm = useForm<IRagForm>({
@@ -178,7 +175,7 @@ export const DetalheRAG = () => {
         showFlashMessage("Não foi possível copiar o texto.", "error", 3);
       }
     },
-    [showFlashMessage]
+    [showFlashMessage],
   );
 
   const handleSave = useCallback(
@@ -196,7 +193,7 @@ export const DetalheRAG = () => {
             data.tipo,
             data.tema,
             data.fonte,
-            data.texto
+            data.texto,
           );
 
           if (rsp instanceof Error) {
@@ -226,7 +223,7 @@ export const DetalheRAG = () => {
           data.tipo,
           data.tema,
           data.fonte,
-          data.texto
+          data.texto,
         );
 
         if (rsp instanceof Error) {
@@ -252,7 +249,7 @@ export const DetalheRAG = () => {
         setIsSaving(false);
       }
     },
-    [idReg, isNew, navigate, reset, showFlashMessage]
+    [idReg, isNew, navigate, reset, showFlashMessage],
   );
 
   const handleSaveFechar = useCallback(
@@ -260,7 +257,7 @@ export const DetalheRAG = () => {
       const ok = await handleSave(data);
       if (ok) goBackToList();
     },
-    [goBackToList, handleSave]
+    [goBackToList, handleSave],
   );
 
   const handleDelete = useCallback(
@@ -288,7 +285,7 @@ export const DetalheRAG = () => {
         setLoading(false);
       }
     },
-    [goBackToList, showFlashMessage]
+    [goBackToList, showFlashMessage],
   );
 
   const enterEdit = useCallback(() => setMode("edit"), []);

@@ -25,7 +25,7 @@ import {
   useFlash,
 } from "../../shared/contexts/FlashProvider";
 import { describeApiError } from "../../shared/services/api/erros/errosApi";
-import type { BaseRow } from "./typeRAG";
+import type { BaseRow } from "./typePrecedentes";
 
 const SESSION_KEY = "ListaRAG.state";
 const SCROLL_KEY = "ListaRAG.scrollTop";
@@ -41,7 +41,7 @@ function isAbortError(err: unknown): boolean {
   return err instanceof DOMException && err.name === "AbortError";
 }
 
-export const ListaRAG = () => {
+export const ListaPrecedentes = () => {
   const navigate = useNavigate();
   const { showFlashMessage } = useFlash();
   const [searchParams, setSearchParams] = useSearchParams();

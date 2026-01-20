@@ -43,6 +43,12 @@ interface ListaDocumentosProps {
   onLoadList?: (docs: { id: string; pje: string; texto: string }[]) => void;
 
   currentId?: string; // ✅ ID atualmente exibido no Dialog (para highlight)
+
+  /** ✅ controlado pelo pai: true = exibe tudo; false = filtra "Outros Documentos" */
+  exibirOutrosDocumentos: boolean;
+
+  /** ✅ callback para alternar */
+  onChangeExibirOutrosDocumentos: (value: boolean) => void;
 }
 
 export const ListaDocumentos = ({
@@ -55,6 +61,8 @@ export const ListaDocumentos = ({
   loading,
   onLoadList,
   currentId,
+  exibirOutrosDocumentos,
+  onChangeExibirOutrosDocumentos,
 }: ListaDocumentosProps) => {
   const [rows, setRows] = useState<DocsRow[]>([]);
   const [internalLoading, setInternalLoading] = useState(false);
@@ -68,6 +76,37 @@ export const ListaDocumentos = ({
 
   const isLoading = loading ?? internalLoading;
 
+  // ✅ lista visível (aplica filtro só na UI)
+  const visibleRows = useMemo(() => {
+    if (exibirOutrosDocumentos) return rows;
+
+    return rows.filter((row) => {
+      const nome = (getDocumentoName(row.id_natu) || "").trim();
+      return nome !== "Outros Documentos";
+    });
+
+    // se preferir pelo campo puro:
+    // return rows.filter((row) => String(row.id_natu).trim() !== "Outros Documentos");
+  }, [rows, exibirOutrosDocumentos]);
+
+  useEffect(() => {
+    if (!onLoadList) return;
+
+    onLoadList(
+      visibleRows.map((r) => ({
+        id: r.id,
+        pje: r.id_pje,
+        texto: r.doc ?? "",
+      })),
+    );
+  }, [visibleRows, onLoadList]);
+
+  // ✅ (opcional, mas recomendado) mantém selected coerente quando o filtro muda
+  useEffect(() => {
+    const visiveis = new Set(visibleRows.map((r) => r.id));
+    setSelected((prev) => prev.filter((id) => visiveis.has(id)));
+  }, [visibleRows]);
+
   useEffect(() => {
     mountedRef.current = true;
     return () => {
@@ -75,25 +114,14 @@ export const ListaDocumentos = ({
     };
   }, []);
 
-  // ✅ aplica lista nova de forma consistente (rows + selected + onLoadList)
   function applyNewList(novaLista: DocsRow[]) {
     rowsRef.current = novaLista;
 
     setRows(novaLista);
 
     setSelected((prev) =>
-      prev.filter((id) => novaLista.some((r) => r.id === id))
+      prev.filter((id) => novaLista.some((r) => r.id === id)),
     );
-
-    if (onLoadList) {
-      onLoadList(
-        novaLista.map((r) => ({
-          id: r.id,
-          pje: r.id_pje,
-          texto: r.doc ?? "",
-        }))
-      );
-    }
   }
 
   // Carregar documentos
@@ -135,13 +163,14 @@ export const ListaDocumentos = ({
 
   function handleCheckbox(id: string) {
     setSelected((prev) =>
-      prev.includes(id) ? prev.filter((sel) => sel !== id) : [...prev, id]
+      prev.includes(id) ? prev.filter((sel) => sel !== id) : [...prev, id],
     );
   }
 
   function handleSelectAll(event: React.ChangeEvent<HTMLInputElement>) {
     if (event.target.checked) {
-      setSelected(rowsRef.current.map((row) => row.id));
+      //setSelected(rowsRef.current.map((row) => row.id));
+      setSelected(visibleRows.map((row) => row.id));
     } else {
       setSelected([]);
     }
@@ -174,7 +203,7 @@ export const ListaDocumentos = ({
         await onJuntadaMultipla(pendentes);
       } else {
         await Promise.all(
-          pendentes.map((id) => Promise.resolve(onJuntada(id)))
+          pendentes.map((id) => Promise.resolve(onJuntada(id))),
         );
       }
 
@@ -247,16 +276,17 @@ export const ListaDocumentos = ({
   }
 
   const { allSelected, someSelected } = useMemo(() => {
-    const all = rows.length > 0 && selected.length === rows.length;
+    const totalVisiveis = visibleRows.length;
+    const all = totalVisiveis > 0 && selected.length === totalVisiveis;
     const some = selected.length > 0 && !all;
     return { allSelected: all, someSelected: some };
-  }, [rows.length, selected.length]);
+  }, [visibleRows.length, selected.length]);
 
   function isRowBusy(id: string) {
     return !!busyIds[id] || batchBusy || isLoading;
   }
 
-  const empty = rows.length === 0;
+  const empty = visibleRows.length === 0;
 
   return (
     <Box position="relative" sx={{ maxHeight: 700, overflowY: "auto" }}>
@@ -270,7 +300,7 @@ export const ListaDocumentos = ({
           onClick={handleAutuarSelecionados}
           startIcon={<PostAdd />}
         >
-          Autuar selecionados
+          Autuar
         </Button>
 
         <Button
@@ -281,14 +311,28 @@ export const ListaDocumentos = ({
           onClick={handleDeleteSelecionados}
           startIcon={<Delete />}
         >
-          Deletar selecionados
+          Deletar
         </Button>
-
         {selected.length > 0 && (
           <Typography component="span" sx={{ fontSize: 12, opacity: 0.9 }}>
-            {selected.length} documento(s) selecionado(s)
+            {selected.length} selecionado(s)
           </Typography>
         )}
+        {/* empurra o que vem depois pra direita */}
+        <Box sx={{ flexGrow: 1 }} />
+
+        {/* ✅ checkbox à direita do botão Deletar */}
+        <Box display="flex" alignItems="center" gap={1}>
+          <Checkbox
+            size="small"
+            checked={exibirOutrosDocumentos}
+            onChange={(e) => onChangeExibirOutrosDocumentos(e.target.checked)}
+            disabled={isLoading || batchBusy}
+          />
+          <Typography sx={{ fontSize: 12, opacity: 0.9, whiteSpace: "nowrap" }}>
+            Listar Todos
+          </Typography>
+        </Box>
       </Box>
 
       <Box sx={{ position: "relative" }}>
@@ -326,7 +370,7 @@ export const ListaDocumentos = ({
                 </TableCell>
               </TableRow>
             ) : (
-              rows.map((row) => {
+              visibleRows.map((row) => {
                 const checked = selected.includes(row.id);
                 const disabled = isRowBusy(row.id);
 

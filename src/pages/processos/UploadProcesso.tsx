@@ -32,7 +32,7 @@ import {
 import { useEffect, useRef, useState } from "react";
 
 import { SelectPecas } from "./SelectPecas";
-import { ListaPecas } from "./ListaPecas";
+import { ListaArquivos } from "./ListaArquivos";
 import { ListaDocumentos } from "./ListaDocumentos";
 
 import {
@@ -119,8 +119,8 @@ function normalizeAutuarResponse(raw: unknown): NormalizedAutuarResult | null {
     typeof rec.message === "string"
       ? rec.message
       : typeof rec.mensagem === "string"
-      ? rec.mensagem
-      : undefined;
+        ? rec.mensagem
+        : undefined;
 
   const extractedErros = normalizeStringArray(rec.extractedErros);
   const extractedFiles = normalizeStringArray(rec.extractedFiles);
@@ -166,6 +166,11 @@ export const UploadProcesso = () => {
   const callLockRef = useRef(false); // trava síncrona para lote
   const recentlyProcessedIdsRef = useRef<Set<string>>(new Set()); // cache sessão
 
+  // ✅ default: false (desmarcado) => filtra "Outros Documentos"
+  //const [exibirOutrosDocs, setExibirOutrosDocs] = useState(false);
+
+  const [exibirOutrosDocs, setExibirOutrosDocs] = useState(false);
+
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -183,7 +188,7 @@ export const UploadProcesso = () => {
 
   useEffect(() => {
     setTituloJanela(
-      `Formação do Contexto - Processo ${formatNumeroProcesso(processo)}`
+      `Formação do Contexto - Processo ${formatNumeroProcesso(processo)}`,
     );
   }, [processo, setTituloJanela]);
 
@@ -224,6 +229,31 @@ export const UploadProcesso = () => {
       cancelled = true;
     };
   }, [idCtxt, showFlashMessage]);
+
+  useEffect(() => {
+    if (!dialogOpen) return;
+
+    const idx = docsList.findIndex((d) => d.id === idDoc);
+
+    if (idx === -1) {
+      // o item atual ficou oculto pelo filtro
+      // opção 1: fecha o dialog
+      setDialogOpen(false);
+
+      // (ou opção 2: vai para o primeiro disponível)
+      // if (docsList[0]) {
+      //   setCurrentIndex(0);
+      //   setIdDoc(docsList[0].id);
+      //   setIdPJE(docsList[0].pje);
+      //   setTextoDoc(docsList[0].texto);
+      // } else {
+      //   setDialogOpen(false);
+      // }
+      return;
+    }
+
+    setCurrentIndex(idx);
+  }, [docsList, idDoc, dialogOpen]);
 
   function markAutuando(ids: string[], value: boolean) {
     setAutuandoIds((prev) => {
@@ -409,7 +439,7 @@ export const UploadProcesso = () => {
     if (!idCtxtNum) {
       showFlashMessage(
         "Contexto inválido. Selecione ou abra um processo antes de autuar.",
-        "warning"
+        "warning",
       );
       return;
     }
@@ -430,7 +460,7 @@ export const UploadProcesso = () => {
           "Autuação enviada, mas a resposta do servidor veio em formato inesperado.",
           "warning",
           TIME_FLASH_ALERTA_SEC * 5,
-          { title: "Aviso", details: JSON.stringify(raw) }
+          { title: "Aviso", details: JSON.stringify(raw) },
         );
         setRefreshKeyDoc((p) => p + 1);
         return;
@@ -439,7 +469,7 @@ export const UploadProcesso = () => {
       if (rsp.sucesso) {
         showFlashMessage(
           rsp.message ?? "Documento juntado com sucesso!",
-          "success"
+          "success",
         );
         setRefreshKeyDoc((p) => p + 1);
 
@@ -453,7 +483,7 @@ export const UploadProcesso = () => {
       if (rsp.extractedErros.length > 0) {
         showFlashMessage(
           `Falha ao autuar: ${rsp.extractedErros.join(", ")}`,
-          "warning"
+          "warning",
         );
       } else {
         showFlashMessage(rsp.message ?? "Erro ao juntar documento.", "error");
@@ -482,11 +512,11 @@ export const UploadProcesso = () => {
     callLockRef.current = true;
 
     const uniqueIds = Array.from(
-      new Set(ids.map((x) => (x ?? "").trim()).filter(Boolean))
+      new Set(ids.map((x) => (x ?? "").trim()).filter(Boolean)),
     );
 
     const pendentes = uniqueIds.filter(
-      (id) => !autuandoIds[id] && !recentlyProcessedIdsRef.current.has(id)
+      (id) => !autuandoIds[id] && !recentlyProcessedIdsRef.current.has(id),
     );
 
     if (pendentes.length === 0) {
@@ -498,7 +528,7 @@ export const UploadProcesso = () => {
       showFlashMessage(
         "Contexto inválido (id ausente).",
         "error",
-        TIME_FLASH_ALERTA_SEC * 5
+        TIME_FLASH_ALERTA_SEC * 5,
       );
       callLockRef.current = false;
       return;
@@ -524,7 +554,7 @@ export const UploadProcesso = () => {
           "Autuação enviada, mas a resposta do servidor veio em formato inesperado.",
           "warning",
           TIME_FLASH_ALERTA_SEC * 5,
-          { title: "Aviso", details: JSON.stringify(raw) }
+          { title: "Aviso", details: JSON.stringify(raw) },
         );
         setRefreshKeyDoc((p) => p + 1);
         return;
@@ -542,13 +572,13 @@ export const UploadProcesso = () => {
         if (failedSet.size === 0) {
           showFlashMessage(
             rsp.message ?? "Documentos juntados com sucesso!",
-            "success"
+            "success",
           );
         } else {
           showFlashMessage(
             rsp.message ??
               `Alguns documentos falharam: ${[...failedSet].join(", ")}`,
-            "warning"
+            "warning",
           );
         }
         setRefreshKeyDoc((p) => p + 1);
@@ -562,7 +592,7 @@ export const UploadProcesso = () => {
           rsp.message ?? "Erro ao juntar documentos.",
           "error",
           TIME_FLASH_ALERTA_SEC * 5,
-          details ? { title: "Erro", details } : undefined
+          details ? { title: "Erro", details } : undefined,
         );
 
         setRefreshKeyDoc((p) => p + 1);
@@ -646,7 +676,7 @@ export const UploadProcesso = () => {
           </Paper>
 
           <Paper sx={{ p: 2, mb: 2, maxHeight: 720, overflow: "hidden" }}>
-            <ListaPecas
+            <ListaArquivos
               processoId={idCtxt!}
               onView={() => {}}
               onExtract={handleExtrairTexto}
@@ -698,6 +728,8 @@ export const UploadProcesso = () => {
               loading={isLoading}
               onLoadList={setDocsList}
               currentId={idDoc}
+              exibirOutrosDocumentos={exibirOutrosDocs}
+              onChangeExibirOutrosDocumentos={setExibirOutrosDocs}
             />
           </Paper>
         </Grid>
