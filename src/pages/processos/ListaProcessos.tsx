@@ -198,6 +198,9 @@ export const ListaProcessos = () => {
     });
   }, [busca, pagina, debounce, showFlashMessage]);
 
+  const formatDateBR = (d?: Date | null) =>
+    d ? new Date(d).toLocaleString("pt-BR") : "";
+
   return (
     <PageBaseLayout
       title="Contextos Processuais"
@@ -219,6 +222,8 @@ export const ListaProcessos = () => {
                   <TableCell width={100}>Ações</TableCell>
                   <TableCell>Processo</TableCell>
                   <TableCell>Assunto</TableCell>
+                  <TableCell>Usuário</TableCell>
+                  <TableCell>Dt. Inclusão</TableCell>
                 </TableRow>
               </TableHead>
 
@@ -238,6 +243,8 @@ export const ListaProcessos = () => {
                       </TableCell>
                       <TableCell>{formatNumeroProcesso(row.nr_proc)}</TableCell>
                       <TableCell>{row.assunto}</TableCell>
+                      <TableCell>{row.username_inc}</TableCell>
+                      <TableCell>{formatDateBR(row.dt_inc)}</TableCell>
                     </TableRow>
                   ))}
               </TableBody>

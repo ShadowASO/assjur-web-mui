@@ -16,9 +16,10 @@ export const NATU_DOC_CONTRATO = 13;
 export const NATU_DOC_LAUDO_PERICIAL = 14;
 export const NATU_DOC_TERMO_AUDIENCIA = 15;
 export const NATU_DOC_PARECER_MP = 16;
+export const NATU_DOC_CERTIDAO = 17;
 export const NATU_DOC_AUTOS = 1000;
 export const NATU_DOC_OUTROS = 1001;
-export const NATU_DOC_CERTIDOES = 1002;
+//export const NATU_DOC_CERTIDOES = 1002;
 export const NATU_DOC_MOVIMENTACAO = 1003;
 
 //IA
@@ -49,6 +50,11 @@ export const itemsDocumento: Item[] = [
     key: NATU_DOC_PARECER_MP,
     description: "Manifestação do MP",
   },
+  {
+    key: NATU_DOC_CERTIDAO,
+    description: "Certidão",
+  },
+
   { key: NATU_DOC_AUTOS, description: "Autos Processuais" },
   { key: NATU_DOC_OUTROS, description: "Outros Documentos" },
 

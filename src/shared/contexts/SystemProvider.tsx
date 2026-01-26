@@ -49,8 +49,8 @@ type VersionAPI = {
 export default function SystemProvider({ children }: SystemProviderProps) {
   const [contexto, setContexto] = useState(0);
   const [isAuth, setAuth] = useState(false);
-  const [versionApi, setVersionApi] = useState("3.3.2");
-  const [versionApp, setVersionApp] = useState("3.3.2");
+  const [versionApi, setVersionApi] = useState("3.3.3");
+  const [versionApp, setVersionApp] = useState("3.3.3");
   const Api = getApiObjeto(); //Obtém a instância global da API
 
   useEffect(() => {

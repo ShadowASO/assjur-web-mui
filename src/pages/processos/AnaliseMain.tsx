@@ -78,14 +78,6 @@ import {
   type StandardResponse,
 } from "../../shared/services/query/QueryAnalise";
 
-// ✅ NOVOS TYPES (crie esses arquivos conforme sugerido)
-//import type { StandardResponse } from "../../shared/types/response";
-// import type {
-//   PipelineData,
-//   AssistantOutputItem,
-// } from "../../shared/types/pipeline";
-// import { parsePipelineResponse } from "../../shared/utils/parsePipelineResponse";
-
 /* ============== Hook simples de infinite slice com IntersectionObserver ============== */
 function useInfiniteSlice<T>(items: T[], step = 30) {
   const [count, setCount] = useState(step);
@@ -104,7 +96,7 @@ function useInfiniteSlice<T>(items: T[], step = 30) {
         if (entry.isIntersecting)
           setCount((prev) => Math.min(prev + step, items.length));
       },
-      { root: el.parentElement, rootMargin: "200px", threshold: 0.01 }
+      { root: el.parentElement, rootMargin: "200px", threshold: 0.01 },
     );
     io.observe(el);
     return () => io.disconnect();
@@ -134,10 +126,10 @@ export const AnalisesMain = () => {
   const [dialogo, setDialogo] = useState("");
   const [prevId, setPrevId] = useState("");
   const [eventoSelecionadoId, setEventoSelecionadoId] = useState<string | null>(
-    null
+    null,
   );
   const [autoSelecionadoId, setAutoSelecionadoId] = useState<string | null>(
-    null
+    null,
   );
 
   const [refreshPecas, setRefreshPecas] = useState(0);
@@ -187,7 +179,7 @@ export const AnalisesMain = () => {
   // título
   useEffect(() => {
     setTituloJanela(
-      `Análise Jurídica - Processo ${formatNumeroProcesso(processo)}`
+      `Análise Jurídica - Processo ${formatNumeroProcesso(processo)}`,
     );
   }, [processo, setTituloJanela]);
 
@@ -282,13 +274,13 @@ export const AnalisesMain = () => {
   // seleção
   const handleSelectRowAutos = useCallback((id: string, checked: boolean) => {
     setSelectedIdsAutos((prev) =>
-      checked ? [...prev, id] : prev.filter((sid) => sid !== id)
+      checked ? [...prev, id] : prev.filter((sid) => sid !== id),
     );
   }, []);
 
   const handleSelectRowEventos = useCallback((id: string, checked: boolean) => {
     setSelectedIdsEventos((prev) =>
-      checked ? [...prev, id] : prev.filter((sid) => sid !== id)
+      checked ? [...prev, id] : prev.filter((sid) => sid !== id),
     );
   }, []);
 
@@ -303,11 +295,11 @@ export const AnalisesMain = () => {
 
   const handleToggleAllAutos = useCallback(
     (checked: boolean) => setSelectedIdsAutos(checked ? allAutosIds : []),
-    [allAutosIds]
+    [allAutosIds],
   );
   const handleToggleAllRag = useCallback(
     (checked: boolean) => setSelectedIdsEventos(checked ? allEventosIds : []),
-    [allEventosIds]
+    [allEventosIds],
   );
 
   const deleteByIdsAutos = useCallback(async (ids: string[]) => {
@@ -333,7 +325,7 @@ export const AnalisesMain = () => {
         errors === 0
           ? "Autos excluídos com sucesso!"
           : "Erro ao excluir alguns autos.",
-        errors === 0 ? "success" : "error"
+        errors === 0 ? "success" : "error",
       );
     } finally {
       setLoading(false);
@@ -351,7 +343,7 @@ export const AnalisesMain = () => {
         errors === 0
           ? "Minutas excluídas com sucesso!"
           : "Erro ao excluir algumas minutas.",
-        errors === 0 ? "success" : "error"
+        errors === 0 ? "success" : "error",
       );
     } finally {
       setLoading(false);
@@ -365,11 +357,11 @@ export const AnalisesMain = () => {
       if (navigator?.clipboard?.writeText) {
         navigator.clipboard.writeText(texto).then(
           () => showFlashMessage(msgOk, "success"),
-          () => showFlashMessage("Não foi possível copiar.", "warning")
+          () => showFlashMessage("Não foi possível copiar.", "warning"),
         );
       }
     },
-    [showFlashMessage]
+    [showFlashMessage],
   );
 
   const handlerCleanChat = () => {
@@ -383,7 +375,7 @@ export const AnalisesMain = () => {
   // (para reaproveitar toda a sua lógica atual)
   // --------------------------------------------
   const extractContentText = (
-    content?: { type: string; text?: string }[]
+    content?: { type: string; text?: string }[],
   ): string => {
     if (!Array.isArray(content)) return "";
 
@@ -392,13 +384,13 @@ export const AnalisesMain = () => {
     if (preferred?.text) return preferred.text.trim();
 
     const outputText = content.find(
-      (c) => c?.type === "output_text" && c.text?.trim()
+      (c) => c?.type === "output_text" && c.text?.trim(),
     );
     if (outputText?.text) return outputText.text.trim();
 
     // 2) fallback: qualquer item que tenha text
     const anyText = content.find(
-      (c) => typeof c?.text === "string" && c.text.trim()
+      (c) => typeof c?.text === "string" && c.text.trim(),
     );
     return anyText?.text?.trim() ?? "";
   };
@@ -424,7 +416,7 @@ export const AnalisesMain = () => {
         ],
       };
     },
-    []
+    [],
   );
 
   // ----------------------------------------------------------------
@@ -434,7 +426,7 @@ export const AnalisesMain = () => {
     (
       id: string,
       texto: string,
-      status: "completed" | "error" = "completed"
+      status: "completed" | "error" = "completed",
     ): IOutputResponseItem => {
       return {
         type: "message",
@@ -444,7 +436,7 @@ export const AnalisesMain = () => {
         content: [{ type: "text", text: texto, annotations: [] }],
       };
     },
-    []
+    [],
   );
 
   const appendBackendMessageToHistory = useCallback(
@@ -458,7 +450,7 @@ export const AnalisesMain = () => {
       setPrevId(localId);
       addMessage(localId, "assistant", msg);
     },
-    [addMessage]
+    [addMessage],
   );
 
   // ----------------------------------------------------------------
@@ -496,7 +488,7 @@ export const AnalisesMain = () => {
             const complementoOutput = criarOutputItem(output.id, confirmacao);
             addOutput(complementoOutput);
             setDialogo((prev) =>
-              prev ? `${prev}\n\n${confirmacao}` : confirmacao
+              prev ? `${prev}\n\n${confirmacao}` : confirmacao,
             );
             setPrevId(output.id);
             break;
@@ -509,17 +501,17 @@ export const AnalisesMain = () => {
                 ? `Algumas questões controvertidas ainda não foram respondidas:\n\n${faltantes
                     .map((q, i) => `${i + 1}. ${q}`)
                     .join(
-                      "\n"
+                      "\n",
                     )}\n\nPor favor, responda a cada uma dessas questões para prosseguir com o julgamento.`
                 : "O modelo indicou que há dados complementares necessários, mas não especificou quais.";
 
             const complementoOutput = criarOutputItem(
               `${output.id}-faltantes`,
-              textoComplemento
+              textoComplemento,
             );
             addOutput(complementoOutput);
             setDialogo((prev) =>
-              prev ? `${prev}\n\n${textoComplemento}` : textoComplemento
+              prev ? `${prev}\n\n${textoComplemento}` : textoComplemento,
             );
             setPrevId(output.id);
             break;
@@ -546,7 +538,7 @@ export const AnalisesMain = () => {
           default:
             addOutput(output);
             setDialogo((prev) =>
-              prev ? `${prev}\n\n${maybeText}` : maybeText
+              prev ? `${prev}\n\n${maybeText}` : maybeText,
             );
             setPrevId(output.id);
         }
@@ -560,14 +552,14 @@ export const AnalisesMain = () => {
         const erroOutput = criarOutputItem(
           `${output.id}-erro`,
           erroMsg,
-          "error"
+          "error",
         );
         addOutput(erroOutput);
         setDialogo((prev) => (prev ? `${prev}\n\n${maybeText}` : maybeText));
         setPrevId(output.id);
       }
     },
-    [addOutput]
+    [addOutput],
   );
 
   // ----------------------------------------------------------------
@@ -618,7 +610,7 @@ export const AnalisesMain = () => {
         showFlashMessage(
           "Resposta da API não contém texto de mensagem.",
           "error",
-          TIME_FLASH_ALERTA_SEC * 5
+          TIME_FLASH_ALERTA_SEC * 5,
         );
         return;
       }
@@ -629,7 +621,7 @@ export const AnalisesMain = () => {
         showFlashMessage(
           "Resposta da API não contém texto de mensagem.",
           "error",
-          TIME_FLASH_ALERTA_SEC * 5
+          TIME_FLASH_ALERTA_SEC * 5,
         );
         return;
       }
@@ -645,7 +637,7 @@ export const AnalisesMain = () => {
       await formataRespostaRAG(out);
       setRefreshPecas((p) => p + 1);
     },
-    [formataRespostaRAG, showFlashMessage, toIOutputResponseItem]
+    [formataRespostaRAG, showFlashMessage, toIOutputResponseItem],
   );
 
   const handleSendPrompt = useCallback(
@@ -661,7 +653,7 @@ export const AnalisesMain = () => {
         showFlashMessage(
           "Contexto inválido (id_ctxt ausente).",
           "error",
-          TIME_FLASH_ALERTA_SEC * 5
+          TIME_FLASH_ALERTA_SEC * 5,
         );
         return;
       }
@@ -697,7 +689,7 @@ export const AnalisesMain = () => {
           showFlashMessage(
             "Resposta da API não está no formato esperado.",
             "error",
-            TIME_FLASH_ALERTA_SEC * 5
+            TIME_FLASH_ALERTA_SEC * 5,
           );
           return;
         }
@@ -717,20 +709,20 @@ export const AnalisesMain = () => {
             showFlashMessage(
               parsed.message,
               "error",
-              TIME_FLASH_ALERTA_SEC * 5
+              TIME_FLASH_ALERTA_SEC * 5,
             );
             return;
 
           case "invalid":
             {
               appendBackendMessageToHistory(
-                parsed.data.message || "Pré-condição não atendida."
+                parsed.data.message || "Pré-condição não atendida.",
               );
 
               showFlashMessage(
                 parsed.data.message || parsed.data.message,
                 "warning",
-                TIME_FLASH_ALERTA_SEC * 5
+                TIME_FLASH_ALERTA_SEC * 5,
               );
             }
             return;
@@ -742,7 +734,7 @@ export const AnalisesMain = () => {
               parsed.data.output.length === 0
             ) {
               appendBackendMessageToHistory(
-                parsed.data.message || "Aguardando ação do usuário."
+                parsed.data.message || "Aguardando ação do usuário.",
               );
               return;
             }
@@ -759,7 +751,7 @@ export const AnalisesMain = () => {
             showFlashMessage(
               "Resposta inesperada do servidor.",
               "error",
-              TIME_FLASH_ALERTA_SEC * 5
+              TIME_FLASH_ALERTA_SEC * 5,
             );
             return;
         }
@@ -767,7 +759,7 @@ export const AnalisesMain = () => {
         const msgErr = error instanceof Error ? error.message : String(error);
         showFlashMessage(
           `Falha de rede ou erro inesperado: ${msgErr}`,
-          "error"
+          "error",
         );
       } finally {
         setIsSending(false);
@@ -783,7 +775,7 @@ export const AnalisesMain = () => {
       isSending,
       processPipelineOutput,
       setRefreshTokens, // (não estritamente necessário, mas ok)
-    ]
+    ],
   );
 
   // ===================== render =====================
@@ -888,8 +880,8 @@ export const AnalisesMain = () => {
                             autoSelecionadoId === reg.id
                               ? "rgba(25, 118, 210, 0.15)"
                               : selectedIdsAutos.includes(reg.id)
-                              ? theme.palette.action.hover
-                              : "inherit",
+                                ? theme.palette.action.hover
+                                : "inherit",
                           borderLeft:
                             autoSelecionadoId === reg.id
                               ? "4px solid #1976d2"
@@ -918,7 +910,7 @@ export const AnalisesMain = () => {
                               setMinuta(
                                 typeof reg.doc_json_raw === "string"
                                   ? reg.doc_json_raw
-                                  : JSON.stringify(reg.doc_json_raw, null, 4)
+                                  : JSON.stringify(reg.doc_json_raw, null, 4),
                               );
                             } else setMinuta("");
                           }}
@@ -1020,8 +1012,8 @@ export const AnalisesMain = () => {
                             bgcolor: isActive
                               ? "rgba(25, 118, 210, 0.15)"
                               : isSelected
-                              ? theme.palette.action.hover
-                              : "inherit",
+                                ? theme.palette.action.hover
+                                : "inherit",
                             borderLeft: isActive
                               ? "4px solid #1976d2"
                               : "4px solid transparent",
@@ -1039,7 +1031,7 @@ export const AnalisesMain = () => {
                                 e.stopPropagation();
                                 handleSelectRowEventos(
                                   reg.id,
-                                  e.target.checked
+                                  e.target.checked,
                                 );
                               }}
                               disabled={isLoading}
@@ -1104,7 +1096,7 @@ export const AnalisesMain = () => {
               <ReactMarkdown>
                 {getMessages()
                   .map(
-                    (m) => (m.role === "user" ? "Usuário: " : "IA: ") + m.text
+                    (m) => (m.role === "user" ? "Usuário: " : "IA: ") + m.text,
                   )
                   .join("\n\n")}
               </ReactMarkdown>

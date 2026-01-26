@@ -13,8 +13,9 @@ export const PROMPT_RAG_ANALISE = 102;
 export const PROMPT_RAG_JULGAMENTO = 103;
 export const PROMPT_RAG_DECISAO = 104;
 export const PROMPT_RAG_DESPACHO = 105;
-export const PROMPT_RAG_FORMATA_SENTENCA = 300;
+export const PROMPT_AUTUACAO_SENTENCA = 300;
 export const PROMPT_RAG_COMPLEMENTA_JULGAMENTO = 301;
+export const PROMPT_AUTUACAO_CERTIDAO = 302;
 export const PROMPT_RAG_OUTROS = 999;
 
 // Lista de naturezas (tipos) de prompts
@@ -32,12 +33,16 @@ export const itemsNatureza: Item[] = [
   { key: PROMPT_RAG_DECISAO, description: "Análise de Decisão (RAG)" },
   { key: PROMPT_RAG_DESPACHO, description: "Análise de Despacho (RAG)" },
   {
-    key: PROMPT_RAG_FORMATA_SENTENCA,
-    description: "Formatar sentença para RAG",
+    key: PROMPT_AUTUACAO_SENTENCA,
+    description: "Autuação de sentença",
   },
   {
     key: PROMPT_RAG_COMPLEMENTA_JULGAMENTO,
     description: "Complementa Julgamento(RAG)",
+  },
+  {
+    key: PROMPT_AUTUACAO_CERTIDAO,
+    description: "Autuação de certidão",
   },
   {
     key: PROMPT_RAG_OUTROS,

@@ -56,7 +56,7 @@ type ContextoRow = {
   prompt_tokens: number;
   completion_tokens: number;
   dt_inc: Date; // Data de inclusão do processo
-  UsernameInc: string;
+  username_inc: string;
   status: string;
 };
 
