@@ -22,6 +22,8 @@ export interface PipelineData {
 
   output: AssistantOutputItem[] | null;
 
+  response_id?: string; // <-- "resp_..."
+
   eventCode?: number;
   eventDesc?: string;
 }
@@ -45,7 +47,7 @@ type ParsedPipelineResult =
   | { kind: "error"; message: string; debug?: string };
 
 export function parsePipelineResponse(
-  resp: StandardResponse<PipelineData>
+  resp: StandardResponse<PipelineData>,
 ): ParsedPipelineResult {
   const data = resp.data;
 
@@ -126,7 +128,7 @@ function isPipelineData(v: unknown): v is PipelineData {
 }
 
 export function isPipelineStandardResponse(
-  v: unknown
+  v: unknown,
 ): v is StandardResponse<PipelineData> {
   if (!isRecord(v)) return false;
 

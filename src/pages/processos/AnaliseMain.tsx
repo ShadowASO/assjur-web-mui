@@ -447,7 +447,7 @@ export const AnalisesMain = () => {
       const localId = `srv_${Date.now()}`;
 
       setDialogo((prev) => (prev ? `${prev}\n\n${msg}` : msg));
-      setPrevId(localId);
+      //setPrevId(localId);
       addMessage(localId, "assistant", msg);
     },
     [addMessage],
@@ -490,7 +490,7 @@ export const AnalisesMain = () => {
             setDialogo((prev) =>
               prev ? `${prev}\n\n${confirmacao}` : confirmacao,
             );
-            setPrevId(output.id);
+            //setPrevId(output.id);
             break;
           }
 
@@ -513,7 +513,7 @@ export const AnalisesMain = () => {
             setDialogo((prev) =>
               prev ? `${prev}\n\n${textoComplemento}` : textoComplemento,
             );
-            setPrevId(output.id);
+            //setPrevId(output.id);
             break;
           }
 
@@ -522,7 +522,7 @@ export const AnalisesMain = () => {
             const complementoOutput = criarOutputItem(output.id, resposta);
             addOutput(complementoOutput);
             setDialogo((prev) => (prev ? `${prev}\n\n${resposta}` : resposta));
-            setPrevId(output.id);
+            //setPrevId(output.id);
             break;
           }
 
@@ -531,7 +531,7 @@ export const AnalisesMain = () => {
             const complementoOutput = criarOutputItem(output.id, resposta);
             addOutput(complementoOutput);
             setDialogo((prev) => (prev ? `${prev}\n\n${resposta}` : resposta));
-            setPrevId(output.id);
+            //setPrevId(output.id);
             break;
           }
 
@@ -540,7 +540,7 @@ export const AnalisesMain = () => {
             setDialogo((prev) =>
               prev ? `${prev}\n\n${maybeText}` : maybeText,
             );
-            setPrevId(output.id);
+          //setPrevId(output.id);
         }
       } catch (err) {
         console.error("Erro ao processar resposta:", err);
@@ -556,7 +556,7 @@ export const AnalisesMain = () => {
         );
         addOutput(erroOutput);
         setDialogo((prev) => (prev ? `${prev}\n\n${maybeText}` : maybeText));
-        setPrevId(output.id);
+        //setPrevId(output.id);
       }
     },
     [addOutput],
@@ -568,6 +568,11 @@ export const AnalisesMain = () => {
   const processPipelineOutput = useCallback(
     async (pipelineData: PipelineData) => {
       const outputArr = pipelineData.output;
+      //console.log(prevId);
+      if (pipelineData.response_id?.startsWith("resp_")) {
+        setPrevId(pipelineData.response_id);
+        console.log(prevId);
+      }
       if (pipelineData.output === null) {
         const msg = (pipelineData.message ?? "").trim();
         if (msg) {
@@ -575,7 +580,7 @@ export const AnalisesMain = () => {
           const out = criarOutputItem(localId, msg, "completed");
           addOutput(out);
           setDialogo((prev) => (prev ? `${prev}\n\n${msg}` : msg));
-          setPrevId(localId);
+          //setPrevId(localId);
           addMessage(localId, "assistant", msg);
         }
         return;
@@ -663,7 +668,8 @@ export const AnalisesMain = () => {
 
       // ✅ mantém UX: registra a msg do usuário antes da chamada
       const userQuery: IMessageResponseItem = {
-        id: prevId,
+        //id: prevId,
+        id: `usr_${Date.now()}`, // id local só para UI
         role: "user",
         text,
       };
@@ -676,7 +682,9 @@ export const AnalisesMain = () => {
         const payload = {
           id_ctxt: idCtxt,
           messages: msg,
-          previd: prevId,
+          prev_id: "",
+          //prev_id: prevId,
+          //prev_id: prevId.startsWith("resp_") ? prevId : "",
         };
 
         const rawResp = await Api.post("/contexto/query/analise", payload);

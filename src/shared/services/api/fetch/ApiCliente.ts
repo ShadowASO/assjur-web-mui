@@ -142,7 +142,7 @@ export class ApiCliente {
   async get(
     url: string,
     query?: Record<string, string>,
-    options?: Partial<RequestOptions>
+    options?: Partial<RequestOptions>,
   ): Promise<StandardBodyResponse> {
     return this.request({ method: "GET", url, query, ...options });
   }
@@ -150,7 +150,7 @@ export class ApiCliente {
   async post(
     url: string,
     body?: unknown,
-    options?: Partial<RequestOptions>
+    options?: Partial<RequestOptions>,
   ): Promise<StandardBodyResponse> {
     return this.request({ method: "POST", url, body, ...options });
   }
@@ -158,14 +158,14 @@ export class ApiCliente {
   async put(
     url: string,
     body?: unknown,
-    options?: Partial<RequestOptions>
+    options?: Partial<RequestOptions>,
   ): Promise<StandardBodyResponse> {
     return this.request({ method: "PUT", url, body, ...options });
   }
 
   async delete(
     url: string,
-    options?: Partial<RequestOptions>
+    options?: Partial<RequestOptions>,
   ): Promise<StandardBodyResponse> {
     return this.request({ method: "DELETE", url, ...options });
   }
@@ -203,7 +203,7 @@ export class ApiCliente {
     } catch (error) {
       console.error(
         "Erro inesperado ao verificar a validade da conexão: ",
-        error
+        error,
       );
       throw error instanceof Error
         ? error
